@@ -72,6 +72,10 @@ export class Renderer {
       // intentionally writing alpha = 0. The original pass renders without
       // blending; additive blending would multiply RGB by that zero alpha.
       blending: THREE.NoBlending,
+      // LightGL leaves culling disabled for this pass. Refractive projection
+      // can reverse focused triangles, and those triangles must still write
+      // their caustic intensity.
+      side: THREE.DoubleSide,
       depthTest: false,
       depthWrite: false,
     })
