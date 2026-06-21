@@ -64,11 +64,14 @@ async function init() {
     '/zpos.jpg',
     '/zneg.jpg',
   ])
-  // The original LightGL renderer samples the JPEG cubemap values directly.
-  // CubeTextureLoader defaults to sRGB decoding, but these legacy shaders do
-  // their lighting in that original encoded color space and do not re-encode
-  // their final output.
+  // Match the original Cubemap upload path exactly. LightGL flips every face,
+  // samples the encoded JPEG values directly, and uses linear filtering
+  // without mipmaps.
+  cubemap.flipY = true
   cubemap.colorSpace = THREE.NoColorSpace
+  cubemap.minFilter = THREE.LinearFilter
+  cubemap.magFilter = THREE.LinearFilter
+  cubemap.generateMipmaps = false
 
   water = new Water(threeRenderer)
   renderer = new Renderer(threeRenderer, tileTexture, cubemap)
@@ -88,7 +91,7 @@ async function init() {
       Math.random() * 2 - 1,
       Math.random() * 2 - 1,
       0.03,
-      i % 2 === 0 ? 0.01 : -0.01
+      i % 2 === 0 ? -0.01 : 0.01
     )
   }
 
