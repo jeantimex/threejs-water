@@ -68,7 +68,10 @@ export class Renderer {
         sphereCenter: { value: new THREE.Vector3().copy(this.sphereCenter) },
         sphereRadius: { value: this.sphereRadius },
       },
-      blending: THREE.AdditiveBlending,
+      // The shader stores caustic intensity and shadow data in RGB while
+      // intentionally writing alpha = 0. The original pass renders without
+      // blending; additive blending would multiply RGB by that zero alpha.
+      blending: THREE.NoBlending,
       depthTest: false,
       depthWrite: false,
     })
