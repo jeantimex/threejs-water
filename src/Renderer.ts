@@ -91,7 +91,10 @@ export class Renderer {
         sky: { value: this.cubemap },
         eye: { value: new THREE.Vector3() },
       },
-      side: THREE.DoubleSide,
+      // PlaneGeometry faces +Z, but the vertex shader swizzles XY to XZ,
+      // reversing the winding so the surface points down. From above we see
+      // the back face, matching the original gl.cullFace(gl.FRONT) pass.
+      side: THREE.BackSide,
       depthTest: true,
       depthWrite: true,
     })
@@ -109,7 +112,9 @@ export class Renderer {
         sky: { value: this.cubemap },
         eye: { value: new THREE.Vector3() },
       },
-      side: THREE.DoubleSide,
+      // Complement the above-water pass. The original underwater pass uses
+      // gl.cullFace(gl.BACK), which is Three.js FrontSide.
+      side: THREE.FrontSide,
       depthTest: true,
       depthWrite: true,
     })
@@ -149,7 +154,9 @@ export class Renderer {
         causticTex: { value: this.causticTex.texture },
         water: { value: null },
       },
-      side: THREE.BackSide,
+      // Match the original renderer's default gl.cullFace(gl.BACK). The pool
+      // vertex shader reverses Y and therefore reverses the final winding.
+      side: THREE.FrontSide,
       depthTest: true,
       depthWrite: true,
     })
