@@ -75,6 +75,7 @@ export class Renderer {
 
     const waterGeometry = new THREE.PlaneGeometry(2, 2, 200, 200)
     this.causticsMesh = new THREE.Mesh(waterGeometry, this.causticsMaterial)
+    this.causticsMesh.frustumCulled = false
     this.causticsScene.add(this.causticsMesh)
 
     this.waterAboveMaterial = new THREE.ShaderMaterial({
@@ -115,7 +116,9 @@ export class Renderer {
 
     const waterMeshGeometry = new THREE.PlaneGeometry(2, 2, 200, 200)
     this.waterMesh = new THREE.Mesh(waterMeshGeometry, this.waterAboveMaterial)
+    this.waterMesh.frustumCulled = false
     this.waterMeshBack = new THREE.Mesh(waterMeshGeometry.clone(), this.waterBelowMaterial)
+    this.waterMeshBack.frustumCulled = false
 
     this.sphereMaterial = new THREE.ShaderMaterial({
       vertexShader: sphereRenderVert,
@@ -133,6 +136,7 @@ export class Renderer {
 
     const sphereGeometry = new THREE.SphereGeometry(1, 32, 32)
     this.sphereMesh = new THREE.Mesh(sphereGeometry, this.sphereMaterial)
+    this.sphereMesh.frustumCulled = false
 
     this.cubeMaterial = new THREE.ShaderMaterial({
       vertexShader: cubeVert,
@@ -152,6 +156,7 @@ export class Renderer {
 
     const cubeGeometry = this.createPoolGeometry()
     this.cubeMesh = new THREE.Mesh(cubeGeometry, this.cubeMaterial)
+    this.cubeMesh.frustumCulled = false
   }
 
   private createPoolGeometry(): THREE.BufferGeometry {

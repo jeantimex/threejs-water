@@ -170,17 +170,13 @@ function draw() {
     if (paused) renderer.updateCaustics(water)
   }
 
-  const xRad = angleX * Math.PI / 180
-  const yRad = angleY * Math.PI / 180
-
-  const distance = 4
   const target = new THREE.Vector3(0, -0.5, 0)
 
-  camera.position.set(
-    distance * Math.cos(xRad) * Math.sin(yRad),
-    distance * Math.sin(xRad) + target.y,
-    distance * Math.cos(xRad) * Math.cos(yRad)
-  )
+  const offset = new THREE.Vector3(0, 0, 4)
+  offset.applyAxisAngle(new THREE.Vector3(1, 0, 0), angleX * Math.PI / 180)
+  offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleY * Math.PI / 180)
+
+  camera.position.copy(target).add(offset)
   camera.up.set(0, 1, 0)
   camera.lookAt(target)
 
