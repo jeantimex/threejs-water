@@ -64,6 +64,11 @@ async function init() {
     '/zpos.jpg',
     '/zneg.jpg',
   ])
+  // The original LightGL renderer samples the JPEG cubemap values directly.
+  // CubeTextureLoader defaults to sRGB decoding, but these legacy shaders do
+  // their lighting in that original encoded color space and do not re-encode
+  // their final output.
+  cubemap.colorSpace = THREE.NoColorSpace
 
   water = new Water(threeRenderer)
   renderer = new Renderer(threeRenderer, tileTexture, cubemap)
