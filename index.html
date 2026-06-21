@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebGL Water - Three.js</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        overflow: hidden;
+        background: #000;
+        font-family: Arial, sans-serif;
+      }
+      #app {
+        width: 100vw;
+        height: 100vh;
+      }
+      #help {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        padding: 20px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      #help h3 {
+        margin-bottom: 10px;
+      }
+      #help ul {
+        list-style: none;
+        padding: 0;
+      }
+      #help li {
+        margin-bottom: 8px;
+      }
+      #loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #fff;
+        font-size: 18px;
+        z-index: 100;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="help">
+      <h3>WebGL Water</h3>
+      <ul>
+        <li>Drag on water to make waves</li>
+        <li>Drag on sphere to move it</li>
+        <li>Drag elsewhere to rotate</li>
+        <li>Press G for gravity</li>
+        <li>Press SPACE to pause</li>
+        <li>Hold L to set light dir</li>
+      </ul>
+    </div>
+    <div id="loading">Loading...</div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
