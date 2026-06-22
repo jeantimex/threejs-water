@@ -300,22 +300,7 @@ void main() {
   vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, abovewaterColor);
 
   if (torusKnotEnabled) {
-    vec4 reflectedObject = sampleProjectedTexture(
-      objectReflectionTex,
-      reflectionViewProjectionMatrix,
-      vPosition
-    );
-    vec4 refractedObject = sampleProjectedTexture(
-      objectRefractionTex,
-      viewProjectionMatrix,
-      vPosition
-    );
-    refractedObject = max(refractedObject, sampleObjectRefraction(vPosition, refractedRay));
-    reflectedColor = mix(
-      reflectedColor,
-      reflectedObject.rgb,
-      reflectedObject.a * smoothstep(0.7, 1.0, fresnel)
-    );
+    vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
   }
 
