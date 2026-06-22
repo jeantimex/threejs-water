@@ -249,6 +249,16 @@ vec4 sampleObjectRefraction(vec3 origin, vec3 ray, vec3 center, float radius) {
   );
 }
 
+vec4 sampleObjectReflection(vec3 origin, vec3 ray, vec3 center, float radius) {
+  float hit = intersectSphereBounds(origin, ray, center, radius);
+  if (hit >= 1.0e6) return vec4(0.0);
+  return sampleProjectedTexture(
+    objectReflectionTex,
+    reflectionViewProjectionMatrix,
+    origin + ray * hit
+  );
+}
+
 vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
   float sphereDistance = sphereEnabled ? intersectSphere(origin, ray, sphereCenter, sphereRadius) : 1.0e6;
@@ -308,9 +318,13 @@ void main() {
   if (torusKnotEnabled) {
     vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, torusKnotCenter, 0.31);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
+    vec4 reflectedObject = sampleObjectReflection(vPosition, reflectedRay, torusKnotCenter, 0.31);
+    reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
   } else if (meshEnabled) {
     vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, meshCenter, meshBoundingRadius);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
+    vec4 reflectedObject = sampleObjectReflection(vPosition, reflectedRay, meshCenter, meshBoundingRadius);
+    reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
   }
 
   gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);

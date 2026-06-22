@@ -249,6 +249,16 @@ vec4 sampleObjectRefraction(vec3 origin, vec3 ray, vec3 center, float radius) {
   );
 }
 
+vec4 sampleObjectReflection(vec3 origin, vec3 center, float radius) {
+  float dist = length(origin - center);
+  if (dist > radius * 2.0) return vec4(0.0);
+  return sampleProjectedTexture(
+    objectReflectionTex,
+    reflectionViewProjectionMatrix,
+    origin
+  );
+}
+
 vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
   float sphereDistance = sphereEnabled ? intersectSphere(origin, ray, sphereCenter, sphereRadius) : 1.0e6;

@@ -95,10 +95,11 @@ export class ObjectTexturePass {
       return
     }
 
-    const material = (renderableObject as THREE.Mesh).material as THREE.ShaderMaterial
-    const hasIsTexturePass = material.uniforms && material.uniforms.isTexturePass
-    if (hasIsTexturePass) {
-      material.uniforms.isTexturePass.value = true
+    const materials = this.collectMaterials(renderableObject)
+    for (const mat of materials) {
+      if (mat.uniforms?.isTexturePass) {
+        mat.uniforms.isTexturePass.value = true
+      }
     }
 
     this.withHiddenWaterMeshes(scene, () => {
@@ -109,8 +110,10 @@ export class ObjectTexturePass {
       })
     })
 
-    if (hasIsTexturePass) {
-      material.uniforms.isTexturePass.value = false
+    for (const mat of materials) {
+      if (mat.uniforms?.isTexturePass) {
+        mat.uniforms.isTexturePass.value = false
+      }
     }
   }
 
@@ -192,5 +195,15 @@ export class ObjectTexturePass {
     for (const [object, visible] of changed) {
       object.visible = visible
     }
+  }
+
+  private collectMaterials(object: THREE.Object3D): THREE.ShaderMaterial[] {
+    const materials: THREE.ShaderMaterial[] = []
+    object.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.ShaderMaterial) {
+        materials.push(child.material)
+      }
+    })
+    return materials
   }
 }

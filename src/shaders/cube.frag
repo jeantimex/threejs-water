@@ -14,6 +14,9 @@ uniform vec3 cubeHalfSize;
 uniform bool cubeEnabled;
 uniform vec3 torusKnotCenter;
 uniform bool torusKnotEnabled;
+uniform vec3 meshCenter;
+uniform float meshBoundingRadius;
+uniform bool meshEnabled;
 uniform sampler2D tiles;
 uniform sampler2D causticTex;
 uniform sampler2D water;
@@ -54,6 +57,9 @@ vec3 getWallColor(vec3 point) {
   } else if (torusKnotEnabled) {
     float knotDistance = length(point - torusKnotCenter);
     scale *= 1.0 - 0.9 / pow(knotDistance / 0.31, 4.0);
+  } else if (meshEnabled) {
+    float meshDistance = length(point - meshCenter);
+    scale *= 1.0 - 0.9 / pow(meshDistance / meshBoundingRadius, 4.0);
   }
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);

@@ -57,10 +57,11 @@ export class Renderer {
     camera: THREE.PerspectiveCamera,
     renderableObject: THREE.Object3D | null
   ) {
+    const needsObjectTextures = this.opticsState.torusKnotEnabled || this.opticsState.meshEnabled
     this.objectTextures.update(
       scene,
       camera,
-      this.opticsState.torusKnotEnabled ? renderableObject : null
+      needsObjectTextures ? renderableObject : null
     )
   }
 
