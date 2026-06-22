@@ -26,6 +26,16 @@ vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
   return vec2(tNear, tFar);
 }
 
+float cubeOcclusion(vec3 origin, vec3 direction) {
+  vec2 hit = intersectCube(
+    origin,
+    direction,
+    cubeCenter - cubeHalfSize,
+    cubeCenter + cubeHalfSize
+  );
+  return step(0.0, hit.y) * step(hit.x, hit.y);
+}
+
 void main() {
   float oldArea = length(dFdx(oldPos)) * length(dFdy(oldPos));
   float newArea = length(dFdx(newPos)) * length(dFdy(newPos));
@@ -43,14 +53,21 @@ void main() {
     shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
     gl_FragColor.g = shadow;
   } else if (cubeEnabled) {
-    float cubeRadius = max(max(cubeHalfSize.x, cubeHalfSize.y), cubeHalfSize.z);
-    vec3 dir = (cubeCenter - newPos) / cubeRadius;
-    vec3 area = cross(dir, refractedLight);
-    float shadow = dot(area, area);
-    float dist = dot(dir, -refractedLight);
-    shadow = 1.0 + (shadow - 1.0) / (0.05 + dist * 0.025);
-    shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);
-    gl_FragColor.g = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
+    vec3 shadowRay = -refractedLight;
+    vec3 right = normalize(cross(shadowRay, vec3(0.0, 1.0, 0.0)));
+    vec3 up = normalize(cross(right, shadowRay));
+    float occlusion = 0.0;
+    const float spread = 0.025;
+
+    for (int x = -1; x <= 1; x++) {
+      for (int y = -1; y <= 1; y++) {
+        vec3 sampleOrigin = newPos
+          + right * float(x) * spread
+          + up * float(y) * spread;
+        occlusion += cubeOcclusion(sampleOrigin, shadowRay);
+      }
+    }
+    gl_FragColor.g = 1.0 - occlusion / 9.0;
   } else {
     gl_FragColor.g = 1.0;
   }
