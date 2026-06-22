@@ -12,7 +12,7 @@ varying vec3 vPosition;
 varying vec3 vNormal;
 
 void main() {
-  vec3 color = vec3(0.7, 0.4, 0.8); // Beautiful purple/magenta
+  vec3 color = vec3(0.5);
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(-refractedLight, normalize(vNormal))) * 0.5;
   vec4 info = texture2D(water, vPosition.xz * 0.5 + 0.5);

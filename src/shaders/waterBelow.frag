@@ -165,7 +165,7 @@ vec3 getCubeColor(vec3 point) {
 }
 
 vec3 getTorusKnotColor(vec3 point) {
-  vec3 color = vec3(0.7, 0.4, 0.8); // Beautiful purple/magenta
+  vec3 color = vec3(0.5);
   vec3 normal = getTorusKnotNormal(point, torusKnotCenter);
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(-refractedLight, normal)) * 0.5;
