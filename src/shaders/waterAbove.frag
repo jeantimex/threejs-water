@@ -68,14 +68,14 @@ float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
 
 float sdTorusKnot(vec3 p, vec3 center) {
   vec3 pos = p - center;
-  float d_bound = length(pos) - 0.28;
+  float d_bound = length(pos) - 0.31;
   if (d_bound > 0.08) {
     return d_bound;
   }
   float minDist = 1.0e6;
   const int segments = 64;
-  const float radius = 0.15;
-  const float tube = 0.04;
+  const float radius = 0.17;
+  const float tube = 0.045;
   const float p_knot = 2.0;
   const float q_knot = 3.0;
   
@@ -101,7 +101,7 @@ float sdTorusKnot(vec3 p, vec3 center) {
 }
 
 float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
-  float t_bound = intersectSphereBounds(origin, ray, center, 0.28);
+  float t_bound = intersectSphereBounds(origin, ray, center, 0.31);
   if (t_bound > 1.0e5) return 1.0e6;
   
   float t = t_bound;
@@ -204,7 +204,7 @@ vec3 getWallColor(vec3 point) {
     scale *= 1.0 - 0.9 / pow(max(cubeDistance, 0.001), 4.0);
   } else if (torusKnotEnabled) {
     float knotDistance = length(point - torusKnotCenter);
-    scale *= 1.0 - 0.9 / pow(knotDistance / 0.27, 4.0);
+    scale *= 1.0 - 0.9 / pow(knotDistance / 0.31, 4.0);
   }
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
@@ -234,7 +234,7 @@ vec4 sampleProjectedTexture(sampler2D tex, mat4 matrix, vec3 point) {
 }
 
 vec4 sampleObjectRefraction(vec3 origin, vec3 ray) {
-  float hit = intersectSphere(origin, ray, torusKnotCenter, 0.27);
+  float hit = intersectSphere(origin, ray, torusKnotCenter, 0.31);
   if (hit >= 1.0e6) return vec4(0.0);
   return sampleProjectedTexture(
     objectRefractionTex,

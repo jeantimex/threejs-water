@@ -70,14 +70,14 @@ float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
 
 float sdTorusKnot(vec3 p, vec3 center) {
   vec3 pos = p - center;
-  float d_bound = length(pos) - 0.28;
+  float d_bound = length(pos) - 0.31;
   if (d_bound > 0.08) {
     return d_bound;
   }
   float minDist = 1.0e6;
   const int segments = 64;
-  const float radius = 0.15;
-  const float tube = 0.04;
+  const float radius = 0.17;
+  const float tube = 0.045;
   const float p_knot = 2.0;
   const float q_knot = 3.0;
   
@@ -103,7 +103,7 @@ float sdTorusKnot(vec3 p, vec3 center) {
 }
 
 float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
-  float t_bound = intersectSphereBounds(origin, ray, center, 0.28);
+  float t_bound = intersectSphereBounds(origin, ray, center, 0.31);
   if (t_bound > 1.0e5) return 1.0e6;
   
   float t = t_bound;

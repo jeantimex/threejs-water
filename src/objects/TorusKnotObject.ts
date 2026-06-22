@@ -8,7 +8,7 @@ import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 
 export class TorusKnotObject implements SimulationObject {
   readonly name = 'TorusKnot'
-  readonly boundingRadius = 0.27
+  readonly boundingRadius = 0.31
   readonly position = new THREE.Vector3(-0.4, this.boundingRadius - 1, 0.2)
   readonly velocity = new THREE.Vector3()
   readonly displacement: CompoundSphereWaterDisplacement
@@ -38,7 +38,7 @@ export class TorusKnotObject implements SimulationObject {
     })
 
     // Create TorusKnot mesh
-    const geometry = new THREE.TorusKnotGeometry(0.15, 0.04, 64, 8)
+    const geometry = new THREE.TorusKnotGeometry(0.17, 0.045, 64, 8)
     geometry.rotateX(Math.PI / 2)
     this.mesh = new THREE.Mesh(geometry, this.material)
     this.mesh.frustumCulled = false
@@ -47,8 +47,8 @@ export class TorusKnotObject implements SimulationObject {
     // Generate compound spheres for water displacement
     const spheres = []
     const segments = 64
-    const radius = 0.15
-    const tube = 0.04
+    const radius = 0.17
+    const tube = 0.045
     const p = 2
     const q = 3
     for (let i = 0; i < segments; i++) {
