@@ -7,6 +7,8 @@ import cubeVert from './shaders/cube.vert'
 import cubeFrag from './shaders/cube.frag'
 import sphereRenderVert from './shaders/sphereRender.vert'
 import sphereRenderFrag from './shaders/sphereRender.frag'
+import objectCubeRenderVert from './shaders/objectCubeRender.vert'
+import objectCubeRenderFrag from './shaders/objectCubeRender.frag'
 import waterAboveVert from './shaders/waterAbove.vert'
 import waterAboveFrag from './shaders/waterAbove.frag'
 import waterBelowVert from './shaders/waterBelow.vert'
@@ -17,6 +19,9 @@ export class Renderer {
   private sphereCenter: THREE.Vector3
   private sphereRadius: number
   private sphereEnabled: boolean
+  private objectCubeCenter: THREE.Vector3
+  private objectCubeHalfSize: THREE.Vector3
+  private objectCubeEnabled: boolean
 
   private renderer: THREE.WebGLRenderer
   private causticTex: THREE.WebGLRenderTarget
@@ -26,7 +31,8 @@ export class Renderer {
   private waterMesh: THREE.Mesh
   private waterMeshBack: THREE.Mesh
   private sphereMesh: THREE.Mesh
-  private cubeMesh: THREE.Mesh
+  private objectCubeMesh: THREE.Mesh
+  private poolMesh: THREE.Mesh
 
   private causticsScene: THREE.Scene
   private causticsCamera: THREE.OrthographicCamera
@@ -36,7 +42,8 @@ export class Renderer {
   private waterAboveMaterial: THREE.ShaderMaterial
   private waterBelowMaterial: THREE.ShaderMaterial
   private sphereMaterial: THREE.ShaderMaterial
-  private cubeMaterial: THREE.ShaderMaterial
+  private objectCubeMaterial: THREE.ShaderMaterial
+  private poolMaterial: THREE.ShaderMaterial
 
   constructor(
     renderer: THREE.WebGLRenderer,
@@ -51,6 +58,9 @@ export class Renderer {
     this.sphereCenter = new THREE.Vector3()
     this.sphereRadius = 0.25
     this.sphereEnabled = true
+    this.objectCubeCenter = new THREE.Vector3()
+    this.objectCubeHalfSize = new THREE.Vector3(0.22, 0.22, 0.22)
+    this.objectCubeEnabled = false
 
     this.causticTex = new THREE.WebGLRenderTarget(1024, 1024, {
       minFilter: THREE.LinearFilter,
@@ -70,6 +80,9 @@ export class Renderer {
         sphereCenter: { value: new THREE.Vector3().copy(this.sphereCenter) },
         sphereRadius: { value: this.sphereRadius },
         sphereEnabled: { value: this.sphereEnabled },
+        cubeCenter: { value: new THREE.Vector3().copy(this.objectCubeCenter) },
+        cubeHalfSize: { value: new THREE.Vector3().copy(this.objectCubeHalfSize) },
+        cubeEnabled: { value: this.objectCubeEnabled },
       },
       // The shader stores caustic intensity and shadow data in RGB while
       // intentionally writing alpha = 0. The original pass renders without
@@ -96,6 +109,9 @@ export class Renderer {
         sphereCenter: { value: new THREE.Vector3().copy(this.sphereCenter) },
         sphereRadius: { value: this.sphereRadius },
         sphereEnabled: { value: this.sphereEnabled },
+        cubeCenter: { value: new THREE.Vector3().copy(this.objectCubeCenter) },
+        cubeHalfSize: { value: new THREE.Vector3().copy(this.objectCubeHalfSize) },
+        cubeEnabled: { value: this.objectCubeEnabled },
         tiles: { value: this.tileTexture },
         causticTex: { value: this.causticTex.texture },
         water: { value: null },
@@ -118,6 +134,9 @@ export class Renderer {
         sphereCenter: { value: new THREE.Vector3().copy(this.sphereCenter) },
         sphereRadius: { value: this.sphereRadius },
         sphereEnabled: { value: this.sphereEnabled },
+        cubeCenter: { value: new THREE.Vector3().copy(this.objectCubeCenter) },
+        cubeHalfSize: { value: new THREE.Vector3().copy(this.objectCubeHalfSize) },
+        cubeEnabled: { value: this.objectCubeEnabled },
         tiles: { value: this.tileTexture },
         causticTex: { value: this.causticTex.texture },
         water: { value: null },
@@ -155,7 +174,27 @@ export class Renderer {
     this.sphereMesh = new THREE.Mesh(sphereGeometry, this.sphereMaterial)
     this.sphereMesh.frustumCulled = false
 
-    this.cubeMaterial = new THREE.ShaderMaterial({
+    this.objectCubeMaterial = new THREE.ShaderMaterial({
+      vertexShader: objectCubeRenderVert,
+      fragmentShader: objectCubeRenderFrag,
+      uniforms: {
+        light: { value: new THREE.Vector3().copy(this.lightDir) },
+        cubeCenter: { value: new THREE.Vector3().copy(this.objectCubeCenter) },
+        cubeHalfSize: { value: new THREE.Vector3().copy(this.objectCubeHalfSize) },
+        water: { value: null },
+        causticTex: { value: this.causticTex.texture },
+      },
+      depthTest: true,
+      depthWrite: true,
+    })
+    this.objectCubeMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      this.objectCubeMaterial
+    )
+    this.objectCubeMesh.frustumCulled = false
+    this.objectCubeMesh.visible = false
+
+    this.poolMaterial = new THREE.ShaderMaterial({
       vertexShader: cubeVert,
       fragmentShader: cubeFrag,
       uniforms: {
@@ -163,6 +202,9 @@ export class Renderer {
         sphereCenter: { value: new THREE.Vector3().copy(this.sphereCenter) },
         sphereRadius: { value: this.sphereRadius },
         sphereEnabled: { value: this.sphereEnabled },
+        cubeCenter: { value: new THREE.Vector3().copy(this.objectCubeCenter) },
+        cubeHalfSize: { value: new THREE.Vector3().copy(this.objectCubeHalfSize) },
+        cubeEnabled: { value: this.objectCubeEnabled },
         tiles: { value: this.tileTexture },
         causticTex: { value: this.causticTex.texture },
         water: { value: null },
@@ -175,8 +217,8 @@ export class Renderer {
     })
 
     const cubeGeometry = this.createPoolGeometry()
-    this.cubeMesh = new THREE.Mesh(cubeGeometry, this.cubeMaterial)
-    this.cubeMesh.frustumCulled = false
+    this.poolMesh = new THREE.Mesh(cubeGeometry, this.poolMaterial)
+    this.poolMesh.frustumCulled = false
   }
 
   private createPoolGeometry(): THREE.BufferGeometry {
@@ -208,9 +250,7 @@ export class Renderer {
   updateCaustics(water: Water) {
     this.causticsMaterial.uniforms.water.value = water.textureA.texture
     this.causticsMaterial.uniforms.light.value.copy(this.lightDir)
-    this.causticsMaterial.uniforms.sphereCenter.value.copy(this.sphereCenter)
-    this.causticsMaterial.uniforms.sphereRadius.value = this.sphereRadius
-    this.causticsMaterial.uniforms.sphereEnabled.value = this.sphereEnabled
+    this.updateObjectUniforms(this.causticsMaterial)
     this.causticsMaterial.uniformsNeedUpdate = true
 
     this.renderer.setRenderTarget(this.causticTex)
@@ -227,18 +267,14 @@ export class Renderer {
     this.waterAboveMaterial.uniforms.water.value = water.textureA.texture
     this.waterAboveMaterial.uniforms.eye.value.copy(eye)
     this.waterAboveMaterial.uniforms.light.value.copy(this.lightDir)
-    this.waterAboveMaterial.uniforms.sphereCenter.value.copy(this.sphereCenter)
-    this.waterAboveMaterial.uniforms.sphereRadius.value = this.sphereRadius
-    this.waterAboveMaterial.uniforms.sphereEnabled.value = this.sphereEnabled
+    this.updateObjectUniforms(this.waterAboveMaterial)
     this.waterAboveMaterial.uniforms.causticTex.value = this.causticTex.texture
     this.waterAboveMaterial.uniformsNeedUpdate = true
 
     this.waterBelowMaterial.uniforms.water.value = water.textureA.texture
     this.waterBelowMaterial.uniforms.eye.value.copy(eye)
     this.waterBelowMaterial.uniforms.light.value.copy(this.lightDir)
-    this.waterBelowMaterial.uniforms.sphereCenter.value.copy(this.sphereCenter)
-    this.waterBelowMaterial.uniforms.sphereRadius.value = this.sphereRadius
-    this.waterBelowMaterial.uniforms.sphereEnabled.value = this.sphereEnabled
+    this.updateObjectUniforms(this.waterBelowMaterial)
     this.waterBelowMaterial.uniforms.causticTex.value = this.causticTex.texture
     this.waterBelowMaterial.uniformsNeedUpdate = true
   }
@@ -259,14 +295,28 @@ export class Renderer {
     this.sphereMesh.visible = enabled
   }
 
-  renderCube(water: Water) {
-    this.cubeMaterial.uniforms.water.value = water.textureA.texture
-    this.cubeMaterial.uniforms.light.value.copy(this.lightDir)
-    this.cubeMaterial.uniforms.sphereCenter.value.copy(this.sphereCenter)
-    this.cubeMaterial.uniforms.sphereRadius.value = this.sphereRadius
-    this.cubeMaterial.uniforms.sphereEnabled.value = this.sphereEnabled
-    this.cubeMaterial.uniforms.causticTex.value = this.causticTex.texture
-    this.cubeMaterial.uniformsNeedUpdate = true
+  renderObjectCube(water: Water) {
+    this.objectCubeMaterial.uniforms.water.value = water.textureA.texture
+    this.objectCubeMaterial.uniforms.light.value.copy(this.lightDir)
+    this.objectCubeMaterial.uniforms.cubeCenter.value.copy(this.objectCubeCenter)
+    this.objectCubeMaterial.uniforms.cubeHalfSize.value.copy(this.objectCubeHalfSize)
+    this.objectCubeMaterial.uniforms.causticTex.value = this.causticTex.texture
+    this.objectCubeMaterial.uniformsNeedUpdate = true
+  }
+
+  setObjectCubeState(center: THREE.Vector3, halfSize: THREE.Vector3, enabled: boolean) {
+    this.objectCubeCenter.copy(center)
+    this.objectCubeHalfSize.copy(halfSize)
+    this.objectCubeEnabled = enabled
+    this.objectCubeMesh.visible = enabled
+  }
+
+  renderPool(water: Water) {
+    this.poolMaterial.uniforms.water.value = water.textureA.texture
+    this.poolMaterial.uniforms.light.value.copy(this.lightDir)
+    this.updateObjectUniforms(this.poolMaterial)
+    this.poolMaterial.uniforms.causticTex.value = this.causticTex.texture
+    this.poolMaterial.uniformsNeedUpdate = true
   }
 
   getWaterMesh(): THREE.Mesh {
@@ -281,7 +331,20 @@ export class Renderer {
     return this.sphereMesh
   }
 
-  getCubeMesh(): THREE.Mesh {
-    return this.cubeMesh
+  getObjectCubeMesh(): THREE.Mesh {
+    return this.objectCubeMesh
+  }
+
+  getPoolMesh(): THREE.Mesh {
+    return this.poolMesh
+  }
+
+  private updateObjectUniforms(material: THREE.ShaderMaterial) {
+    material.uniforms.sphereCenter.value.copy(this.sphereCenter)
+    material.uniforms.sphereRadius.value = this.sphereRadius
+    material.uniforms.sphereEnabled.value = this.sphereEnabled
+    material.uniforms.cubeCenter.value.copy(this.objectCubeCenter)
+    material.uniforms.cubeHalfSize.value.copy(this.objectCubeHalfSize)
+    material.uniforms.cubeEnabled.value = this.objectCubeEnabled
   }
 }

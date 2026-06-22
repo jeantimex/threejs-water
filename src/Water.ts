@@ -7,6 +7,7 @@ import normalVert from './shaders/normal.vert'
 import normalFrag from './shaders/normal.frag'
 import sphereVert from './shaders/sphere.vert'
 import sphereFrag from './shaders/sphere.frag'
+import moveCubeFrag from './shaders/moveCube.frag'
 
 export class Water {
   textureA: THREE.WebGLRenderTarget
@@ -21,6 +22,7 @@ export class Water {
   private updateMaterial: THREE.ShaderMaterial
   private normalMaterial: THREE.ShaderMaterial
   private sphereMaterial: THREE.ShaderMaterial
+  private moveCubeMaterial: THREE.ShaderMaterial
 
   constructor(renderer: THREE.WebGLRenderer) {
     this.renderer = renderer
@@ -83,6 +85,17 @@ export class Water {
       },
     })
 
+    this.moveCubeMaterial = new THREE.ShaderMaterial({
+      vertexShader: sphereVert,
+      fragmentShader: moveCubeFrag,
+      uniforms: {
+        tInput: { value: null },
+        oldCenter: { value: new THREE.Vector3() },
+        newCenter: { value: new THREE.Vector3() },
+        halfSize: { value: new THREE.Vector3() },
+      },
+    })
+
     this.plane = new THREE.Mesh(geometry, this.dropMaterial)
     this.scene.add(this.plane)
   }
@@ -113,6 +126,20 @@ export class Water {
     this.sphereMaterial.uniforms.oldCenter.value.copy(oldCenter)
     this.sphereMaterial.uniforms.newCenter.value.copy(newCenter)
     this.sphereMaterial.uniforms.radius.value = radius
+
+    this.renderer.setRenderTarget(this.textureB)
+    this.renderer.render(this.scene, this.camera)
+    this.renderer.setRenderTarget(null)
+
+    this.swapTextures()
+  }
+
+  moveCube(oldCenter: THREE.Vector3, newCenter: THREE.Vector3, halfSize: THREE.Vector3) {
+    this.plane.material = this.moveCubeMaterial
+    this.moveCubeMaterial.uniforms.tInput.value = this.textureA.texture
+    this.moveCubeMaterial.uniforms.oldCenter.value.copy(oldCenter)
+    this.moveCubeMaterial.uniforms.newCenter.value.copy(newCenter)
+    this.moveCubeMaterial.uniforms.halfSize.value.copy(halfSize)
 
     this.renderer.setRenderTarget(this.textureB)
     this.renderer.render(this.scene, this.camera)

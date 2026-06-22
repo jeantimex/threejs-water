@@ -10,6 +10,9 @@ uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
 uniform bool sphereEnabled;
+uniform vec3 cubeCenter;
+uniform vec3 cubeHalfSize;
+uniform bool cubeEnabled;
 uniform sampler2D tiles;
 uniform sampler2D causticTex;
 uniform sampler2D water;
@@ -59,6 +62,29 @@ vec3 getSphereColor(vec3 point) {
   return color;
 }
 
+vec3 getCubeColor(vec3 point) {
+  vec3 local = (point - cubeCenter) / cubeHalfSize;
+  vec3 axis = abs(local);
+  vec3 cubeNormal;
+  if (axis.x > axis.y && axis.x > axis.z) {
+    cubeNormal = vec3(sign(local.x), 0.0, 0.0);
+  } else if (axis.y > axis.z) {
+    cubeNormal = vec3(0.0, sign(local.y), 0.0);
+  } else {
+    cubeNormal = vec3(0.0, 0.0, sign(local.z));
+  }
+
+  vec3 color = vec3(0.5);
+  vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
+  float diffuse = max(0.0, dot(-refractedLight, cubeNormal)) * 0.5;
+  vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
+  if (point.y < info.r) {
+    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    diffuse *= caustic.r * 4.0;
+  }
+  return color + diffuse;
+}
+
 vec3 getWallColor(vec3 point) {
   float scale = 0.5;
   vec3 wallColor;
@@ -77,6 +103,9 @@ vec3 getWallColor(vec3 point) {
   scale /= length(point);
   if (sphereEnabled) {
     scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0);
+  } else if (cubeEnabled) {
+    float cubeDistance = length((point - cubeCenter) / cubeHalfSize);
+    scale *= 1.0 - 0.9 / pow(max(cubeDistance, 0.001), 4.0);
   }
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
@@ -95,9 +124,16 @@ vec3 getWallColor(vec3 point) {
 
 vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
-  float q = sphereEnabled ? intersectSphere(origin, ray, sphereCenter, sphereRadius) : 1.0e6;
-  if (q < 1.0e6) {
-    color = getSphereColor(origin + ray * q);
+  float sphereDistance = sphereEnabled ? intersectSphere(origin, ray, sphereCenter, sphereRadius) : 1.0e6;
+  vec2 cubeIntersection = intersectCube(origin, ray, cubeCenter - cubeHalfSize, cubeCenter + cubeHalfSize);
+  bool cubeHit = cubeEnabled && cubeIntersection.x <= cubeIntersection.y && cubeIntersection.y > 0.0;
+  float cubeDistance = cubeHit
+    ? (cubeIntersection.x > 0.0 ? cubeIntersection.x : (cubeIntersection.y > 0.0 ? cubeIntersection.y : 1.0e6))
+    : 1.0e6;
+  float objectDistance = min(sphereDistance, cubeDistance);
+  if (objectDistance < 1.0e6) {
+    vec3 hit = origin + ray * objectDistance;
+    color = sphereDistance < cubeDistance ? getSphereColor(hit) : getCubeColor(hit);
   } else if (ray.y < 0.0) {
     vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
     color = getWallColor(origin + ray * t.y);

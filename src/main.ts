@@ -79,7 +79,7 @@ async function init() {
 
   water = new Water(threeRenderer)
   renderer = new Renderer(threeRenderer, tileTexture, cubemap)
-  scene.add(renderer.getCubeMesh(), renderer.getWaterMesh(), renderer.getWaterMeshBack())
+  scene.add(renderer.getPoolMesh(), renderer.getWaterMesh(), renderer.getWaterMeshBack())
 
   objects = createSimulationObjects(scene, renderer)
   objects.syncRenderer(renderer)
@@ -156,7 +156,7 @@ function draw() {
   }
 
   cameraController.apply(camera)
-  renderer.renderCube(water)
+  renderer.renderPool(water)
   renderer.renderWater(water, camera)
   objects.prepareRender(renderer, water)
   threeRenderer.render(scene, camera)

@@ -9,6 +9,9 @@ uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
 uniform bool sphereEnabled;
+uniform vec3 cubeCenter;
+uniform vec3 cubeHalfSize;
+uniform bool cubeEnabled;
 uniform sampler2D tiles;
 uniform sampler2D causticTex;
 uniform sampler2D water;
@@ -43,6 +46,9 @@ vec3 getWallColor(vec3 point) {
   scale /= length(point);
   if (sphereEnabled) {
     scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0);
+  } else if (cubeEnabled) {
+    float cubeDistance = length((point - cubeCenter) / cubeHalfSize);
+    scale *= 1.0 - 0.9 / pow(max(cubeDistance, 0.001), 4.0);
   }
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);

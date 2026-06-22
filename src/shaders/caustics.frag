@@ -8,6 +8,9 @@ uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
 uniform bool sphereEnabled;
+uniform vec3 cubeCenter;
+uniform vec3 cubeHalfSize;
+uniform bool cubeEnabled;
 
 varying vec3 oldPos;
 varying vec3 newPos;
@@ -39,6 +42,15 @@ void main() {
     shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);
     shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
     gl_FragColor.g = shadow;
+  } else if (cubeEnabled) {
+    float cubeRadius = max(max(cubeHalfSize.x, cubeHalfSize.y), cubeHalfSize.z);
+    vec3 dir = (cubeCenter - newPos) / cubeRadius;
+    vec3 area = cross(dir, refractedLight);
+    float shadow = dot(area, area);
+    float dist = dot(dir, -refractedLight);
+    shadow = 1.0 + (shadow - 1.0) / (0.05 + dist * 0.025);
+    shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);
+    gl_FragColor.g = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
   } else {
     gl_FragColor.g = 1.0;
   }
