@@ -251,7 +251,7 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   float cubeDistance = cubeHit
     ? (cubeIntersection.x > 0.0 ? cubeIntersection.x : (cubeIntersection.y > 0.0 ? cubeIntersection.y : 1.0e6))
     : 1.0e6;
-  float torusKnotDistance = 1.0e6;
+  float torusKnotDistance = (torusKnotEnabled && ray.y > 0.0) ? intersectTorusKnot(origin, ray, torusKnotCenter) : 1.0e6;
   
   float objectDistance = min(min(sphereDistance, cubeDistance), torusKnotDistance);
   if (objectDistance < 1.0e6) {
