@@ -32,6 +32,7 @@ export class TorusKnotObject implements SimulationObject {
         torusKnotCenter: { value: this.position.clone() },
         water: { value: null },
         causticTex: { value: resources.causticTexture },
+        isTexturePass: { value: false },
       },
       depthTest: true,
       depthWrite: true,

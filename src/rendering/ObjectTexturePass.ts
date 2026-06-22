@@ -95,6 +95,12 @@ export class ObjectTexturePass {
       return
     }
 
+    const material = (renderableObject as THREE.Mesh).material as THREE.ShaderMaterial
+    const hasIsTexturePass = material.uniforms && material.uniforms.isTexturePass
+    if (hasIsTexturePass) {
+      material.uniforms.isTexturePass.value = true
+    }
+
     this.withHiddenWaterMeshes(scene, () => {
       this.withTransparentClear(() => {
         this.renderRefraction(scene, camera)
@@ -102,6 +108,10 @@ export class ObjectTexturePass {
         this.renderShadow(scene)
       })
     })
+
+    if (hasIsTexturePass) {
+      material.uniforms.isTexturePass.value = false
+    }
   }
 
   private updateViewProjection(camera: THREE.PerspectiveCamera) {

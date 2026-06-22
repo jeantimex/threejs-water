@@ -7,6 +7,7 @@ const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 uniform vec3 light;
 uniform sampler2D water;
 uniform sampler2D causticTex;
+uniform bool isTexturePass;
 
 varying vec3 vPosition;
 varying vec3 vNormal;
@@ -27,5 +28,5 @@ void main() {
 
   color += diffuse;
   if (vPosition.y < info.r) color *= underwaterColor * 1.2;
-  gl_FragColor = vec4(color, 1.0);
+  gl_FragColor = vec4(color, (!isTexturePass || vPosition.y < info.r) ? 1.0 : 0.0);
 }
