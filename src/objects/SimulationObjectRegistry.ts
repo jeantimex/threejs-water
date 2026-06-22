@@ -1,4 +1,4 @@
-import type * as THREE from 'three'
+import * as THREE from 'three'
 import type { Renderer } from '../Renderer'
 import type { Water } from '../Water'
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
@@ -8,6 +8,7 @@ export const NO_OBJECT = 'None'
 export class SimulationObjectRegistry {
   private readonly objects = new Map<string, SimulationObject>()
   private activeObject: SimulationObject | null = null
+  private readonly sharedPosition = new THREE.Vector3()
 
   constructor(private readonly scene: THREE.Scene) {}
 
@@ -17,7 +18,10 @@ export class SimulationObjectRegistry {
     }
     this.objects.set(object.name, object)
     this.scene.add(object.mesh)
-    if (active) this.activeObject = object
+    if (active) {
+      this.activeObject = object
+      this.sharedPosition.copy(object.position)
+    }
     return this
   }
 
@@ -36,9 +40,15 @@ export class SimulationObjectRegistry {
     }
     if (nextObject === this.activeObject) return
 
-    this.activeObject?.setEnabled(false, water, renderer)
+    if (this.activeObject) {
+      this.sharedPosition.copy(this.activeObject.position)
+      this.activeObject.setEnabled(false, water, renderer)
+    }
     this.activeObject = nextObject ?? null
-    this.activeObject?.setEnabled(true, water, renderer)
+    if (this.activeObject) {
+      this.activeObject.position.copy(this.sharedPosition)
+      this.activeObject.setEnabled(true, water, renderer)
+    }
   }
 
   update(seconds: number, context: ObjectUpdateContext, water: Water) {

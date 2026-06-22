@@ -11,6 +11,7 @@ export interface ObjectUpdateContext {
 export interface SimulationObject {
   readonly name: string
   readonly mesh: THREE.Object3D
+  readonly position: THREE.Vector3
   enabled: boolean
 
   setEnabled(enabled: boolean, water: Water, renderer: Renderer): void
