@@ -234,7 +234,7 @@ vec4 sampleProjectedTexture(sampler2D tex, mat4 matrix, vec3 point) {
 }
 
 vec4 sampleObjectRefraction(vec3 origin, vec3 ray) {
-  float hit = intersectSphere(origin, ray, torusKnotCenter, 0.31);
+  float hit = intersectSphereBounds(origin, ray, torusKnotCenter, 0.31);
   if (hit >= 1.0e6) return vec4(0.0);
   return sampleProjectedTexture(
     objectRefractionTex,
