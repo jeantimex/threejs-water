@@ -6,6 +6,11 @@ import waterBelowVert from '../shaders/waterBelow.vert'
 import waterBelowFrag from '../shaders/waterBelow.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
 
+export interface ObjectTextureMatrices {
+  viewProjectionMatrix: THREE.Matrix4
+  reflectionViewProjectionMatrix: THREE.Matrix4
+}
+
 export class WaterSurfacePass {
   readonly aboveMesh: THREE.Mesh
   readonly belowMesh: THREE.Mesh
@@ -16,6 +21,8 @@ export class WaterSurfacePass {
     tileTexture: THREE.Texture,
     cubemap: THREE.CubeTexture,
     causticTexture: THREE.Texture,
+    objectReflectionTexture: THREE.Texture,
+    objectRefractionTexture: THREE.Texture,
     private readonly state: WaterOpticsState
   ) {
     this.aboveMaterial = this.createMaterial(
@@ -24,7 +31,9 @@ export class WaterSurfacePass {
       THREE.BackSide,
       tileTexture,
       cubemap,
-      causticTexture
+      causticTexture,
+      objectReflectionTexture,
+      objectRefractionTexture
     )
     this.belowMaterial = this.createMaterial(
       waterBelowVert,
@@ -32,7 +41,9 @@ export class WaterSurfacePass {
       THREE.FrontSide,
       tileTexture,
       cubemap,
-      causticTexture
+      causticTexture,
+      objectReflectionTexture,
+      objectRefractionTexture
     )
 
     const geometry = new THREE.PlaneGeometry(2, 2, 200, 200)
@@ -42,11 +53,11 @@ export class WaterSurfacePass {
     this.belowMesh.frustumCulled = false
   }
 
-  prepare(water: Water, camera: THREE.Camera) {
+  prepare(water: Water, camera: THREE.Camera, objectMatrices: ObjectTextureMatrices) {
     const eye = new THREE.Vector3()
     camera.getWorldPosition(eye)
-    this.prepareMaterial(this.aboveMaterial, water, eye)
-    this.prepareMaterial(this.belowMaterial, water, eye)
+    this.prepareMaterial(this.aboveMaterial, water, eye, objectMatrices)
+    this.prepareMaterial(this.belowMaterial, water, eye, objectMatrices)
   }
 
   private createMaterial(
@@ -55,7 +66,9 @@ export class WaterSurfacePass {
     side: THREE.Side,
     tileTexture: THREE.Texture,
     cubemap: THREE.CubeTexture,
-    causticTexture: THREE.Texture
+    causticTexture: THREE.Texture,
+    objectReflectionTexture: THREE.Texture,
+    objectRefractionTexture: THREE.Texture
   ) {
     return new THREE.ShaderMaterial({
       vertexShader,
@@ -65,6 +78,10 @@ export class WaterSurfacePass {
         ...this.state.createUniforms(),
         tiles: { value: tileTexture },
         causticTex: { value: causticTexture },
+        objectReflectionTex: { value: objectReflectionTexture },
+        objectRefractionTex: { value: objectRefractionTexture },
+        viewProjectionMatrix: { value: new THREE.Matrix4() },
+        reflectionViewProjectionMatrix: { value: new THREE.Matrix4() },
         water: { value: null },
         sky: { value: cubemap },
         eye: { value: new THREE.Vector3() },
@@ -75,10 +92,19 @@ export class WaterSurfacePass {
     })
   }
 
-  private prepareMaterial(material: THREE.ShaderMaterial, water: Water, eye: THREE.Vector3) {
+  private prepareMaterial(
+    material: THREE.ShaderMaterial,
+    water: Water,
+    eye: THREE.Vector3,
+    objectMatrices: ObjectTextureMatrices
+  ) {
     material.uniforms.water.value = water.textureA.texture
     material.uniforms.eye.value.copy(eye)
     material.uniforms.light.value.copy(this.state.lightDirection)
+    material.uniforms.viewProjectionMatrix.value.copy(objectMatrices.viewProjectionMatrix)
+    material.uniforms.reflectionViewProjectionMatrix.value.copy(
+      objectMatrices.reflectionViewProjectionMatrix
+    )
     this.state.syncUniforms(material)
     material.uniformsNeedUpdate = true
   }

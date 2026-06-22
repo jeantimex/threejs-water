@@ -17,9 +17,13 @@ uniform vec3 torusKnotCenter;
 uniform bool torusKnotEnabled;
 uniform sampler2D tiles;
 uniform sampler2D causticTex;
+uniform sampler2D objectReflectionTex;
+uniform sampler2D objectRefractionTex;
 uniform sampler2D water;
 uniform samplerCube sky;
 uniform vec3 eye;
+uniform mat4 viewProjectionMatrix;
+uniform mat4 reflectionViewProjectionMatrix;
 
 varying vec3 vPosition;
 
@@ -217,6 +221,19 @@ vec3 getWallColor(vec3 point) {
   return wallColor * scale;
 }
 
+vec4 sampleProjectedTexture(sampler2D tex, mat4 matrix, vec3 point) {
+  vec4 clip = matrix * vec4(point, 1.0);
+  vec3 ndc = clip.xyz / max(clip.w, 1.0e-6);
+  vec2 uv = ndc.xy * 0.5 + 0.5;
+  uv.y = 1.0 - uv.y;
+  float inBounds = step(0.0, uv.x)
+    * step(0.0, uv.y)
+    * step(uv.x, 1.0)
+    * step(uv.y, 1.0)
+    * step(0.0, clip.w);
+  return texture2D(tex, clamp(uv, 0.0, 1.0)) * inBounds;
+}
+
 vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
   float sphereDistance = sphereEnabled ? intersectSphere(origin, ray, sphereCenter, sphereRadius) : 1.0e6;
@@ -225,7 +242,7 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   float cubeDistance = cubeHit
     ? (cubeIntersection.x > 0.0 ? cubeIntersection.x : (cubeIntersection.y > 0.0 ? cubeIntersection.y : 1.0e6))
     : 1.0e6;
-  float torusKnotDistance = torusKnotEnabled ? intersectTorusKnot(origin, ray, torusKnotCenter) : 1.0e6;
+  float torusKnotDistance = 1.0e6;
   
   float objectDistance = min(min(sphereDistance, cubeDistance), torusKnotDistance);
   if (objectDistance < 1.0e6) {
@@ -272,6 +289,21 @@ void main() {
 
   vec3 reflectedColor = getSurfaceRayColor(vPosition, reflectedRay, abovewaterColor);
   vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, abovewaterColor);
+
+  if (torusKnotEnabled) {
+    vec4 reflectedObject = sampleProjectedTexture(
+      objectReflectionTex,
+      reflectionViewProjectionMatrix,
+      vPosition
+    );
+    vec4 refractedObject = sampleProjectedTexture(
+      objectRefractionTex,
+      viewProjectionMatrix,
+      vPosition + refractedRay * 0.08
+    );
+    reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
+    refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
+  }
 
   gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);
 }

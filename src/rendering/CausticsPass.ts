@@ -14,7 +14,8 @@ export class CausticsPass {
 
   constructor(
     private readonly renderer: THREE.WebGLRenderer,
-    private readonly state: WaterOpticsState
+    private readonly state: WaterOpticsState,
+    objectShadowTexture: THREE.Texture
   ) {
     this.target = new THREE.WebGLRenderTarget(1024, 1024, {
       minFilter: THREE.LinearFilter,
@@ -29,6 +30,7 @@ export class CausticsPass {
       uniforms: {
         light: { value: state.lightDirection.clone() },
         water: { value: null },
+        objectShadowTex: { value: objectShadowTexture },
         ...state.createUniforms(),
       },
       blending: THREE.NoBlending,

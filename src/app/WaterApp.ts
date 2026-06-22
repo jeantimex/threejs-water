@@ -39,6 +39,7 @@ export class WaterApp {
       this.renderer.getWaterMesh(),
       this.renderer.getWaterMeshBack()
     )
+    this.renderer.markWaterOpticsHidden()
 
     this.objects = createSimulationObjects(this.scene, this.renderer.objectRenderResources)
     this.renderer.setWaterOptics(this.objects.optics)
@@ -102,15 +103,16 @@ export class WaterApp {
     this.water.stepSimulation()
     this.water.updateNormals()
     this.renderer.setWaterOptics(this.objects.optics)
-    this.renderer.updateCaustics(this.water)
   }
 
   private draw = () => {
     this.interaction.preparePausedDraw()
     this.cameraController.apply(this.camera)
+    this.objects.prepareRender(this.water)
+    this.renderer.updateObjectTextures(this.scene, this.camera, this.objects.active?.mesh ?? null)
+    this.renderer.updateCaustics(this.water)
     this.renderer.renderPool(this.water)
     this.renderer.renderWater(this.water, this.camera)
-    this.objects.prepareRender(this.water)
     this.webglRenderer.render(this.scene, this.camera)
   }
 
@@ -121,6 +123,7 @@ export class WaterApp {
     this.camera.aspect = width / height
     this.camera.updateProjectionMatrix()
     this.webglRenderer.setSize(width, height)
+    this.renderer.setSize(width, height)
     this.draw()
   }
 

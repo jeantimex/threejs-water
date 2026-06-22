@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { Water } from './Water'
 import { CausticsPass } from './rendering/CausticsPass'
+import { ObjectTexturePass } from './rendering/ObjectTexturePass'
 import { PoolPass } from './rendering/PoolPass'
 import type {
   SimulationObjectRenderResources,
@@ -14,6 +15,7 @@ export class Renderer {
   readonly objectRenderResources: SimulationObjectRenderResources
 
   private readonly opticsState: WaterOpticsState
+  private readonly objectTextures: ObjectTexturePass
   private readonly caustics: CausticsPass
   private readonly pool: PoolPass
   private readonly waterSurface: WaterSurfacePass
@@ -25,7 +27,8 @@ export class Renderer {
   ) {
     this.opticsState = new WaterOpticsState()
     this.lightDir = this.opticsState.lightDirection
-    this.caustics = new CausticsPass(renderer, this.opticsState)
+    this.objectTextures = new ObjectTexturePass(renderer, this.lightDir)
+    this.caustics = new CausticsPass(renderer, this.opticsState, this.objectTextures.shadowTarget.texture)
     this.objectRenderResources = {
       lightDirection: this.lightDir,
       causticTexture: this.caustics.texture,
@@ -35,12 +38,30 @@ export class Renderer {
       tileTexture,
       cubemap,
       this.caustics.texture,
+      this.objectTextures.reflectionTarget.texture,
+      this.objectTextures.refractionTarget.texture,
       this.opticsState
     )
   }
 
+  setSize(width: number, height: number) {
+    this.objectTextures.setSize(width, height)
+  }
+
   updateCaustics(water: Water) {
     this.caustics.update(water)
+  }
+
+  updateObjectTextures(
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera,
+    renderableObject: THREE.Object3D | null
+  ) {
+    this.objectTextures.update(
+      scene,
+      camera,
+      this.opticsState.torusKnotEnabled ? renderableObject : null
+    )
   }
 
   renderPool(water: Water) {
@@ -48,7 +69,10 @@ export class Renderer {
   }
 
   renderWater(water: Water, camera: THREE.Camera) {
-    this.waterSurface.prepare(water, camera)
+    this.waterSurface.prepare(water, camera, {
+      viewProjectionMatrix: this.objectTextures.viewProjectionMatrix,
+      reflectionViewProjectionMatrix: this.objectTextures.reflectionViewProjectionMatrix,
+    })
   }
 
   setWaterOptics(optics: WaterOpticsDescriptor) {
@@ -65,5 +89,11 @@ export class Renderer {
 
   getWaterMeshBack() {
     return this.waterSurface.belowMesh
+  }
+
+  markWaterOpticsHidden() {
+    this.pool.mesh.userData.waterOpticsHidden = true
+    this.waterSurface.aboveMesh.userData.waterOpticsHidden = true
+    this.waterSurface.belowMesh.userData.waterOpticsHidden = true
   }
 }

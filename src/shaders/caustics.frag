@@ -13,6 +13,7 @@ uniform vec3 cubeHalfSize;
 uniform bool cubeEnabled;
 uniform vec3 torusKnotCenter;
 uniform bool torusKnotEnabled;
+uniform sampler2D objectShadowTex;
 
 varying vec3 oldPos;
 varying vec3 newPos;
@@ -156,20 +157,17 @@ void main() {
     }
     gl_FragColor.g = 1.0 - occlusion / 9.0;
   } else if (torusKnotEnabled) {
-    vec3 shadowRay = -refractedLight;
-    vec3 right = normalize(cross(shadowRay, vec3(0.0, 1.0, 0.0)));
-    vec3 up = normalize(cross(right, shadowRay));
-    float occlusion = 0.0;
-    const float spread = 0.018;
-
-    for (int x = -1; x <= 1; x++) {
-      for (int y = -1; y <= 1; y++) {
-        vec3 sampleOrigin = newPos
-          + right * float(x) * spread
-          + up * float(y) * spread;
-        occlusion += torusKnotOcclusion(sampleOrigin, shadowRay);
-      }
-    }
+    vec2 shadowUV = 0.75 * (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5;
+    const float d = 4.0 / 1024.0;
+    float occlusion = texture2D(objectShadowTex, shadowUV).r;
+    occlusion += texture2D(objectShadowTex, shadowUV + vec2(d, 0.0)).r;
+    occlusion += texture2D(objectShadowTex, shadowUV + vec2(-d, 0.0)).r;
+    occlusion += texture2D(objectShadowTex, shadowUV + vec2(0.0, d)).r;
+    occlusion += texture2D(objectShadowTex, shadowUV + vec2(0.0, -d)).r;
+    occlusion += texture2D(objectShadowTex, shadowUV + vec2(d, d)).r;
+    occlusion += texture2D(objectShadowTex, shadowUV + vec2(-d, d)).r;
+    occlusion += texture2D(objectShadowTex, shadowUV + vec2(d, -d)).r;
+    occlusion += texture2D(objectShadowTex, shadowUV + vec2(-d, -d)).r;
     gl_FragColor.g = 1.0 - 0.8 * occlusion / 9.0;
   } else {
     gl_FragColor.g = 1.0;
