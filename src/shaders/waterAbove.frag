@@ -80,7 +80,7 @@ vec3 getCubeColor(vec3 point) {
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
   if (point.y < info.r) {
     vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
-    diffuse *= caustic.r * 4.0;
+    diffuse = (diffuse + 0.06) * caustic.r * 4.0;
   }
   return color + diffuse;
 }

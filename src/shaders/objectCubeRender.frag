@@ -22,7 +22,7 @@ void main() {
       causticTex,
       0.75 * (vPosition.xz - vPosition.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5
     );
-    diffuse *= caustic.r * 4.0;
+    diffuse = (diffuse + 0.06) * caustic.r * 4.0;
   }
 
   color += diffuse;

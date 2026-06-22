@@ -5,9 +5,9 @@ import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 
 export class CubeObject implements SimulationObject {
   readonly name = 'Cube'
-  readonly position = new THREE.Vector3(-0.4, -0.75, 0.2)
-  readonly velocity = new THREE.Vector3()
   readonly halfSize = new THREE.Vector3(0.22, 0.22, 0.22)
+  readonly position = new THREE.Vector3(-0.4, this.halfSize.y - 1, 0.2)
+  readonly velocity = new THREE.Vector3()
   enabled = false
 
   private readonly previousPosition = this.position.clone()

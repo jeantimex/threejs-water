@@ -41,7 +41,7 @@ const touchPointers = new Map<number, THREE.Vector2>()
 let pinchDistance: number | null = null
 let pinching = false
 
-const keys: Record<string, boolean> = {}
+let settingLightDirection = false
 
 async function init() {
   const container = document.getElementById('app')!
@@ -106,8 +106,8 @@ async function init() {
   threeRenderer.domElement.addEventListener('pointercancel', onPointerEnd)
   threeRenderer.domElement.addEventListener('lostpointercapture', onLostPointerCapture)
   threeRenderer.domElement.addEventListener('wheel', onWheel, { passive: false })
-  document.addEventListener('keydown', onKeyDown)
-  document.addEventListener('keyup', onKeyUp)
+  window.addEventListener('keydown', onKeyDown, { capture: true })
+  window.addEventListener('keyup', onKeyUp, { capture: true })
 
   let prevTime = performance.now()
   function animate() {
@@ -136,6 +136,7 @@ function update(seconds: number) {
   if (seconds > 1) return
 
   cameraController.update(seconds)
+  updateLightDirection()
   objects.update(seconds, {
     dragging: mode === MODE_MOVE_OBJECT,
     physicsEnabled: useObjectPhysics,
@@ -150,10 +151,7 @@ function update(seconds: number) {
 }
 
 function draw() {
-  if (keys.l || keys.L) {
-    cameraController.getLightDirection(renderer.lightDir)
-    if (paused) renderer.updateCaustics(water)
-  }
+  if (updateLightDirection() && paused) renderer.updateCaustics(water)
 
   cameraController.apply(camera)
   renderer.renderPool(water)
@@ -318,22 +316,33 @@ function getPinchDistance() {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  keys[e.key] = true
-  if (e.key === ' ') {
+  if (e.code === 'KeyL') {
+    settingLightDirection = true
+    cameraController.getLightDirection(renderer.lightDir)
+    if (paused) {
+      draw()
+    } else {
+      renderer.updateCaustics(water)
+    }
+  } else if (e.code === 'Space') {
     paused = !paused
     guiState.paused = paused
     pausedController.updateDisplay()
-  } else if (e.key === 'g' || e.key === 'G') {
+  } else if (e.code === 'KeyG') {
     useObjectPhysics = !useObjectPhysics
     guiState.gravity = useObjectPhysics
     gravityController.updateDisplay()
-  } else if ((e.key === 'l' || e.key === 'L') && paused) {
-    draw()
   }
 }
 
 function onKeyUp(e: KeyboardEvent) {
-  keys[e.key] = false
+  if (e.code === 'KeyL') settingLightDirection = false
+}
+
+function updateLightDirection() {
+  if (!settingLightDirection) return false
+  cameraController.getLightDirection(renderer.lightDir)
+  return true
 }
 
 function setSimulationObject(name: string) {
