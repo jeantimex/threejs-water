@@ -312,11 +312,7 @@ void main() {
       vPosition
     );
     refractedObject = max(refractedObject, sampleObjectRefraction(vPosition, refractedRay));
-    reflectedColor = mix(
-      reflectedColor,
-      reflectedObject.rgb,
-      reflectedObject.a * smoothstep(0.7, 1.0, fresnel)
-    );
+    reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
   }
 
