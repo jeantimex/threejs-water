@@ -1,5 +1,8 @@
 import * as THREE from 'three'
-import type { Renderer } from '../Renderer'
+import {
+  NO_OBJECT_RENDER_STATE,
+  type SimulationObjectRenderState,
+} from '../rendering/SimulationObjectRendering'
 import type { Water } from '../Water'
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 
@@ -33,7 +36,11 @@ export class SimulationObjectRegistry {
     return this.activeObject
   }
 
-  select(name: string, water: Water, renderer: Renderer) {
+  get renderState(): SimulationObjectRenderState {
+    return this.activeObject?.renderState ?? NO_OBJECT_RENDER_STATE
+  }
+
+  select(name: string, water: Water) {
     const nextObject = name === NO_OBJECT ? null : this.objects.get(name)
     if (name !== NO_OBJECT && !nextObject) {
       throw new Error(`Unknown simulation object "${name}"`)
@@ -42,12 +49,12 @@ export class SimulationObjectRegistry {
 
     if (this.activeObject) {
       this.sharedPosition.copy(this.activeObject.position)
-      this.activeObject.setEnabled(false, water, renderer)
+      this.activeObject.setEnabled(false, water)
     }
     this.activeObject = nextObject ?? null
     if (this.activeObject) {
       this.activeObject.position.copy(this.sharedPosition)
-      this.activeObject.setEnabled(true, water, renderer)
+      this.activeObject.setEnabled(true, water)
     }
   }
 
@@ -55,11 +62,7 @@ export class SimulationObjectRegistry {
     this.activeObject?.update(seconds, context, water)
   }
 
-  syncRenderer(renderer: Renderer) {
-    this.activeObject?.syncRenderer(renderer)
-  }
-
-  prepareRender(renderer: Renderer, water: Water) {
-    this.activeObject?.prepareRender(renderer, water)
+  prepareRender(water: Water) {
+    this.activeObject?.prepareRender(water)
   }
 }

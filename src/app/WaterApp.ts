@@ -40,8 +40,8 @@ export class WaterApp {
       this.renderer.getWaterMeshBack()
     )
 
-    this.objects = createSimulationObjects(this.scene, this.renderer)
-    this.objects.syncRenderer(this.renderer)
+    this.objects = createSimulationObjects(this.scene, this.renderer.objectRenderResources)
+    this.renderer.setSimulationObject(this.objects.renderState)
     this.controls = new SimulationControls(this.objects.options, {
       onObjectChange: this.selectSimulationObject,
       onPausedChange: (paused) => {
@@ -101,7 +101,7 @@ export class WaterApp {
     this.water.stepSimulation()
     this.water.stepSimulation()
     this.water.updateNormals()
-    this.objects.syncRenderer(this.renderer)
+    this.renderer.setSimulationObject(this.objects.renderState)
     this.renderer.updateCaustics(this.water)
   }
 
@@ -110,7 +110,7 @@ export class WaterApp {
     this.cameraController.apply(this.camera)
     this.renderer.renderPool(this.water)
     this.renderer.renderWater(this.water, this.camera)
-    this.objects.prepareRender(this.renderer, this.water)
+    this.objects.prepareRender(this.water)
     this.webglRenderer.render(this.scene, this.camera)
   }
 
@@ -125,7 +125,8 @@ export class WaterApp {
   }
 
   private selectSimulationObject = (name: string) => {
-    this.objects.select(name, this.water, this.renderer)
+    this.objects.select(name, this.water)
+    this.renderer.setSimulationObject(this.objects.renderState)
     this.interaction.cancelDrag()
     this.controls.setPhysicsAvailable(name !== NO_OBJECT)
     this.water.updateNormals()

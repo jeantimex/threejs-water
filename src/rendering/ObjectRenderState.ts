@@ -1,13 +1,29 @@
 import * as THREE from 'three'
+import type { SimulationObjectRenderState } from './SimulationObjectRendering'
 
 export class ObjectRenderState {
   readonly lightDirection = new THREE.Vector3(2, 2, -1).normalize()
   readonly sphereCenter = new THREE.Vector3()
   sphereRadius = 0.25
-  sphereEnabled = true
+  sphereEnabled = false
   readonly cubeCenter = new THREE.Vector3()
   readonly cubeHalfSize = new THREE.Vector3(0.25, 0.25, 0.25)
   cubeEnabled = false
+
+  apply(object: SimulationObjectRenderState) {
+    this.sphereEnabled = false
+    this.cubeEnabled = false
+
+    if (object.kind === 'sphere') {
+      this.sphereCenter.copy(object.center)
+      this.sphereRadius = object.radius
+      this.sphereEnabled = true
+    } else if (object.kind === 'box') {
+      this.cubeCenter.copy(object.center)
+      this.cubeHalfSize.copy(object.halfSize)
+      this.cubeEnabled = true
+    }
+  }
 
   createUniforms() {
     return {

@@ -1,5 +1,7 @@
 import * as THREE from 'three'
-import type { Renderer } from '../Renderer'
+import type { SimulationObjectRenderResources } from '../rendering/SimulationObjectRendering'
+import cubeRenderVert from '../shaders/objectCubeRender.vert'
+import cubeRenderFrag from '../shaders/objectCubeRender.frag'
 import type { Water } from '../Water'
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 
@@ -8,16 +10,38 @@ export class CubeObject implements SimulationObject {
   readonly halfSize = new THREE.Vector3(0.25, 0.25, 0.25)
   readonly position = new THREE.Vector3(-0.4, this.halfSize.y - 1, 0.2)
   readonly velocity = new THREE.Vector3()
+  readonly renderState = {
+    kind: 'box' as const,
+    center: this.position,
+    halfSize: this.halfSize,
+  }
+  readonly mesh: THREE.Mesh
   enabled = false
 
   private readonly previousPosition = this.position.clone()
   private readonly bounds = new THREE.Box3()
+  private readonly material: THREE.ShaderMaterial
 
-  constructor(readonly mesh: THREE.Object3D) {
+  constructor(private readonly resources: SimulationObjectRenderResources) {
+    this.material = new THREE.ShaderMaterial({
+      vertexShader: cubeRenderVert,
+      fragmentShader: cubeRenderFrag,
+      uniforms: {
+        light: { value: resources.lightDirection.clone() },
+        cubeCenter: { value: this.position.clone() },
+        cubeHalfSize: { value: this.halfSize.clone() },
+        water: { value: null },
+        causticTex: { value: resources.causticTexture },
+      },
+      depthTest: true,
+      depthWrite: true,
+    })
+    this.mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), this.material)
+    this.mesh.frustumCulled = false
     this.mesh.visible = false
   }
 
-  setEnabled(enabled: boolean, water: Water, renderer: Renderer) {
+  setEnabled(enabled: boolean, water: Water) {
     if (enabled === this.enabled) return
 
     const inactivePosition = this.getInactivePosition()
@@ -29,8 +53,8 @@ export class CubeObject implements SimulationObject {
     }
 
     this.enabled = enabled
+    this.mesh.visible = enabled
     this.previousPosition.copy(this.position)
-    this.syncRenderer(renderer)
   }
 
   update(seconds: number, context: ObjectUpdateContext, water: Water) {
@@ -93,13 +117,12 @@ export class CubeObject implements SimulationObject {
     )
   }
 
-  syncRenderer(renderer: Renderer) {
-    renderer.setObjectCubeState(this.position, this.halfSize, this.enabled)
-  }
-
-  prepareRender(renderer: Renderer, water: Water) {
-    this.syncRenderer(renderer)
-    renderer.renderObjectCube(water)
+  prepareRender(water: Water) {
+    this.material.uniforms.water.value = water.textureA.texture
+    this.material.uniforms.light.value.copy(this.resources.lightDirection)
+    this.material.uniforms.cubeCenter.value.copy(this.position)
+    this.material.uniforms.cubeHalfSize.value.copy(this.halfSize)
+    this.material.uniformsNeedUpdate = true
   }
 
   private getInactivePosition() {

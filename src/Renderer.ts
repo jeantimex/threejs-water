@@ -3,33 +3,40 @@ import type { Water } from './Water'
 import { CausticsPass } from './rendering/CausticsPass'
 import { ObjectRenderState } from './rendering/ObjectRenderState'
 import { PoolPass } from './rendering/PoolPass'
-import { SimulationObjectPass } from './rendering/SimulationObjectPass'
+import type {
+  SimulationObjectRenderResources,
+  SimulationObjectRenderState,
+} from './rendering/SimulationObjectRendering'
 import { WaterSurfacePass } from './rendering/WaterSurfacePass'
 
 export class Renderer {
   readonly lightDir: THREE.Vector3
+  readonly objectRenderResources: SimulationObjectRenderResources
 
+  private readonly objectState: ObjectRenderState
   private readonly caustics: CausticsPass
   private readonly pool: PoolPass
   private readonly waterSurface: WaterSurfacePass
-  private readonly simulationObjects: SimulationObjectPass
 
   constructor(
     renderer: THREE.WebGLRenderer,
     tileTexture: THREE.Texture,
     cubemap: THREE.CubeTexture
   ) {
-    const state = new ObjectRenderState()
-    this.lightDir = state.lightDirection
-    this.caustics = new CausticsPass(renderer, state)
-    this.pool = new PoolPass(tileTexture, this.caustics.texture, state)
+    this.objectState = new ObjectRenderState()
+    this.lightDir = this.objectState.lightDirection
+    this.caustics = new CausticsPass(renderer, this.objectState)
+    this.objectRenderResources = {
+      lightDirection: this.lightDir,
+      causticTexture: this.caustics.texture,
+    }
+    this.pool = new PoolPass(tileTexture, this.caustics.texture, this.objectState)
     this.waterSurface = new WaterSurfacePass(
       tileTexture,
       cubemap,
       this.caustics.texture,
-      state
+      this.objectState
     )
-    this.simulationObjects = new SimulationObjectPass(this.caustics.texture, state)
   }
 
   updateCaustics(water: Water) {
@@ -44,20 +51,8 @@ export class Renderer {
     this.waterSurface.prepare(water, camera)
   }
 
-  renderSphere(water: Water) {
-    this.simulationObjects.prepareSphere(water)
-  }
-
-  renderObjectCube(water: Water) {
-    this.simulationObjects.prepareCube(water)
-  }
-
-  setSphereState(center: THREE.Vector3, radius: number, enabled: boolean) {
-    this.simulationObjects.setSphere(center, radius, enabled)
-  }
-
-  setObjectCubeState(center: THREE.Vector3, halfSize: THREE.Vector3, enabled: boolean) {
-    this.simulationObjects.setCube(center, halfSize, enabled)
+  setSimulationObject(object: SimulationObjectRenderState) {
+    this.objectState.apply(object)
   }
 
   getPoolMesh() {
@@ -70,13 +65,5 @@ export class Renderer {
 
   getWaterMeshBack() {
     return this.waterSurface.belowMesh
-  }
-
-  getSphereMesh() {
-    return this.simulationObjects.sphereMesh
-  }
-
-  getObjectCubeMesh() {
-    return this.simulationObjects.cubeMesh
   }
 }

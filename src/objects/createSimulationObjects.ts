@@ -1,11 +1,14 @@
 import type * as THREE from 'three'
-import type { Renderer } from '../Renderer'
+import type { SimulationObjectRenderResources } from '../rendering/SimulationObjectRendering'
 import { SimulationObjectRegistry } from './SimulationObjectRegistry'
 import { CubeObject } from './CubeObject'
 import { SphereObject } from './SphereObject'
 
-export function createSimulationObjects(scene: THREE.Scene, renderer: Renderer) {
+export function createSimulationObjects(
+  scene: THREE.Scene,
+  resources: SimulationObjectRenderResources
+) {
   return new SimulationObjectRegistry(scene)
-    .register(new SphereObject(renderer.getSphereMesh()), true)
-    .register(new CubeObject(renderer.getObjectCubeMesh()))
+    .register(new SphereObject(resources), true)
+    .register(new CubeObject(resources))
 }

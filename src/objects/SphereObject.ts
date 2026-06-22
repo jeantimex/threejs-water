@@ -1,5 +1,7 @@
 import * as THREE from 'three'
-import type { Renderer } from '../Renderer'
+import type { SimulationObjectRenderResources } from '../rendering/SimulationObjectRendering'
+import sphereRenderVert from '../shaders/sphereRender.vert'
+import sphereRenderFrag from '../shaders/sphereRender.frag'
 import type { Water } from '../Water'
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 
@@ -8,13 +10,36 @@ export class SphereObject implements SimulationObject {
   readonly position = new THREE.Vector3(-0.4, -0.75, 0.2)
   readonly velocity = new THREE.Vector3()
   readonly interactionRadius = 0.25
+  readonly renderState = {
+    kind: 'sphere' as const,
+    center: this.position,
+    radius: this.interactionRadius,
+  }
+  readonly mesh: THREE.Mesh
   enabled = true
 
   private readonly previousPosition = this.position.clone()
+  private readonly material: THREE.ShaderMaterial
 
-  constructor(readonly mesh: THREE.Object3D) {}
+  constructor(private readonly resources: SimulationObjectRenderResources) {
+    this.material = new THREE.ShaderMaterial({
+      vertexShader: sphereRenderVert,
+      fragmentShader: sphereRenderFrag,
+      uniforms: {
+        light: { value: resources.lightDirection.clone() },
+        sphereCenter: { value: this.position.clone() },
+        sphereRadius: { value: this.interactionRadius },
+        water: { value: null },
+        causticTex: { value: resources.causticTexture },
+      },
+      depthTest: true,
+      depthWrite: true,
+    })
+    this.mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), this.material)
+    this.mesh.frustumCulled = false
+  }
 
-  setEnabled(enabled: boolean, water: Water, renderer: Renderer) {
+  setEnabled(enabled: boolean, water: Water) {
     if (enabled === this.enabled) return
 
     const inactivePosition = this.getInactivePosition()
@@ -26,8 +51,8 @@ export class SphereObject implements SimulationObject {
     }
 
     this.enabled = enabled
+    this.mesh.visible = enabled
     this.previousPosition.copy(this.position)
-    this.syncRenderer(renderer)
   }
 
   update(seconds: number, context: ObjectUpdateContext, water: Water) {
@@ -84,13 +109,12 @@ export class SphereObject implements SimulationObject {
     this.position.z = THREE.MathUtils.clamp(this.position.z, radius - 1, 1 - radius)
   }
 
-  syncRenderer(renderer: Renderer) {
-    renderer.setSphereState(this.position, this.interactionRadius, this.enabled)
-  }
-
-  prepareRender(renderer: Renderer, water: Water) {
-    this.syncRenderer(renderer)
-    renderer.renderSphere(water)
+  prepareRender(water: Water) {
+    this.material.uniforms.water.value = water.textureA.texture
+    this.material.uniforms.light.value.copy(this.resources.lightDirection)
+    this.material.uniforms.sphereCenter.value.copy(this.position)
+    this.material.uniforms.sphereRadius.value = this.interactionRadius
+    this.material.uniformsNeedUpdate = true
   }
 
   private getInactivePosition(): THREE.Vector3 {
