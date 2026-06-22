@@ -14,9 +14,9 @@ import waterBelowFrag from './shaders/waterBelow.frag'
 
 export class Renderer {
   lightDir: THREE.Vector3
-  sphereCenter: THREE.Vector3
-  sphereRadius: number
-  sphereEnabled: boolean
+  private sphereCenter: THREE.Vector3
+  private sphereRadius: number
+  private sphereEnabled: boolean
 
   private renderer: THREE.WebGLRenderer
   private causticTex: THREE.WebGLRenderTarget
@@ -250,6 +250,13 @@ export class Renderer {
     this.sphereMaterial.uniforms.sphereRadius.value = this.sphereRadius
     this.sphereMaterial.uniforms.causticTex.value = this.causticTex.texture
     this.sphereMaterial.uniformsNeedUpdate = true
+  }
+
+  setSphereState(center: THREE.Vector3, radius: number, enabled: boolean) {
+    this.sphereCenter.copy(center)
+    this.sphereRadius = radius
+    this.sphereEnabled = enabled
+    this.sphereMesh.visible = enabled
   }
 
   renderCube(water: Water) {

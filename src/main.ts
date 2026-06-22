@@ -1,42 +1,24 @@
 import * as THREE from 'three'
 import GUI, { type Controller } from 'lil-gui'
-import { Water } from './Water'
+import { CameraController } from './camera/CameraController'
 import { Renderer } from './Renderer'
+import { NO_OBJECT, SimulationObjectRegistry } from './objects/SimulationObjectRegistry'
+import { createSimulationObjects } from './objects/createSimulationObjects'
+import { Water } from './Water'
 
 let water: Water
 let renderer: Renderer
 let threeRenderer: THREE.WebGLRenderer
 let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
+let objects: SimulationObjectRegistry
 
-let angleX = -25
-let angleY = -200.5
-let cameraDistance = 4
-let orbitVelocityX = 0
-let orbitVelocityY = 0
-let lastPointerTime = 0
-
-const MIN_CAMERA_DISTANCE = 2
-const MAX_CAMERA_DISTANCE = 10
-const MAX_ORBIT_SPEED = 1080
-const ORBIT_DAMPING = 6
-
-let useSpherePhysics = false
-let center: THREE.Vector3
-let oldCenter: THREE.Vector3
-let velocity: THREE.Vector3
-let gravity: THREE.Vector3
-let radius = 0.25
+const cameraController = new CameraController()
+const gravity = new THREE.Vector3(0, -4, 0)
+let useObjectPhysics = false
 let paused = false
-let sphereEnabled = true
 
-type SimulationObject = 'None' | 'Sphere'
-
-const guiState: {
-  object: SimulationObject
-  gravity: boolean
-  paused: boolean
-} = {
+const guiState: { object: string; gravity: boolean; paused: boolean } = {
   object: 'Sphere',
   gravity: false,
   paused: false,
@@ -48,12 +30,10 @@ let pausedController: Controller
 
 const MODE_NONE = -1
 const MODE_ADD_DROPS = 0
-const MODE_MOVE_SPHERE = 1
+const MODE_MOVE_OBJECT = 1
 const MODE_ORBIT_CAMERA = 2
 
 let mode = MODE_NONE
-let oldX = 0
-let oldY = 0
 let prevHit: THREE.Vector3 | null = null
 let planeNormal: THREE.Vector3 | null = null
 let activePointerId: number | null = null
@@ -61,7 +41,7 @@ const touchPointers = new Map<number, THREE.Vector2>()
 let pinchDistance: number | null = null
 let pinching = false
 
-const keys: { [key: string]: boolean } = {}
+const keys: Record<string, boolean> = {}
 
 async function init() {
   const container = document.getElementById('app')!
@@ -73,12 +53,10 @@ async function init() {
   container.appendChild(threeRenderer.domElement)
 
   scene = new THREE.Scene()
-
   camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100)
 
   const textureLoader = new THREE.TextureLoader()
   const cubeTextureLoader = new THREE.CubeTextureLoader()
-
   const tileTexture = await textureLoader.loadAsync('/tiles.jpg')
   tileTexture.wrapS = THREE.RepeatWrapping
   tileTexture.wrapT = THREE.RepeatWrapping
@@ -93,9 +71,6 @@ async function init() {
     '/zpos.jpg',
     '/zneg.jpg',
   ])
-  // Match the original Cubemap upload path exactly. LightGL flips every face,
-  // samples the encoded JPEG values directly, and uses linear filtering
-  // without mipmaps.
   cubemap.flipY = true
   cubemap.colorSpace = THREE.NoColorSpace
   cubemap.minFilter = THREE.LinearFilter
@@ -104,16 +79,10 @@ async function init() {
 
   water = new Water(threeRenderer)
   renderer = new Renderer(threeRenderer, tileTexture, cubemap)
+  scene.add(renderer.getCubeMesh(), renderer.getWaterMesh(), renderer.getWaterMeshBack())
 
-  scene.add(renderer.getCubeMesh())
-  scene.add(renderer.getWaterMesh())
-  scene.add(renderer.getWaterMeshBack())
-  scene.add(renderer.getSphereMesh())
-
-  center = new THREE.Vector3(-0.4, -0.75, 0.2)
-  oldCenter = center.clone()
-  velocity = new THREE.Vector3()
-  gravity = new THREE.Vector3(0, -4, 0)
+  objects = createSimulationObjects(scene, renderer)
+  objects.syncRenderer(renderer)
 
   setupGUI()
 
@@ -127,7 +96,6 @@ async function init() {
   }
 
   loading.innerHTML = ''
-
   onResize()
   window.addEventListener('resize', onResize)
 
@@ -142,7 +110,6 @@ async function init() {
   document.addEventListener('keyup', onKeyUp)
 
   let prevTime = performance.now()
-
   function animate() {
     const nextTime = performance.now()
     if (!paused) {
@@ -152,7 +119,6 @@ async function init() {
     prevTime = nextTime
     requestAnimationFrame(animate)
   }
-
   requestAnimationFrame(animate)
 }
 
@@ -160,10 +126,8 @@ function onResize() {
   const help = document.getElementById('help')!
   const width = window.innerWidth - help.clientWidth - 20
   const height = window.innerHeight
-
   camera.aspect = width / height
   camera.updateProjectionMatrix()
-
   threeRenderer.setSize(width, height)
   draw()
 }
@@ -171,137 +135,64 @@ function onResize() {
 function update(seconds: number) {
   if (seconds > 1) return
 
-  updateCameraInertia(seconds)
-
-  if (sphereEnabled) {
-    if (mode === MODE_MOVE_SPHERE) {
-      velocity.set(0, 0, 0)
-    } else if (useSpherePhysics) {
-      const percentUnderWater = Math.max(0, Math.min(1, (radius - center.y) / (2 * radius)))
-      velocity.add(
-        gravity.clone().multiplyScalar(seconds - 1.1 * seconds * percentUnderWater)
-      )
-      const drag = velocity.clone().normalize().multiplyScalar(
-        percentUnderWater * seconds * velocity.dot(velocity)
-      )
-      velocity.sub(drag)
-      center.add(velocity.clone().multiplyScalar(seconds))
-
-      if (center.y < radius - 1) {
-        center.y = radius - 1
-        velocity.y = Math.abs(velocity.y) * 0.7
-      }
-    }
-
-    water.moveSphere(oldCenter, center, radius)
-  }
-
-  oldCenter.copy(center)
+  cameraController.update(seconds)
+  objects.update(seconds, {
+    dragging: mode === MODE_MOVE_OBJECT,
+    physicsEnabled: useObjectPhysics,
+    gravity,
+  }, water)
 
   water.stepSimulation()
   water.stepSimulation()
   water.updateNormals()
+  objects.syncRenderer(renderer)
   renderer.updateCaustics(water)
 }
 
 function draw() {
-  if (keys['l'] || keys['L']) {
-    const yRad = (90 - angleY) * Math.PI / 180
-    const xRad = -angleX * Math.PI / 180
-    renderer.lightDir.set(
-      Math.cos(yRad) * Math.cos(xRad),
-      Math.sin(xRad),
-      Math.sin(yRad) * Math.cos(xRad)
-    ).normalize()
+  if (keys.l || keys.L) {
+    cameraController.getLightDirection(renderer.lightDir)
     if (paused) renderer.updateCaustics(water)
   }
 
-  const target = new THREE.Vector3(0, -0.5, 0)
-
-  const offset = new THREE.Vector3(0, 0, cameraDistance)
-  offset.applyAxisAngle(new THREE.Vector3(1, 0, 0), angleX * Math.PI / 180)
-  offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleY * Math.PI / 180)
-
-  camera.position.copy(target).add(offset)
-  camera.up.set(0, 1, 0)
-  camera.lookAt(target)
-
-  renderer.sphereCenter.copy(center)
-  renderer.sphereRadius = radius
-  renderer.sphereEnabled = sphereEnabled
-
+  cameraController.apply(camera)
   renderer.renderCube(water)
   renderer.renderWater(water, camera)
-  renderer.renderSphere(water)
-
+  objects.prepareRender(renderer, water)
   threeRenderer.render(scene, camera)
 }
 
-function getRay(x: number, y: number): { origin: THREE.Vector3; direction: THREE.Vector3 } {
+function getRay(x: number, y: number) {
   const rect = threeRenderer.domElement.getBoundingClientRect()
-  const mouse = new THREE.Vector2(
+  const pointer = new THREE.Vector2(
     ((x - rect.left) / rect.width) * 2 - 1,
     -((y - rect.top) / rect.height) * 2 + 1
   )
-
   const raycaster = new THREE.Raycaster()
-  raycaster.setFromCamera(mouse, camera)
-
+  raycaster.setFromCamera(pointer, camera)
   return {
     origin: raycaster.ray.origin.clone(),
     direction: raycaster.ray.direction.clone(),
   }
 }
 
-function hitTestSphere(
-  origin: THREE.Vector3,
-  direction: THREE.Vector3,
-  sphereCenter: THREE.Vector3,
-  sphereRadius: number
-): { hit: THREE.Vector3 } | null {
-  const oc = origin.clone().sub(sphereCenter)
-  const a = direction.dot(direction)
-  const b = 2 * oc.dot(direction)
-  const c = oc.dot(oc) - sphereRadius * sphereRadius
-  const discriminant = b * b - 4 * a * c
-
-  if (discriminant > 0) {
-    const t = (-b - Math.sqrt(discriminant)) / (2 * a)
-    if (t > 0) {
-      return { hit: origin.clone().add(direction.clone().multiplyScalar(t)) }
-    }
-  }
-  return null
-}
-
 function startDrag(x: number, y: number, time: number) {
-  oldX = x
-  oldY = y
-  lastPointerTime = time
-  orbitVelocityX = 0
-  orbitVelocityY = 0
-
+  cameraController.stopInertia()
   const { origin, direction } = getRay(x, y)
-
   const t = -origin.y / direction.y
-  const pointOnPlane = origin.clone().add(direction.clone().multiplyScalar(t))
+  const pointOnPlane = origin.clone().addScaledVector(direction, t)
+  const objectHit = objects.active?.hitTest(origin, direction) ?? null
 
-  const sphereHit = sphereEnabled
-    ? hitTestSphere(origin, direction, center, radius)
-    : null
-
-  if (sphereHit) {
-    mode = MODE_MOVE_SPHERE
-    prevHit = sphereHit.hit
-
-    const lookDir = new THREE.Vector3(0, 0, -1)
-    lookDir.applyQuaternion(camera.quaternion)
-    planeNormal = lookDir.negate()
+  if (objectHit) {
+    mode = MODE_MOVE_OBJECT
+    prevHit = objectHit
+    planeNormal = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).negate()
   } else if (Math.abs(pointOnPlane.x) < 1 && Math.abs(pointOnPlane.z) < 1) {
     mode = MODE_ADD_DROPS
     duringDrag(x, y, time)
   } else {
     mode = MODE_ORBIT_CAMERA
+    cameraController.beginOrbit(x, y, time)
   }
 }
 
@@ -309,8 +200,7 @@ function duringDrag(x: number, y: number, time: number) {
   switch (mode) {
     case MODE_ADD_DROPS: {
       const { origin, direction } = getRay(x, y)
-      const t = -origin.y / direction.y
-      const pointOnPlane = origin.clone().add(direction.clone().multiplyScalar(t))
+      const pointOnPlane = origin.clone().addScaledVector(direction, -origin.y / direction.y)
       water.addDrop(pointOnPlane.x, pointOnPlane.z, 0.03, 0.01)
       if (paused) {
         water.updateNormals()
@@ -318,41 +208,28 @@ function duringDrag(x: number, y: number, time: number) {
       }
       break
     }
-    case MODE_MOVE_SPHERE: {
-      if (!prevHit || !planeNormal) break
+    case MODE_MOVE_OBJECT: {
+      if (!prevHit || !planeNormal || !objects.active) break
       const { origin, direction } = getRay(x, y)
-      const t = -planeNormal.dot(origin.clone().sub(prevHit)) / planeNormal.dot(direction)
-      const nextHit = origin.clone().add(direction.clone().multiplyScalar(t))
-      center.add(nextHit.clone().sub(prevHit))
-      center.x = Math.max(radius - 1, Math.min(1 - radius, center.x))
-      center.y = Math.max(radius - 1, Math.min(10, center.y))
-      center.z = Math.max(radius - 1, Math.min(1 - radius, center.z))
+      const distance = -planeNormal.dot(origin.clone().sub(prevHit)) / planeNormal.dot(direction)
+      const nextHit = origin.clone().addScaledVector(direction, distance)
+      objects.active.moveBy(nextHit.clone().sub(prevHit))
+      objects.syncRenderer(renderer)
       prevHit = nextHit
       if (paused) renderer.updateCaustics(water)
       break
     }
-    case MODE_ORBIT_CAMERA: {
-      const deltaX = x - oldX
-      const deltaY = y - oldY
-      const seconds = Math.max((time - lastPointerTime) / 1000, 1 / 240)
-
-      angleY -= deltaX
-      angleX -= deltaY
-      angleX = Math.max(-89.999, Math.min(89.999, angleX))
-
-      orbitVelocityY = THREE.MathUtils.clamp(-deltaX / seconds, -MAX_ORBIT_SPEED, MAX_ORBIT_SPEED)
-      orbitVelocityX = THREE.MathUtils.clamp(-deltaY / seconds, -MAX_ORBIT_SPEED, MAX_ORBIT_SPEED)
+    case MODE_ORBIT_CAMERA:
+      cameraController.orbitTo(x, y, time)
       break
-    }
   }
-  oldX = x
-  oldY = y
-  lastPointerTime = time
   if (paused) draw()
 }
 
 function stopDrag() {
   mode = MODE_NONE
+  prevHit = null
+  planeNormal = null
 }
 
 function onPointerDown(e: PointerEvent) {
@@ -365,17 +242,14 @@ function onPointerDown(e: PointerEvent) {
 
   if (e.pointerType === 'touch') {
     touchPointers.set(e.pointerId, new THREE.Vector2(e.clientX, e.clientY))
-
     if (touchPointers.size === 2) {
       pinching = true
       pinchDistance = getPinchDistance()
       activePointerId = null
-      orbitVelocityX = 0
-      orbitVelocityY = 0
+      cameraController.stopInertia()
       stopDrag()
       return
     }
-
     if (pinching || touchPointers.size > 1) return
   } else if (activePointerId !== null) {
     return
@@ -388,20 +262,18 @@ function onPointerDown(e: PointerEvent) {
 function onPointerMove(e: PointerEvent) {
   if (e.pointerType === 'touch' && touchPointers.has(e.pointerId)) {
     touchPointers.get(e.pointerId)!.set(e.clientX, e.clientY)
-
     if (pinching && pinchDistance !== null && touchPointers.size >= 2) {
       e.preventDefault()
       const nextDistance = getPinchDistance()
       if (nextDistance > 0) {
-        setCameraDistance(cameraDistance * pinchDistance / nextDistance)
+        cameraController.zoomByScale(pinchDistance / nextDistance)
         pinchDistance = nextDistance
+        if (paused) draw()
       }
       return
     }
   }
-
   if (e.pointerId !== activePointerId) return
-
   e.preventDefault()
   duringDrag(e.clientX, e.clientY, e.timeStamp)
 }
@@ -416,7 +288,6 @@ function onLostPointerCapture(e: PointerEvent) {
 
 function finishPointer(e: PointerEvent, releaseCapture: boolean) {
   const wasActivePointer = e.pointerId === activePointerId
-
   if (e.pointerType === 'touch') {
     touchPointers.delete(e.pointerId)
     if (pinching) {
@@ -426,15 +297,10 @@ function finishPointer(e: PointerEvent, releaseCapture: boolean) {
   }
 
   if (wasActivePointer) {
-    if (mode === MODE_ORBIT_CAMERA) {
-      const damping = Math.exp(-ORBIT_DAMPING * Math.max(0, (e.timeStamp - lastPointerTime) / 1000))
-      orbitVelocityX *= damping
-      orbitVelocityY *= damping
-    }
+    if (mode === MODE_ORBIT_CAMERA) cameraController.endOrbit(e.timeStamp)
     activePointerId = null
     stopDrag()
   }
-
   if (releaseCapture && threeRenderer.domElement.hasPointerCapture(e.pointerId)) {
     threeRenderer.domElement.releasePointerCapture(e.pointerId)
   }
@@ -442,37 +308,13 @@ function finishPointer(e: PointerEvent, releaseCapture: boolean) {
 
 function onWheel(e: WheelEvent) {
   e.preventDefault()
-  setCameraDistance(cameraDistance * Math.exp(e.deltaY * 0.001))
-}
-
-function getPinchDistance(): number {
-  const [first, second] = Array.from(touchPointers.values())
-  return first.distanceTo(second)
-}
-
-function setCameraDistance(distance: number) {
-  cameraDistance = THREE.MathUtils.clamp(distance, MIN_CAMERA_DISTANCE, MAX_CAMERA_DISTANCE)
+  cameraController.zoomByWheel(e.deltaY)
   if (paused) draw()
 }
 
-function updateCameraInertia(seconds: number) {
-  if (mode !== MODE_NONE || pinching) return
-
-  angleY += orbitVelocityY * seconds
-  const nextAngleX = THREE.MathUtils.clamp(
-    angleX + orbitVelocityX * seconds,
-    -89.999,
-    89.999
-  )
-  if (nextAngleX === -89.999 || nextAngleX === 89.999) orbitVelocityX = 0
-  angleX = nextAngleX
-
-  const damping = Math.exp(-ORBIT_DAMPING * seconds)
-  orbitVelocityX *= damping
-  orbitVelocityY *= damping
-
-  if (Math.abs(orbitVelocityX) < 0.01) orbitVelocityX = 0
-  if (Math.abs(orbitVelocityY) < 0.01) orbitVelocityY = 0
+function getPinchDistance() {
+  const [first, second] = Array.from(touchPointers.values())
+  return first.distanceTo(second)
 }
 
 function onKeyDown(e: KeyboardEvent) {
@@ -482,40 +324,22 @@ function onKeyDown(e: KeyboardEvent) {
     guiState.paused = paused
     pausedController.updateDisplay()
   } else if (e.key === 'g' || e.key === 'G') {
-    useSpherePhysics = !useSpherePhysics
-    guiState.gravity = useSpherePhysics
+    useObjectPhysics = !useObjectPhysics
+    guiState.gravity = useObjectPhysics
     gravityController.updateDisplay()
-  } else if ((e.key === 'l' || e.key === 'L') && paused) draw()
+  } else if ((e.key === 'l' || e.key === 'L') && paused) {
+    draw()
+  }
 }
 
 function onKeyUp(e: KeyboardEvent) {
   keys[e.key] = false
 }
 
-function getDisabledSphereCenter(): THREE.Vector3 {
-  return new THREE.Vector3(center.x, 10, center.z)
-}
-
-function setSimulationObject(object: SimulationObject) {
-  const enableSphere = object === 'Sphere'
-  if (enableSphere === sphereEnabled) return
-
-  const disabledCenter = getDisabledSphereCenter()
-  if (enableSphere) {
-    water.moveSphere(disabledCenter, center, radius)
-  } else {
-    water.moveSphere(center, disabledCenter, radius)
-    velocity.set(0, 0, 0)
-    mode = MODE_NONE
-  }
-
-  sphereEnabled = enableSphere
-  renderer.getSphereMesh().visible = sphereEnabled
-  renderer.sphereCenter.copy(center)
-  renderer.sphereEnabled = sphereEnabled
-  gravityController.disable(!sphereEnabled)
-  oldCenter.copy(center)
-
+function setSimulationObject(name: string) {
+  objects.select(name, water, renderer)
+  mode = MODE_NONE
+  gravityController.disable(name === NO_OBJECT)
   water.updateNormals()
   renderer.updateCaustics(water)
   draw()
@@ -526,14 +350,14 @@ function setupGUI() {
   gui.domElement.style.left = '0'
   gui.domElement.style.right = 'auto'
 
-  gui.add(guiState, 'object', ['None', 'Sphere'])
+  gui.add(guiState, 'object', objects.options)
     .name('Object')
-    .onChange((object: SimulationObject) => setSimulationObject(object))
+    .onChange((name: string) => setSimulationObject(name))
 
   gravityController = gui.add(guiState, 'gravity')
     .name('Gravity')
     .onChange((enabled: boolean) => {
-      useSpherePhysics = enabled
+      useObjectPhysics = enabled
     })
 
   pausedController = gui.add(guiState, 'paused')
