@@ -225,13 +225,22 @@ vec4 sampleProjectedTexture(sampler2D tex, mat4 matrix, vec3 point) {
   vec4 clip = matrix * vec4(point, 1.0);
   vec3 ndc = clip.xyz / max(clip.w, 1.0e-6);
   vec2 uv = ndc.xy * 0.5 + 0.5;
-  uv.y = 1.0 - uv.y;
   float inBounds = step(0.0, uv.x)
     * step(0.0, uv.y)
     * step(uv.x, 1.0)
     * step(uv.y, 1.0)
     * step(0.0, clip.w);
   return texture2D(tex, clamp(uv, 0.0, 1.0)) * inBounds;
+}
+
+vec4 sampleObjectRefraction(vec3 origin, vec3 ray) {
+  float hit = intersectSphere(origin, ray, torusKnotCenter, 0.27);
+  if (hit >= 1.0e6) return vec4(0.0);
+  return sampleProjectedTexture(
+    objectRefractionTex,
+    viewProjectionMatrix,
+    origin + ray * hit
+  );
 }
 
 vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
@@ -300,9 +309,14 @@ void main() {
     vec4 refractedObject = sampleProjectedTexture(
       objectRefractionTex,
       viewProjectionMatrix,
-      vPosition + refractedRay * 0.08
+      vPosition
     );
-    reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
+    refractedObject = max(refractedObject, sampleObjectRefraction(vPosition, refractedRay));
+    reflectedColor = mix(
+      reflectedColor,
+      reflectedObject.rgb,
+      reflectedObject.a * smoothstep(0.7, 1.0, fresnel)
+    );
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
   }
 
