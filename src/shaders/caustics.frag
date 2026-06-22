@@ -51,26 +51,42 @@ float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
   return 1.0e6;
 }
 
+float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
+  vec3 toSphere = origin - center;
+  float a = dot(ray, ray);
+  float b = 2.0 * dot(toSphere, ray);
+  float c = dot(toSphere, toSphere) - radius * radius;
+  float discriminant = b*b - 4.0*a*c;
+  if (discriminant > 0.0) {
+    float root = sqrt(discriminant);
+    float near = (-b - root) / (2.0 * a);
+    float far = (-b + root) / (2.0 * a);
+    if (near > 0.0) return near;
+    if (far > 0.0) return 0.0;
+  }
+  return 1.0e6;
+}
+
 float sdTorusKnot(vec3 p, vec3 center) {
   vec3 pos = p - center;
-  float d_bound = length(pos) - 0.22;
+  float d_bound = length(pos) - 0.28;
   if (d_bound > 0.08) {
     return d_bound;
   }
   float minDist = 1.0e6;
-  const int segments = 32;
-  const float R = 0.15;
-  const float r = 0.04;
+  const int segments = 64;
+  const float radius = 0.15;
+  const float tube = 0.04;
   const float p_knot = 2.0;
   const float q_knot = 3.0;
   
   vec3 prevPt = vec3(0.0);
   for (int i = 0; i <= segments; i++) {
     float theta = (float(i) / float(segments)) * 6.283185307179586;
-    float rad = R + r * cos(q_knot * theta);
+    float rad = radius * (2.0 + cos(q_knot * theta)) * 0.5;
     vec3 pt = vec3(
       rad * cos(p_knot * theta),
-      r * sin(q_knot * theta),
+      -radius * sin(q_knot * theta) * 0.5,
       rad * sin(p_knot * theta)
     );
     if (i > 0) {
@@ -82,11 +98,11 @@ float sdTorusKnot(vec3 p, vec3 center) {
     }
     prevPt = pt;
   }
-  return minDist - r;
+  return minDist - tube;
 }
 
 float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
-  float t_bound = intersectSphere(origin, ray, center, 0.22);
+  float t_bound = intersectSphereBounds(origin, ray, center, 0.28);
   if (t_bound > 1.0e5) return 1.0e6;
   
   float t = t_bound;
@@ -100,6 +116,11 @@ float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
     if (t > t_bound + 0.5) break;
   }
   return 1.0e6;
+}
+
+float torusKnotOcclusion(vec3 origin, vec3 direction) {
+  float hit = intersectTorusKnot(origin, direction, torusKnotCenter);
+  return hit < 1.0e5 ? 1.0 : 0.0;
 }
 
 void main() {
@@ -135,8 +156,21 @@ void main() {
     }
     gl_FragColor.g = 1.0 - occlusion / 9.0;
   } else if (torusKnotEnabled) {
-    float hit = intersectTorusKnot(newPos, -refractedLight, torusKnotCenter);
-    gl_FragColor.g = (hit < 1.0e5) ? 0.2 : 1.0;
+    vec3 shadowRay = -refractedLight;
+    vec3 right = normalize(cross(shadowRay, vec3(0.0, 1.0, 0.0)));
+    vec3 up = normalize(cross(right, shadowRay));
+    float occlusion = 0.0;
+    const float spread = 0.018;
+
+    for (int x = -1; x <= 1; x++) {
+      for (int y = -1; y <= 1; y++) {
+        vec3 sampleOrigin = newPos
+          + right * float(x) * spread
+          + up * float(y) * spread;
+        occlusion += torusKnotOcclusion(sampleOrigin, shadowRay);
+      }
+    }
+    gl_FragColor.g = 1.0 - 0.8 * occlusion / 9.0;
   } else {
     gl_FragColor.g = 1.0;
   }

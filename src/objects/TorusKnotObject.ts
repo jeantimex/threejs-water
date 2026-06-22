@@ -8,9 +8,9 @@ import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 
 export class TorusKnotObject implements SimulationObject {
   readonly name = 'TorusKnot'
-  readonly position = new THREE.Vector3(-0.4, -0.75, 0.2)
+  readonly boundingRadius = 0.27
+  readonly position = new THREE.Vector3(-0.4, this.boundingRadius - 1, 0.2)
   readonly velocity = new THREE.Vector3()
-  readonly boundingRadius = 0.19
   readonly displacement: CompoundSphereWaterDisplacement
   readonly optics = {
     kind: 'torusknot' as const,
@@ -47,19 +47,19 @@ export class TorusKnotObject implements SimulationObject {
     // Generate compound spheres for water displacement
     const spheres = []
     const segments = 64
-    const R = 0.15
-    const r = 0.04
+    const radius = 0.15
+    const tube = 0.04
     const p = 2
     const q = 3
     for (let i = 0; i < segments; i++) {
       const theta = (i / segments) * Math.PI * 2
-      const radialRadius = R + r * Math.cos(q * theta)
+      const radialRadius = radius * (2 + Math.cos(q * theta)) * 0.5
       const x = radialRadius * Math.cos(p * theta)
       const z = radialRadius * Math.sin(p * theta)
-      const y = r * Math.sin(q * theta)
+      const y = -radius * Math.sin(q * theta) * 0.5
       spheres.push({
         offset: new THREE.Vector3(x, y, z),
-        radius: r * 1.5, // slightly larger to prevent gaps in displacement
+        radius: tube * 1.5, // slightly larger to prevent gaps in displacement
       })
     }
     this.displacement = new CompoundSphereWaterDisplacement(spheres)
