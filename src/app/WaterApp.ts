@@ -41,7 +41,7 @@ export class WaterApp {
     )
 
     this.objects = createSimulationObjects(this.scene, this.renderer.objectRenderResources)
-    this.renderer.setSimulationObject(this.objects.renderState)
+    this.renderer.setWaterOptics(this.objects.optics)
     this.controls = new SimulationControls(this.objects.options, {
       onObjectChange: this.selectSimulationObject,
       onPausedChange: (paused) => {
@@ -101,7 +101,7 @@ export class WaterApp {
     this.water.stepSimulation()
     this.water.stepSimulation()
     this.water.updateNormals()
-    this.renderer.setSimulationObject(this.objects.renderState)
+    this.renderer.setWaterOptics(this.objects.optics)
     this.renderer.updateCaustics(this.water)
   }
 
@@ -126,7 +126,7 @@ export class WaterApp {
 
   private selectSimulationObject = (name: string) => {
     this.objects.select(name, this.water)
-    this.renderer.setSimulationObject(this.objects.renderState)
+    this.renderer.setWaterOptics(this.objects.optics)
     this.interaction.cancelDrag()
     this.controls.setPhysicsAvailable(name !== NO_OBJECT)
     this.water.updateNormals()

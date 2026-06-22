@@ -3,6 +3,7 @@ import type { SimulationObjectRenderResources } from '../rendering/SimulationObj
 import cubeRenderVert from '../shaders/objectCubeRender.vert'
 import cubeRenderFrag from '../shaders/objectCubeRender.frag'
 import type { Water } from '../Water'
+import { BoxWaterDisplacement } from '../water/WaterDisplacement'
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 
 export class CubeObject implements SimulationObject {
@@ -10,7 +11,8 @@ export class CubeObject implements SimulationObject {
   readonly halfSize = new THREE.Vector3(0.25, 0.25, 0.25)
   readonly position = new THREE.Vector3(-0.4, this.halfSize.y - 1, 0.2)
   readonly velocity = new THREE.Vector3()
-  readonly renderState = {
+  readonly displacement = new BoxWaterDisplacement(this.halfSize)
+  readonly optics = {
     kind: 'box' as const,
     center: this.position,
     halfSize: this.halfSize,
@@ -46,9 +48,9 @@ export class CubeObject implements SimulationObject {
 
     const inactivePosition = this.getInactivePosition()
     if (enabled) {
-      water.moveCube(inactivePosition, this.position, this.halfSize)
+      this.displacement.move(water, inactivePosition, this.position)
     } else {
-      water.moveCube(this.position, inactivePosition, this.halfSize)
+      this.displacement.move(water, this.position, inactivePosition)
       this.velocity.set(0, 0, 0)
     }
 
@@ -88,7 +90,7 @@ export class CubeObject implements SimulationObject {
       }
     }
 
-    water.moveCube(this.previousPosition, this.position, this.halfSize)
+    this.displacement.move(water, this.previousPosition, this.position)
     this.previousPosition.copy(this.position)
   }
 

@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { Water } from '../Water'
 import causticsVert from '../shaders/caustics.vert'
 import causticsFrag from '../shaders/caustics.frag'
-import type { ObjectRenderState } from './ObjectRenderState'
+import type { WaterOpticsState } from './WaterOpticsState'
 
 export class CausticsPass {
   readonly texture: THREE.Texture
@@ -14,7 +14,7 @@ export class CausticsPass {
 
   constructor(
     private readonly renderer: THREE.WebGLRenderer,
-    private readonly state: ObjectRenderState
+    private readonly state: WaterOpticsState
   ) {
     this.target = new THREE.WebGLRenderTarget(1024, 1024, {
       minFilter: THREE.LinearFilter,

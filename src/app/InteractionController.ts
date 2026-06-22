@@ -122,7 +122,7 @@ export class InteractionController {
         / this.dragPlaneNormal.dot(direction)
       const nextHit = origin.clone().addScaledVector(direction, distance)
       objects.active.moveBy(nextHit.clone().sub(this.previousHit))
-      renderer.setSimulationObject(objects.renderState)
+      renderer.setWaterOptics(objects.optics)
       this.previousHit = nextHit
       if (controls.paused) renderer.updateCaustics(water)
     } else if (this.mode === InteractionMode.OrbitCamera) {

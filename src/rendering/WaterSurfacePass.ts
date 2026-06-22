@@ -4,7 +4,7 @@ import waterAboveVert from '../shaders/waterAbove.vert'
 import waterAboveFrag from '../shaders/waterAbove.frag'
 import waterBelowVert from '../shaders/waterBelow.vert'
 import waterBelowFrag from '../shaders/waterBelow.frag'
-import type { ObjectRenderState } from './ObjectRenderState'
+import type { WaterOpticsState } from './WaterOpticsState'
 
 export class WaterSurfacePass {
   readonly aboveMesh: THREE.Mesh
@@ -16,7 +16,7 @@ export class WaterSurfacePass {
     tileTexture: THREE.Texture,
     cubemap: THREE.CubeTexture,
     causticTexture: THREE.Texture,
-    private readonly state: ObjectRenderState
+    private readonly state: WaterOpticsState
   ) {
     this.aboveMaterial = this.createMaterial(
       waterAboveVert,

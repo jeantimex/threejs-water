@@ -3,6 +3,7 @@ import type { SimulationObjectRenderResources } from '../rendering/SimulationObj
 import sphereRenderVert from '../shaders/sphereRender.vert'
 import sphereRenderFrag from '../shaders/sphereRender.frag'
 import type { Water } from '../Water'
+import { SphereWaterDisplacement } from '../water/WaterDisplacement'
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 
 export class SphereObject implements SimulationObject {
@@ -10,7 +11,8 @@ export class SphereObject implements SimulationObject {
   readonly position = new THREE.Vector3(-0.4, -0.75, 0.2)
   readonly velocity = new THREE.Vector3()
   readonly interactionRadius = 0.25
-  readonly renderState = {
+  readonly displacement = new SphereWaterDisplacement(this.interactionRadius)
+  readonly optics = {
     kind: 'sphere' as const,
     center: this.position,
     radius: this.interactionRadius,
@@ -44,9 +46,9 @@ export class SphereObject implements SimulationObject {
 
     const inactivePosition = this.getInactivePosition()
     if (enabled) {
-      water.moveSphere(inactivePosition, this.position, this.interactionRadius)
+      this.displacement.move(water, inactivePosition, this.position)
     } else {
-      water.moveSphere(this.position, inactivePosition, this.interactionRadius)
+      this.displacement.move(water, this.position, inactivePosition)
       this.velocity.set(0, 0, 0)
     }
 
@@ -81,7 +83,7 @@ export class SphereObject implements SimulationObject {
       }
     }
 
-    water.moveSphere(this.previousPosition, this.position, this.interactionRadius)
+    this.displacement.move(water, this.previousPosition, this.position)
     this.previousPosition.copy(this.position)
   }
 

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
-import type { SimulationObjectRenderState } from './SimulationObjectRendering'
+import type { WaterOpticsDescriptor } from '../water/WaterOptics'
 
-export class ObjectRenderState {
+export class WaterOpticsState {
   readonly lightDirection = new THREE.Vector3(2, 2, -1).normalize()
   readonly sphereCenter = new THREE.Vector3()
   sphereRadius = 0.25
@@ -10,17 +10,17 @@ export class ObjectRenderState {
   readonly cubeHalfSize = new THREE.Vector3(0.25, 0.25, 0.25)
   cubeEnabled = false
 
-  apply(object: SimulationObjectRenderState) {
+  apply(optics: WaterOpticsDescriptor) {
     this.sphereEnabled = false
     this.cubeEnabled = false
 
-    if (object.kind === 'sphere') {
-      this.sphereCenter.copy(object.center)
-      this.sphereRadius = object.radius
+    if (optics.kind === 'sphere') {
+      this.sphereCenter.copy(optics.center)
+      this.sphereRadius = optics.radius
       this.sphereEnabled = true
-    } else if (object.kind === 'box') {
-      this.cubeCenter.copy(object.center)
-      this.cubeHalfSize.copy(object.halfSize)
+    } else if (optics.kind === 'box') {
+      this.cubeCenter.copy(optics.center)
+      this.cubeHalfSize.copy(optics.halfSize)
       this.cubeEnabled = true
     }
   }

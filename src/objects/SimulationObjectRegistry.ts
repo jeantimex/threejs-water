@@ -1,8 +1,8 @@
 import * as THREE from 'three'
 import {
-  NO_OBJECT_RENDER_STATE,
-  type SimulationObjectRenderState,
-} from '../rendering/SimulationObjectRendering'
+  NO_WATER_OPTICS,
+  type WaterOpticsDescriptor,
+} from '../water/WaterOptics'
 import type { Water } from '../Water'
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 
@@ -36,8 +36,8 @@ export class SimulationObjectRegistry {
     return this.activeObject
   }
 
-  get renderState(): SimulationObjectRenderState {
-    return this.activeObject?.renderState ?? NO_OBJECT_RENDER_STATE
+  get optics(): WaterOpticsDescriptor {
+    return this.activeObject?.optics ?? NO_WATER_OPTICS
   }
 
   select(name: string, water: Water) {

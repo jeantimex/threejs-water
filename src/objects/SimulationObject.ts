@@ -1,6 +1,7 @@
 import * as THREE from 'three'
-import type { SimulationObjectRenderState } from '../rendering/SimulationObjectRendering'
 import type { Water } from '../Water'
+import type { WaterDisplacementStrategy } from '../water/WaterDisplacement'
+import type { WaterOpticsDescriptor } from '../water/WaterOptics'
 
 export interface ObjectUpdateContext {
   dragging: boolean
@@ -12,7 +13,8 @@ export interface SimulationObject {
   readonly name: string
   readonly mesh: THREE.Object3D
   readonly position: THREE.Vector3
-  readonly renderState: SimulationObjectRenderState
+  readonly optics: WaterOpticsDescriptor
+  readonly displacement: WaterDisplacementStrategy
   enabled: boolean
 
   setEnabled(enabled: boolean, water: Water): void

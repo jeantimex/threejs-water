@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { Water } from '../Water'
 import poolVert from '../shaders/cube.vert'
 import poolFrag from '../shaders/cube.frag'
-import type { ObjectRenderState } from './ObjectRenderState'
+import type { WaterOpticsState } from './WaterOpticsState'
 
 export class PoolPass {
   readonly mesh: THREE.Mesh
@@ -11,7 +11,7 @@ export class PoolPass {
   constructor(
     tileTexture: THREE.Texture,
     causticTexture: THREE.Texture,
-    private readonly state: ObjectRenderState
+    private readonly state: WaterOpticsState
   ) {
     this.material = new THREE.ShaderMaterial({
       vertexShader: poolVert,
