@@ -8,6 +8,7 @@ const float poolHeight = 1.0;
 uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
+uniform bool sphereEnabled;
 uniform sampler2D tiles;
 uniform sampler2D causticTex;
 uniform sampler2D water;
@@ -40,7 +41,9 @@ vec3 getWallColor(vec3 point) {
   }
 
   scale /= length(point);
-  scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0);
+  if (sphereEnabled) {
+    scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0);
+  }
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(refractedLight, normal));

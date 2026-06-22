@@ -16,6 +16,7 @@ export class Renderer {
   lightDir: THREE.Vector3
   sphereCenter: THREE.Vector3
   sphereRadius: number
+  sphereEnabled: boolean
 
   private renderer: THREE.WebGLRenderer
   private causticTex: THREE.WebGLRenderTarget
@@ -49,6 +50,7 @@ export class Renderer {
     this.lightDir = new THREE.Vector3(2.0, 2.0, -1.0).normalize()
     this.sphereCenter = new THREE.Vector3()
     this.sphereRadius = 0.25
+    this.sphereEnabled = true
 
     this.causticTex = new THREE.WebGLRenderTarget(1024, 1024, {
       minFilter: THREE.LinearFilter,
@@ -67,6 +69,7 @@ export class Renderer {
         water: { value: null },
         sphereCenter: { value: new THREE.Vector3().copy(this.sphereCenter) },
         sphereRadius: { value: this.sphereRadius },
+        sphereEnabled: { value: this.sphereEnabled },
       },
       // The shader stores caustic intensity and shadow data in RGB while
       // intentionally writing alpha = 0. The original pass renders without
@@ -92,6 +95,7 @@ export class Renderer {
         light: { value: new THREE.Vector3().copy(this.lightDir) },
         sphereCenter: { value: new THREE.Vector3().copy(this.sphereCenter) },
         sphereRadius: { value: this.sphereRadius },
+        sphereEnabled: { value: this.sphereEnabled },
         tiles: { value: this.tileTexture },
         causticTex: { value: this.causticTex.texture },
         water: { value: null },
@@ -113,6 +117,7 @@ export class Renderer {
         light: { value: new THREE.Vector3().copy(this.lightDir) },
         sphereCenter: { value: new THREE.Vector3().copy(this.sphereCenter) },
         sphereRadius: { value: this.sphereRadius },
+        sphereEnabled: { value: this.sphereEnabled },
         tiles: { value: this.tileTexture },
         causticTex: { value: this.causticTex.texture },
         water: { value: null },
@@ -157,6 +162,7 @@ export class Renderer {
         light: { value: new THREE.Vector3().copy(this.lightDir) },
         sphereCenter: { value: new THREE.Vector3().copy(this.sphereCenter) },
         sphereRadius: { value: this.sphereRadius },
+        sphereEnabled: { value: this.sphereEnabled },
         tiles: { value: this.tileTexture },
         causticTex: { value: this.causticTex.texture },
         water: { value: null },
@@ -204,6 +210,7 @@ export class Renderer {
     this.causticsMaterial.uniforms.light.value.copy(this.lightDir)
     this.causticsMaterial.uniforms.sphereCenter.value.copy(this.sphereCenter)
     this.causticsMaterial.uniforms.sphereRadius.value = this.sphereRadius
+    this.causticsMaterial.uniforms.sphereEnabled.value = this.sphereEnabled
     this.causticsMaterial.uniformsNeedUpdate = true
 
     this.renderer.setRenderTarget(this.causticTex)
@@ -222,6 +229,7 @@ export class Renderer {
     this.waterAboveMaterial.uniforms.light.value.copy(this.lightDir)
     this.waterAboveMaterial.uniforms.sphereCenter.value.copy(this.sphereCenter)
     this.waterAboveMaterial.uniforms.sphereRadius.value = this.sphereRadius
+    this.waterAboveMaterial.uniforms.sphereEnabled.value = this.sphereEnabled
     this.waterAboveMaterial.uniforms.causticTex.value = this.causticTex.texture
     this.waterAboveMaterial.uniformsNeedUpdate = true
 
@@ -230,6 +238,7 @@ export class Renderer {
     this.waterBelowMaterial.uniforms.light.value.copy(this.lightDir)
     this.waterBelowMaterial.uniforms.sphereCenter.value.copy(this.sphereCenter)
     this.waterBelowMaterial.uniforms.sphereRadius.value = this.sphereRadius
+    this.waterBelowMaterial.uniforms.sphereEnabled.value = this.sphereEnabled
     this.waterBelowMaterial.uniforms.causticTex.value = this.causticTex.texture
     this.waterBelowMaterial.uniformsNeedUpdate = true
   }
@@ -248,6 +257,7 @@ export class Renderer {
     this.cubeMaterial.uniforms.light.value.copy(this.lightDir)
     this.cubeMaterial.uniforms.sphereCenter.value.copy(this.sphereCenter)
     this.cubeMaterial.uniforms.sphereRadius.value = this.sphereRadius
+    this.cubeMaterial.uniforms.sphereEnabled.value = this.sphereEnabled
     this.cubeMaterial.uniforms.causticTex.value = this.causticTex.texture
     this.cubeMaterial.uniformsNeedUpdate = true
   }

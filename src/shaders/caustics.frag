@@ -7,6 +7,7 @@ const float poolHeight = 1.0;
 uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
+uniform bool sphereEnabled;
 
 varying vec3 oldPos;
 varying vec3 newPos;
@@ -29,14 +30,18 @@ void main() {
 
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
 
-  vec3 dir = (sphereCenter - newPos) / sphereRadius;
-  vec3 area = cross(dir, refractedLight);
-  float shadow = dot(area, area);
-  float dist = dot(dir, -refractedLight);
-  shadow = 1.0 + (shadow - 1.0) / (0.05 + dist * 0.025);
-  shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);
-  shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
-  gl_FragColor.g = shadow;
+  if (sphereEnabled) {
+    vec3 dir = (sphereCenter - newPos) / sphereRadius;
+    vec3 area = cross(dir, refractedLight);
+    float shadow = dot(area, area);
+    float dist = dot(dir, -refractedLight);
+    shadow = 1.0 + (shadow - 1.0) / (0.05 + dist * 0.025);
+    shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);
+    shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
+    gl_FragColor.g = shadow;
+  } else {
+    gl_FragColor.g = 1.0;
+  }
 
   vec2 t = intersectCube(newPos, -refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
   gl_FragColor.r *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (newPos.y - refractedLight.y * t.y - 2.0 / 12.0)));

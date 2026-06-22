@@ -1,8 +1,7 @@
 import * as THREE from 'three'
+import GUI, { type Controller } from 'lil-gui'
 import { Water } from './Water'
 import { Renderer } from './Renderer'
-
-const HELP_WIDTH = 220
 
 let water: Water
 let renderer: Renderer
@@ -20,6 +19,23 @@ let velocity: THREE.Vector3
 let gravity: THREE.Vector3
 let radius = 0.25
 let paused = false
+let sphereEnabled = true
+
+type SimulationObject = 'None' | 'Sphere'
+
+const guiState: {
+  object: SimulationObject
+  gravity: boolean
+  paused: boolean
+} = {
+  object: 'Sphere',
+  gravity: false,
+  paused: false,
+}
+
+let gui: GUI
+let gravityController: Controller
+let pausedController: Controller
 
 const MODE_NONE = -1
 const MODE_ADD_DROPS = 0
@@ -31,6 +47,7 @@ let oldX = 0
 let oldY = 0
 let prevHit: THREE.Vector3 | null = null
 let planeNormal: THREE.Vector3 | null = null
+let activePointerId: number | null = null
 
 const keys: { [key: string]: boolean } = {}
 
@@ -86,6 +103,8 @@ async function init() {
   velocity = new THREE.Vector3()
   gravity = new THREE.Vector3(0, -4, 0)
 
+  setupGUI()
+
   for (let i = 0; i < 20; i++) {
     water.addDrop(
       Math.random() * 2 - 1,
@@ -100,12 +119,12 @@ async function init() {
   onResize()
   window.addEventListener('resize', onResize)
 
-  document.addEventListener('mousedown', onMouseDown)
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
-  document.addEventListener('touchstart', onTouchStart, { passive: false })
-  document.addEventListener('touchmove', onTouchMove)
-  document.addEventListener('touchend', onTouchEnd)
+  threeRenderer.domElement.style.touchAction = 'none'
+  threeRenderer.domElement.addEventListener('pointerdown', onPointerDown)
+  threeRenderer.domElement.addEventListener('pointermove', onPointerMove)
+  threeRenderer.domElement.addEventListener('pointerup', onPointerEnd)
+  threeRenderer.domElement.addEventListener('pointercancel', onPointerEnd)
+  threeRenderer.domElement.addEventListener('lostpointercapture', onLostPointerCapture)
   document.addEventListener('keydown', onKeyDown)
   document.addEventListener('keyup', onKeyUp)
 
@@ -125,7 +144,8 @@ async function init() {
 }
 
 function onResize() {
-  const width = window.innerWidth - HELP_WIDTH
+  const help = document.getElementById('help')!
+  const width = window.innerWidth - help.clientWidth - 20
   const height = window.innerHeight
 
   camera.aspect = width / height
@@ -138,26 +158,29 @@ function onResize() {
 function update(seconds: number) {
   if (seconds > 1) return
 
-  if (mode === MODE_MOVE_SPHERE) {
-    velocity.set(0, 0, 0)
-  } else if (useSpherePhysics) {
-    const percentUnderWater = Math.max(0, Math.min(1, (radius - center.y) / (2 * radius)))
-    velocity.add(
-      gravity.clone().multiplyScalar(seconds - 1.1 * seconds * percentUnderWater)
-    )
-    const drag = velocity.clone().normalize().multiplyScalar(
-      percentUnderWater * seconds * velocity.dot(velocity)
-    )
-    velocity.sub(drag)
-    center.add(velocity.clone().multiplyScalar(seconds))
+  if (sphereEnabled) {
+    if (mode === MODE_MOVE_SPHERE) {
+      velocity.set(0, 0, 0)
+    } else if (useSpherePhysics) {
+      const percentUnderWater = Math.max(0, Math.min(1, (radius - center.y) / (2 * radius)))
+      velocity.add(
+        gravity.clone().multiplyScalar(seconds - 1.1 * seconds * percentUnderWater)
+      )
+      const drag = velocity.clone().normalize().multiplyScalar(
+        percentUnderWater * seconds * velocity.dot(velocity)
+      )
+      velocity.sub(drag)
+      center.add(velocity.clone().multiplyScalar(seconds))
 
-    if (center.y < radius - 1) {
-      center.y = radius - 1
-      velocity.y = Math.abs(velocity.y) * 0.7
+      if (center.y < radius - 1) {
+        center.y = radius - 1
+        velocity.y = Math.abs(velocity.y) * 0.7
+      }
     }
+
+    water.moveSphere(oldCenter, center, radius)
   }
 
-  water.moveSphere(oldCenter, center, radius)
   oldCenter.copy(center)
 
   water.stepSimulation()
@@ -190,18 +213,13 @@ function draw() {
 
   renderer.sphereCenter.copy(center)
   renderer.sphereRadius = radius
+  renderer.sphereEnabled = sphereEnabled
 
   renderer.renderCube(water)
   renderer.renderWater(water, camera)
   renderer.renderSphere(water)
 
   threeRenderer.render(scene, camera)
-}
-
-function isHelpElement(element: EventTarget | null): boolean {
-  if (!element || !(element instanceof HTMLElement)) return false
-  const help = document.getElementById('help')
-  return help !== null && (element === help || help.contains(element))
 }
 
 function getRay(x: number, y: number): { origin: THREE.Vector3; direction: THREE.Vector3 } {
@@ -250,7 +268,9 @@ function startDrag(x: number, y: number) {
   const t = -origin.y / direction.y
   const pointOnPlane = origin.clone().add(direction.clone().multiplyScalar(t))
 
-  const sphereHit = hitTestSphere(origin, direction, center, radius)
+  const sphereHit = sphereEnabled
+    ? hitTestSphere(origin, direction, center, radius)
+    : null
 
   if (sphereHit) {
     mode = MODE_MOVE_SPHERE
@@ -309,49 +329,107 @@ function stopDrag() {
   mode = MODE_NONE
 }
 
-function onMouseDown(e: MouseEvent) {
-  if (!isHelpElement(e.target)) {
-    e.preventDefault()
-    startDrag(e.pageX, e.pageY)
-  }
+function onPointerDown(e: PointerEvent) {
+  if (activePointerId !== null || !e.isPrimary) return
+  if (e.pointerType === 'mouse' && e.button !== 0) return
+
+  e.preventDefault()
+  activePointerId = e.pointerId
+  threeRenderer.domElement.setPointerCapture(e.pointerId)
+  startDrag(e.clientX, e.clientY)
 }
 
-function onMouseMove(e: MouseEvent) {
-  duringDrag(e.pageX, e.pageY)
+function onPointerMove(e: PointerEvent) {
+  if (e.pointerId !== activePointerId) return
+
+  e.preventDefault()
+  duringDrag(e.clientX, e.clientY)
 }
 
-function onMouseUp() {
+function onPointerEnd(e: PointerEvent) {
+  if (e.pointerId !== activePointerId) return
+
+  activePointerId = null
   stopDrag()
-}
-
-function onTouchStart(e: TouchEvent) {
-  if (e.touches.length === 1 && !isHelpElement(e.target)) {
-    e.preventDefault()
-    startDrag(e.touches[0].pageX, e.touches[0].pageY)
+  if (threeRenderer.domElement.hasPointerCapture(e.pointerId)) {
+    threeRenderer.domElement.releasePointerCapture(e.pointerId)
   }
 }
 
-function onTouchMove(e: TouchEvent) {
-  if (e.touches.length === 1) {
-    duringDrag(e.touches[0].pageX, e.touches[0].pageY)
-  }
-}
+function onLostPointerCapture(e: PointerEvent) {
+  if (e.pointerId !== activePointerId) return
 
-function onTouchEnd(e: TouchEvent) {
-  if (e.touches.length === 0) {
-    stopDrag()
-  }
+  activePointerId = null
+  stopDrag()
 }
 
 function onKeyDown(e: KeyboardEvent) {
   keys[e.key] = true
-  if (e.key === ' ') paused = !paused
-  else if (e.key === 'g' || e.key === 'G') useSpherePhysics = !useSpherePhysics
-  else if ((e.key === 'l' || e.key === 'L') && paused) draw()
+  if (e.key === ' ') {
+    paused = !paused
+    guiState.paused = paused
+    pausedController.updateDisplay()
+  } else if (e.key === 'g' || e.key === 'G') {
+    useSpherePhysics = !useSpherePhysics
+    guiState.gravity = useSpherePhysics
+    gravityController.updateDisplay()
+  } else if ((e.key === 'l' || e.key === 'L') && paused) draw()
 }
 
 function onKeyUp(e: KeyboardEvent) {
   keys[e.key] = false
+}
+
+function getDisabledSphereCenter(): THREE.Vector3 {
+  return new THREE.Vector3(center.x, 10, center.z)
+}
+
+function setSimulationObject(object: SimulationObject) {
+  const enableSphere = object === 'Sphere'
+  if (enableSphere === sphereEnabled) return
+
+  const disabledCenter = getDisabledSphereCenter()
+  if (enableSphere) {
+    water.moveSphere(disabledCenter, center, radius)
+  } else {
+    water.moveSphere(center, disabledCenter, radius)
+    velocity.set(0, 0, 0)
+    mode = MODE_NONE
+  }
+
+  sphereEnabled = enableSphere
+  renderer.getSphereMesh().visible = sphereEnabled
+  renderer.sphereCenter.copy(center)
+  renderer.sphereEnabled = sphereEnabled
+  gravityController.disable(!sphereEnabled)
+  oldCenter.copy(center)
+
+  water.updateNormals()
+  renderer.updateCaustics(water)
+  draw()
+}
+
+function setupGUI() {
+  gui = new GUI({ title: 'Simulation' })
+  gui.domElement.style.left = '0'
+  gui.domElement.style.right = 'auto'
+
+  gui.add(guiState, 'object', ['None', 'Sphere'])
+    .name('Object')
+    .onChange((object: SimulationObject) => setSimulationObject(object))
+
+  gravityController = gui.add(guiState, 'gravity')
+    .name('Gravity')
+    .onChange((enabled: boolean) => {
+      useSpherePhysics = enabled
+    })
+
+  pausedController = gui.add(guiState, 'paused')
+    .name('Paused')
+    .onChange((enabled: boolean) => {
+      paused = enabled
+      if (paused) draw()
+    })
 }
 
 init()
