@@ -3,6 +3,7 @@ import type { SimulationObjectRenderResources } from '../rendering/SimulationObj
 import { SimulationObjectRegistry } from './SimulationObjectRegistry'
 import { CubeObject } from './CubeObject'
 import { SphereObject } from './SphereObject'
+import { TorusKnotObject } from './TorusKnotObject'
 
 export function createSimulationObjects(
   scene: THREE.Scene,
@@ -11,4 +12,5 @@ export function createSimulationObjects(
   return new SimulationObjectRegistry(scene)
     .register(new SphereObject(resources), true)
     .register(new CubeObject(resources))
+    .register(new TorusKnotObject(resources))
 }

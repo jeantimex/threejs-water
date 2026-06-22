@@ -13,6 +13,8 @@ uniform bool sphereEnabled;
 uniform vec3 cubeCenter;
 uniform vec3 cubeHalfSize;
 uniform bool cubeEnabled;
+uniform vec3 torusKnotCenter;
+uniform bool torusKnotEnabled;
 uniform sampler2D tiles;
 uniform sampler2D causticTex;
 uniform sampler2D water;
@@ -42,6 +44,67 @@ float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
     if (t > 0.0) return t;
   }
   return 1.0e6;
+}
+
+float sdTorusKnot(vec3 p, vec3 center) {
+  vec3 pos = p - center;
+  float d_bound = length(pos) - 0.22;
+  if (d_bound > 0.08) {
+    return d_bound;
+  }
+  float minDist = 1.0e6;
+  const int segments = 32;
+  const float R = 0.15;
+  const float r = 0.04;
+  const float p_knot = 2.0;
+  const float q_knot = 3.0;
+  
+  vec3 prevPt = vec3(0.0);
+  for (int i = 0; i <= segments; i++) {
+    float theta = (float(i) / float(segments)) * 6.283185307179586;
+    float rad = R + r * cos(q_knot * theta);
+    vec3 pt = vec3(
+      rad * cos(p_knot * theta),
+      r * sin(q_knot * theta),
+      rad * sin(p_knot * theta)
+    );
+    if (i > 0) {
+      vec3 ba = pt - prevPt;
+      vec3 pa = pos - prevPt;
+      float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+      float d = length(pa - ba * h);
+      minDist = min(minDist, d);
+    }
+    prevPt = pt;
+  }
+  return minDist - r;
+}
+
+float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
+  float t_bound = intersectSphere(origin, ray, center, 0.22);
+  if (t_bound > 1.0e5) return 1.0e6;
+  
+  float t = t_bound;
+  for (int i = 0; i < 30; i++) {
+    vec3 p = origin + ray * t;
+    float d = sdTorusKnot(p, center);
+    if (d < 0.001) {
+      return t;
+    }
+    t += d;
+    if (t > t_bound + 0.5) break;
+  }
+  return 1.0e6;
+}
+
+vec3 getTorusKnotNormal(vec3 p, vec3 center) {
+  const float eps = 0.001;
+  vec3 n = vec3(
+    sdTorusKnot(p + vec3(eps, 0.0, 0.0), center) - sdTorusKnot(p - vec3(eps, 0.0, 0.0), center),
+    sdTorusKnot(p + vec3(0.0, eps, 0.0), center) - sdTorusKnot(p - vec3(0.0, eps, 0.0), center),
+    sdTorusKnot(p + vec3(0.0, 0.0, eps), center) - sdTorusKnot(p - vec3(0.0, 0.0, eps), center)
+  );
+  return normalize(n);
 }
 
 vec3 getSphereColor(vec3 point) {
@@ -85,6 +148,19 @@ vec3 getCubeColor(vec3 point) {
   return color + diffuse;
 }
 
+vec3 getTorusKnotColor(vec3 point) {
+  vec3 color = vec3(0.7, 0.4, 0.8); // Beautiful purple/magenta
+  vec3 normal = getTorusKnotNormal(point, torusKnotCenter);
+  vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
+  float diffuse = max(0.0, dot(-refractedLight, normal)) * 0.5;
+  vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
+  if (point.y < info.r) {
+    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    diffuse = (diffuse + 0.06) * caustic.r * 4.0;
+  }
+  return color + diffuse;
+}
+
 vec3 getWallColor(vec3 point) {
   float scale = 0.5;
   vec3 wallColor;
@@ -106,6 +182,9 @@ vec3 getWallColor(vec3 point) {
   } else if (cubeEnabled) {
     float cubeDistance = length((point - cubeCenter) / cubeHalfSize);
     scale *= 1.0 - 0.9 / pow(max(cubeDistance, 0.001), 4.0);
+  } else if (torusKnotEnabled) {
+    float knotDistance = length(point - torusKnotCenter);
+    scale *= 1.0 - 0.9 / pow(knotDistance / 0.19, 4.0);
   }
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
@@ -130,10 +209,18 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   float cubeDistance = cubeHit
     ? (cubeIntersection.x > 0.0 ? cubeIntersection.x : (cubeIntersection.y > 0.0 ? cubeIntersection.y : 1.0e6))
     : 1.0e6;
-  float objectDistance = min(sphereDistance, cubeDistance);
+  float torusKnotDistance = torusKnotEnabled ? intersectTorusKnot(origin, ray, torusKnotCenter) : 1.0e6;
+  
+  float objectDistance = min(min(sphereDistance, cubeDistance), torusKnotDistance);
   if (objectDistance < 1.0e6) {
     vec3 hit = origin + ray * objectDistance;
-    color = sphereDistance < cubeDistance ? getSphereColor(hit) : getCubeColor(hit);
+    if (objectDistance == sphereDistance) {
+      color = getSphereColor(hit);
+    } else if (objectDistance == cubeDistance) {
+      color = getCubeColor(hit);
+    } else {
+      color = getTorusKnotColor(hit);
+    }
   } else if (ray.y < 0.0) {
     vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
     color = getWallColor(origin + ray * t.y);

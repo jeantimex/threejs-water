@@ -11,6 +11,8 @@ uniform bool sphereEnabled;
 uniform vec3 cubeCenter;
 uniform vec3 cubeHalfSize;
 uniform bool cubeEnabled;
+uniform vec3 torusKnotCenter;
+uniform bool torusKnotEnabled;
 
 varying vec3 oldPos;
 varying vec3 newPos;
@@ -34,6 +36,70 @@ float cubeOcclusion(vec3 origin, vec3 direction) {
     cubeCenter + cubeHalfSize
   );
   return step(0.0, hit.y) * step(hit.x, hit.y);
+}
+
+float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
+  vec3 toSphere = origin - center;
+  float a = dot(ray, ray);
+  float b = 2.0 * dot(toSphere, ray);
+  float c = dot(toSphere, toSphere) - radius * radius;
+  float discriminant = b*b - 4.0*a*c;
+  if (discriminant > 0.0) {
+    float t = (-b - sqrt(discriminant)) / (2.0 * a);
+    if (t > 0.0) return t;
+  }
+  return 1.0e6;
+}
+
+float sdTorusKnot(vec3 p, vec3 center) {
+  vec3 pos = p - center;
+  float d_bound = length(pos) - 0.22;
+  if (d_bound > 0.08) {
+    return d_bound;
+  }
+  float minDist = 1.0e6;
+  const int segments = 32;
+  const float R = 0.15;
+  const float r = 0.04;
+  const float p_knot = 2.0;
+  const float q_knot = 3.0;
+  
+  vec3 prevPt = vec3(0.0);
+  for (int i = 0; i <= segments; i++) {
+    float theta = (float(i) / float(segments)) * 6.283185307179586;
+    float rad = R + r * cos(q_knot * theta);
+    vec3 pt = vec3(
+      rad * cos(p_knot * theta),
+      r * sin(q_knot * theta),
+      rad * sin(p_knot * theta)
+    );
+    if (i > 0) {
+      vec3 ba = pt - prevPt;
+      vec3 pa = pos - prevPt;
+      float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+      float d = length(pa - ba * h);
+      minDist = min(minDist, d);
+    }
+    prevPt = pt;
+  }
+  return minDist - r;
+}
+
+float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
+  float t_bound = intersectSphere(origin, ray, center, 0.22);
+  if (t_bound > 1.0e5) return 1.0e6;
+  
+  float t = t_bound;
+  for (int i = 0; i < 30; i++) {
+    vec3 p = origin + ray * t;
+    float d = sdTorusKnot(p, center);
+    if (d < 0.001) {
+      return t;
+    }
+    t += d;
+    if (t > t_bound + 0.5) break;
+  }
+  return 1.0e6;
 }
 
 void main() {
@@ -68,6 +134,9 @@ void main() {
       }
     }
     gl_FragColor.g = 1.0 - occlusion / 9.0;
+  } else if (torusKnotEnabled) {
+    float hit = intersectTorusKnot(newPos, -refractedLight, torusKnotCenter);
+    gl_FragColor.g = (hit < 1.0e5) ? 0.2 : 1.0;
   } else {
     gl_FragColor.g = 1.0;
   }
