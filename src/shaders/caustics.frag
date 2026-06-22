@@ -13,6 +13,9 @@ uniform vec3 cubeHalfSize;
 uniform bool cubeEnabled;
 uniform vec3 torusKnotCenter;
 uniform bool torusKnotEnabled;
+uniform vec3 meshCenter;
+uniform float meshBoundingRadius;
+uniform bool meshEnabled;
 uniform sampler2D objectShadowTex;
 
 varying vec3 oldPos;
@@ -156,7 +159,7 @@ void main() {
       }
     }
     gl_FragColor.g = 1.0 - occlusion / 9.0;
-  } else if (torusKnotEnabled) {
+  } else if (torusKnotEnabled || meshEnabled) {
     vec2 shadowUV = 0.75 * (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5;
     const float d = 4.0 / 1024.0;
     float occlusion = texture2D(objectShadowTex, shadowUV).r;

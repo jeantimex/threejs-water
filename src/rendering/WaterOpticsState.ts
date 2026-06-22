@@ -11,11 +11,15 @@ export class WaterOpticsState {
   cubeEnabled = false
   readonly torusKnotCenter = new THREE.Vector3()
   torusKnotEnabled = false
+  readonly meshCenter = new THREE.Vector3()
+  meshBoundingRadius = 0.25
+  meshEnabled = false
 
   apply(optics: WaterOpticsDescriptor) {
     this.sphereEnabled = false
     this.cubeEnabled = false
     this.torusKnotEnabled = false
+    this.meshEnabled = false
 
     if (optics.kind === 'sphere') {
       this.sphereCenter.copy(optics.center)
@@ -28,6 +32,10 @@ export class WaterOpticsState {
     } else if (optics.kind === 'torusknot') {
       this.torusKnotCenter.copy(optics.center)
       this.torusKnotEnabled = true
+    } else if (optics.kind === 'mesh') {
+      this.meshCenter.copy(optics.center)
+      this.meshBoundingRadius = optics.boundingRadius
+      this.meshEnabled = true
     }
   }
 
@@ -41,6 +49,9 @@ export class WaterOpticsState {
       cubeEnabled: { value: this.cubeEnabled },
       torusKnotCenter: { value: this.torusKnotCenter.clone() },
       torusKnotEnabled: { value: this.torusKnotEnabled },
+      meshCenter: { value: this.meshCenter.clone() },
+      meshBoundingRadius: { value: this.meshBoundingRadius },
+      meshEnabled: { value: this.meshEnabled },
     }
   }
 
@@ -56,6 +67,15 @@ export class WaterOpticsState {
     }
     if (material.uniforms.torusKnotEnabled) {
       material.uniforms.torusKnotEnabled.value = this.torusKnotEnabled
+    }
+    if (material.uniforms.meshCenter) {
+      material.uniforms.meshCenter.value.copy(this.meshCenter)
+    }
+    if (material.uniforms.meshBoundingRadius) {
+      material.uniforms.meshBoundingRadius.value = this.meshBoundingRadius
+    }
+    if (material.uniforms.meshEnabled) {
+      material.uniforms.meshEnabled.value = this.meshEnabled
     }
   }
 }

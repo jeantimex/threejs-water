@@ -15,6 +15,9 @@ uniform vec3 cubeHalfSize;
 uniform bool cubeEnabled;
 uniform vec3 torusKnotCenter;
 uniform bool torusKnotEnabled;
+uniform vec3 meshCenter;
+uniform float meshBoundingRadius;
+uniform bool meshEnabled;
 uniform sampler2D tiles;
 uniform sampler2D causticTex;
 uniform sampler2D objectReflectionTex;
@@ -205,6 +208,9 @@ vec3 getWallColor(vec3 point) {
   } else if (torusKnotEnabled) {
     float knotDistance = length(point - torusKnotCenter);
     scale *= 1.0 - 0.9 / pow(knotDistance / 0.31, 4.0);
+  } else if (meshEnabled) {
+    float meshDistance = length(point - meshCenter);
+    scale *= 1.0 - 0.9 / pow(meshDistance / meshBoundingRadius, 4.0);
   }
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
@@ -233,8 +239,8 @@ vec4 sampleProjectedTexture(sampler2D tex, mat4 matrix, vec3 point) {
   return texture2D(tex, clamp(uv, 0.0, 1.0)) * inBounds;
 }
 
-vec4 sampleObjectRefraction(vec3 origin, vec3 ray) {
-  float hit = intersectSphereBounds(origin, ray, torusKnotCenter, 0.31);
+vec4 sampleObjectRefraction(vec3 origin, vec3 ray, vec3 center, float radius) {
+  float hit = intersectSphereBounds(origin, ray, center, radius);
   if (hit >= 1.0e6) return vec4(0.0);
   return sampleProjectedTexture(
     objectRefractionTex,
@@ -300,7 +306,10 @@ void main() {
   vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, abovewaterColor);
 
   if (torusKnotEnabled) {
-    vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay);
+    vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, torusKnotCenter, 0.31);
+    refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
+  } else if (meshEnabled) {
+    vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, meshCenter, meshBoundingRadius);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
   }
 
