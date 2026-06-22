@@ -11,6 +11,15 @@ let camera: THREE.PerspectiveCamera
 
 let angleX = -25
 let angleY = -200.5
+let cameraDistance = 4
+let orbitVelocityX = 0
+let orbitVelocityY = 0
+let lastPointerTime = 0
+
+const MIN_CAMERA_DISTANCE = 2
+const MAX_CAMERA_DISTANCE = 10
+const MAX_ORBIT_SPEED = 1080
+const ORBIT_DAMPING = 6
 
 let useSpherePhysics = false
 let center: THREE.Vector3
@@ -48,6 +57,9 @@ let oldY = 0
 let prevHit: THREE.Vector3 | null = null
 let planeNormal: THREE.Vector3 | null = null
 let activePointerId: number | null = null
+const touchPointers = new Map<number, THREE.Vector2>()
+let pinchDistance: number | null = null
+let pinching = false
 
 const keys: { [key: string]: boolean } = {}
 
@@ -125,6 +137,7 @@ async function init() {
   threeRenderer.domElement.addEventListener('pointerup', onPointerEnd)
   threeRenderer.domElement.addEventListener('pointercancel', onPointerEnd)
   threeRenderer.domElement.addEventListener('lostpointercapture', onLostPointerCapture)
+  threeRenderer.domElement.addEventListener('wheel', onWheel, { passive: false })
   document.addEventListener('keydown', onKeyDown)
   document.addEventListener('keyup', onKeyUp)
 
@@ -157,6 +170,8 @@ function onResize() {
 
 function update(seconds: number) {
   if (seconds > 1) return
+
+  updateCameraInertia(seconds)
 
   if (sphereEnabled) {
     if (mode === MODE_MOVE_SPHERE) {
@@ -203,7 +218,7 @@ function draw() {
 
   const target = new THREE.Vector3(0, -0.5, 0)
 
-  const offset = new THREE.Vector3(0, 0, 4)
+  const offset = new THREE.Vector3(0, 0, cameraDistance)
   offset.applyAxisAngle(new THREE.Vector3(1, 0, 0), angleX * Math.PI / 180)
   offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleY * Math.PI / 180)
 
@@ -259,9 +274,12 @@ function hitTestSphere(
   return null
 }
 
-function startDrag(x: number, y: number) {
+function startDrag(x: number, y: number, time: number) {
   oldX = x
   oldY = y
+  lastPointerTime = time
+  orbitVelocityX = 0
+  orbitVelocityY = 0
 
   const { origin, direction } = getRay(x, y)
 
@@ -281,13 +299,13 @@ function startDrag(x: number, y: number) {
     planeNormal = lookDir.negate()
   } else if (Math.abs(pointOnPlane.x) < 1 && Math.abs(pointOnPlane.z) < 1) {
     mode = MODE_ADD_DROPS
-    duringDrag(x, y)
+    duringDrag(x, y, time)
   } else {
     mode = MODE_ORBIT_CAMERA
   }
 }
 
-function duringDrag(x: number, y: number) {
+function duringDrag(x: number, y: number, time: number) {
   switch (mode) {
     case MODE_ADD_DROPS: {
       const { origin, direction } = getRay(x, y)
@@ -314,14 +332,22 @@ function duringDrag(x: number, y: number) {
       break
     }
     case MODE_ORBIT_CAMERA: {
-      angleY -= x - oldX
-      angleX -= y - oldY
+      const deltaX = x - oldX
+      const deltaY = y - oldY
+      const seconds = Math.max((time - lastPointerTime) / 1000, 1 / 240)
+
+      angleY -= deltaX
+      angleX -= deltaY
       angleX = Math.max(-89.999, Math.min(89.999, angleX))
+
+      orbitVelocityY = THREE.MathUtils.clamp(-deltaX / seconds, -MAX_ORBIT_SPEED, MAX_ORBIT_SPEED)
+      orbitVelocityX = THREE.MathUtils.clamp(-deltaY / seconds, -MAX_ORBIT_SPEED, MAX_ORBIT_SPEED)
       break
     }
   }
   oldX = x
   oldY = y
+  lastPointerTime = time
   if (paused) draw()
 }
 
@@ -330,37 +356,123 @@ function stopDrag() {
 }
 
 function onPointerDown(e: PointerEvent) {
-  if (activePointerId !== null || !e.isPrimary) return
   if (e.pointerType === 'mouse' && e.button !== 0) return
+  if (e.pointerType !== 'touch' && (activePointerId !== null || !e.isPrimary)) return
+  if (e.pointerType === 'touch' && touchPointers.size >= 2) return
 
   e.preventDefault()
-  activePointerId = e.pointerId
   threeRenderer.domElement.setPointerCapture(e.pointerId)
-  startDrag(e.clientX, e.clientY)
+
+  if (e.pointerType === 'touch') {
+    touchPointers.set(e.pointerId, new THREE.Vector2(e.clientX, e.clientY))
+
+    if (touchPointers.size === 2) {
+      pinching = true
+      pinchDistance = getPinchDistance()
+      activePointerId = null
+      orbitVelocityX = 0
+      orbitVelocityY = 0
+      stopDrag()
+      return
+    }
+
+    if (pinching || touchPointers.size > 1) return
+  } else if (activePointerId !== null) {
+    return
+  }
+
+  activePointerId = e.pointerId
+  startDrag(e.clientX, e.clientY, e.timeStamp)
 }
 
 function onPointerMove(e: PointerEvent) {
+  if (e.pointerType === 'touch' && touchPointers.has(e.pointerId)) {
+    touchPointers.get(e.pointerId)!.set(e.clientX, e.clientY)
+
+    if (pinching && pinchDistance !== null && touchPointers.size >= 2) {
+      e.preventDefault()
+      const nextDistance = getPinchDistance()
+      if (nextDistance > 0) {
+        setCameraDistance(cameraDistance * pinchDistance / nextDistance)
+        pinchDistance = nextDistance
+      }
+      return
+    }
+  }
+
   if (e.pointerId !== activePointerId) return
 
   e.preventDefault()
-  duringDrag(e.clientX, e.clientY)
+  duringDrag(e.clientX, e.clientY, e.timeStamp)
 }
 
 function onPointerEnd(e: PointerEvent) {
-  if (e.pointerId !== activePointerId) return
+  finishPointer(e, true)
+}
 
-  activePointerId = null
-  stopDrag()
-  if (threeRenderer.domElement.hasPointerCapture(e.pointerId)) {
+function onLostPointerCapture(e: PointerEvent) {
+  finishPointer(e, false)
+}
+
+function finishPointer(e: PointerEvent, releaseCapture: boolean) {
+  const wasActivePointer = e.pointerId === activePointerId
+
+  if (e.pointerType === 'touch') {
+    touchPointers.delete(e.pointerId)
+    if (pinching) {
+      if (touchPointers.size < 2) pinchDistance = null
+      if (touchPointers.size === 0) pinching = false
+    }
+  }
+
+  if (wasActivePointer) {
+    if (mode === MODE_ORBIT_CAMERA) {
+      const damping = Math.exp(-ORBIT_DAMPING * Math.max(0, (e.timeStamp - lastPointerTime) / 1000))
+      orbitVelocityX *= damping
+      orbitVelocityY *= damping
+    }
+    activePointerId = null
+    stopDrag()
+  }
+
+  if (releaseCapture && threeRenderer.domElement.hasPointerCapture(e.pointerId)) {
     threeRenderer.domElement.releasePointerCapture(e.pointerId)
   }
 }
 
-function onLostPointerCapture(e: PointerEvent) {
-  if (e.pointerId !== activePointerId) return
+function onWheel(e: WheelEvent) {
+  e.preventDefault()
+  setCameraDistance(cameraDistance * Math.exp(e.deltaY * 0.001))
+}
 
-  activePointerId = null
-  stopDrag()
+function getPinchDistance(): number {
+  const [first, second] = Array.from(touchPointers.values())
+  return first.distanceTo(second)
+}
+
+function setCameraDistance(distance: number) {
+  cameraDistance = THREE.MathUtils.clamp(distance, MIN_CAMERA_DISTANCE, MAX_CAMERA_DISTANCE)
+  if (paused) draw()
+}
+
+function updateCameraInertia(seconds: number) {
+  if (mode !== MODE_NONE || pinching) return
+
+  angleY += orbitVelocityY * seconds
+  const nextAngleX = THREE.MathUtils.clamp(
+    angleX + orbitVelocityX * seconds,
+    -89.999,
+    89.999
+  )
+  if (nextAngleX === -89.999 || nextAngleX === 89.999) orbitVelocityX = 0
+  angleX = nextAngleX
+
+  const damping = Math.exp(-ORBIT_DAMPING * seconds)
+  orbitVelocityX *= damping
+  orbitVelocityY *= damping
+
+  if (Math.abs(orbitVelocityX) < 0.01) orbitVelocityX = 0
+  if (Math.abs(orbitVelocityY) < 0.01) orbitVelocityY = 0
 }
 
 function onKeyDown(e: KeyboardEvent) {
