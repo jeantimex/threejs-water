@@ -249,13 +249,13 @@ vec4 sampleObjectRefraction(vec3 origin, vec3 ray, vec3 center, float radius) {
   );
 }
 
-vec4 sampleObjectReflection(vec3 origin, vec3 center, float radius) {
-  float dist = length(origin - center);
-  if (dist > radius * 2.0) return vec4(0.0);
+vec4 sampleObjectReflection(vec3 origin, vec3 ray, vec3 center, float radius) {
+  float hit = intersectSphereBounds(origin, ray, center, radius);
+  if (hit >= 1.0e6) return vec4(0.0);
   return sampleProjectedTexture(
     objectReflectionTex,
     reflectionViewProjectionMatrix,
-    origin
+    origin + ray * hit
   );
 }
 
@@ -331,17 +331,8 @@ void main() {
     reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
   } else if (meshEnabled) {
-    vec4 reflectedObject = sampleProjectedTexture(
-      objectReflectionTex,
-      reflectionViewProjectionMatrix,
-      vPosition
-    );
-    vec4 refractedObject = sampleProjectedTexture(
-      objectRefractionTex,
-      viewProjectionMatrix,
-      vPosition
-    );
-    refractedObject = max(refractedObject, sampleObjectRefraction(vPosition, refractedRay, meshCenter, meshBoundingRadius));
+    vec4 reflectedObject = sampleObjectReflection(vPosition, reflectedRay, meshCenter, meshBoundingRadius);
+    vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, meshCenter, meshBoundingRadius);
     reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
   }
