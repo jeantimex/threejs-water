@@ -82,6 +82,7 @@ export class Water {
         oldCenter: { value: new THREE.Vector3() },
         newCenter: { value: new THREE.Vector3() },
         radius: { value: 0 },
+        displacementScale: { value: 1.0 },
       },
     })
 
@@ -120,12 +121,13 @@ export class Water {
     this.swapTextures()
   }
 
-  moveSphere(oldCenter: THREE.Vector3, newCenter: THREE.Vector3, radius: number) {
+  moveSphere(oldCenter: THREE.Vector3, newCenter: THREE.Vector3, radius: number, displacementScale = 1.0) {
     this.plane.material = this.sphereMaterial
     this.sphereMaterial.uniforms.tInput.value = this.textureA.texture
     this.sphereMaterial.uniforms.oldCenter.value.copy(oldCenter)
     this.sphereMaterial.uniforms.newCenter.value.copy(newCenter)
     this.sphereMaterial.uniforms.radius.value = radius
+    this.sphereMaterial.uniforms.displacementScale.value = displacementScale
 
     this.renderer.setRenderTarget(this.textureB)
     this.renderer.render(this.scene, this.camera)

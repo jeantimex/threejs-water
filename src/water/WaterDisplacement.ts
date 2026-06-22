@@ -30,13 +30,16 @@ export class CompoundSphereWaterDisplacement implements WaterDisplacementStrateg
   private readonly previousCenter = new THREE.Vector3()
   private readonly center = new THREE.Vector3()
 
-  constructor(readonly spheres: readonly DisplacementSphere[]) {}
+  constructor(
+    readonly spheres: readonly DisplacementSphere[],
+    readonly displacementScale: number = 1.0
+  ) {}
 
   move(water: Water, previousPosition: THREE.Vector3, position: THREE.Vector3) {
     for (const sphere of this.spheres) {
       this.previousCenter.copy(previousPosition).add(sphere.offset)
       this.center.copy(position).add(sphere.offset)
-      water.moveSphere(this.previousCenter, this.center, sphere.radius)
+      water.moveSphere(this.previousCenter, this.center, sphere.radius, this.displacementScale)
     }
   }
 }

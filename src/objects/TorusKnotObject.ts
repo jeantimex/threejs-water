@@ -46,7 +46,7 @@ export class TorusKnotObject implements SimulationObject {
 
     // Generate compound spheres for water displacement
     const spheres = []
-    const segments = 64
+    const segments = 24
     const radius = 0.17
     const tube = 0.045
     const p = 2
@@ -59,10 +59,10 @@ export class TorusKnotObject implements SimulationObject {
       const y = -radius * Math.sin(q * theta) * 0.5
       spheres.push({
         offset: new THREE.Vector3(x, y, z),
-        radius: tube * 1.5, // slightly larger to prevent gaps in displacement
+        radius: tube * 2.0, // slightly larger to prevent gaps with fewer segments
       })
     }
-    this.displacement = new CompoundSphereWaterDisplacement(spheres)
+    this.displacement = new CompoundSphereWaterDisplacement(spheres, 0.15)
   }
 
   setEnabled(enabled: boolean, water: Water) {
