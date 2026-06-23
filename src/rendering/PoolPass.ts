@@ -39,12 +39,15 @@ export class PoolPass {
     this.material.uniformsNeedUpdate = true
   }
 
-  setShape(shape: 'Box' | 'Cylinder') {
+  setShape(shape: 'Box' | 'Cylinder' | 'Morphed') {
     this.mesh.geometry.dispose()
     this.mesh.geometry = this.createGeometry(shape)
   }
 
-  private createGeometry(shape: 'Box' | 'Cylinder') {
+  private createGeometry(shape: 'Box' | 'Cylinder' | 'Morphed') {
+    if (shape === 'Morphed') {
+      return this.createMorphedGeometry()
+    }
     const geometry = shape === 'Cylinder'
       ? new THREE.CylinderGeometry(1, 1, 2, 64, 1, false)
       : new THREE.BoxGeometry(2, 2, 2)
@@ -66,6 +69,74 @@ export class PoolPass {
     }
 
     geometry.setIndex(indices)
+    return geometry
+  }
+
+  private getMorphedRadius(theta: number): number {
+    let low = 0.0
+    let high = 2.0
+    for (let iter = 0; iter < 20; iter++) {
+      const mid = (low + high) * 0.5
+      const x = mid * Math.cos(theta)
+      const z = mid * Math.sin(theta)
+      
+      const d1 = Math.sqrt((x - (-0.4))**2 + z**2) - 0.55
+      const d2 = Math.sqrt((x - 0.4)**2 + z**2) - 0.55
+      
+      const k = 0.15
+      const h = Math.min(Math.max(0.5 + 0.5 * (d2 - d1) / k, 0.0), 1.0)
+      const sdf = (d2 * (1 - h) + d1 * h) - k * h * (1 - h)
+      
+      if (sdf < 0) {
+        low = mid
+      } else {
+        high = mid
+      }
+    }
+    return low
+  }
+
+  private createMorphedGeometry() {
+    const geometry = new THREE.BufferGeometry()
+    const positions: number[] = []
+    const indices: number[] = []
+    
+    const N = 128
+    const points: THREE.Vector2[] = []
+    for (let i = 0; i < N; i++) {
+      const theta = (i / N) * Math.PI * 2
+      const r = this.getMorphedRadius(theta)
+      points.push(new THREE.Vector2(r * Math.cos(theta), r * Math.sin(theta)))
+    }
+    
+    for (let i = 0; i < N; i++) {
+      positions.push(points[i].x, 1.0, points[i].y)
+    }
+    for (let i = 0; i < N; i++) {
+      positions.push(points[i].x, -1.0, points[i].y)
+    }
+    positions.push(0.0, 1.0, 0.0)
+    const centerIdx = 2 * N
+    
+    for (let i = 0; i < N; i++) {
+      const next = (i + 1) % N
+      const b1 = i
+      const b2 = next
+      const t1 = i + N
+      const t2 = next + N
+      
+      indices.push(b1, t2, t1)
+      indices.push(b1, b2, t2)
+    }
+    
+    for (let i = 0; i < N; i++) {
+      const next = (i + 1) % N
+      indices.push(centerIdx, next, i)
+    }
+    
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+    geometry.setIndex(indices)
+    geometry.computeVertexNormals()
     return geometry
   }
 }

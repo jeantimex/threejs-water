@@ -109,7 +109,31 @@ export class CubeObject implements SimulationObject {
   moveBy(delta: THREE.Vector3) {
     this.position.add(delta)
     this.position.y = THREE.MathUtils.clamp(this.position.y, this.halfSize.y - 1, 10)
-    if (this.resources.opticsState.poolShape === 1) {
+    if (this.resources.opticsState.poolShape === 2) {
+      const radius = Math.sqrt(this.halfSize.x * this.halfSize.x + this.halfSize.z * this.halfSize.z)
+      const x = this.position.x
+      const z = this.position.z
+      const d1 = Math.sqrt((x - (-0.4))**2 + z**2) - 0.55
+      const d2 = Math.sqrt((x - 0.4)**2 + z**2) - 0.55
+      const k = 0.15
+      const h = Math.min(Math.max(0.5 + 0.5 * (d2 - d1) / k, 0.0), 1.0)
+      const sdf = (d2 * (1 - h) + d1 * h) - k * h * (1 - h)
+      
+      const limit = -radius
+      if (sdf > limit) {
+        const diff1 = new THREE.Vector2(x - (-0.4), z)
+        const diff2 = new THREE.Vector2(x - 0.4, z)
+        const len1 = diff1.length()
+        const len2 = diff2.length()
+        const n1 = len1 > 1e-5 ? diff1.normalize() : new THREE.Vector2(1, 0)
+        const n2 = len2 > 1e-5 ? diff2.normalize() : new THREE.Vector2(1, 0)
+        
+        const grad = new THREE.Vector2().addScaledVector(n2, 1 - h).addScaledVector(n1, h).normalize()
+        const push = sdf - limit
+        this.position.x -= grad.x * push
+        this.position.z -= grad.y * push
+      }
+    } else if (this.resources.opticsState.poolShape === 1) {
       const radius = Math.sqrt(this.halfSize.x * this.halfSize.x + this.halfSize.z * this.halfSize.z)
       const limit = 1 - radius
       const dist = Math.sqrt(this.position.x * this.position.x + this.position.z * this.position.z)

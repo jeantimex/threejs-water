@@ -3,7 +3,7 @@ import GUI, { type Controller } from 'lil-gui'
 export interface SimulationControlCallbacks {
   onObjectChange(name: string): void
   onPausedChange(paused: boolean): void
-  onPoolShapeChange(shape: 'Box' | 'Cylinder'): void
+  onPoolShapeChange(shape: 'Box' | 'Cylinder' | 'Morphed'): void
 }
 
 export class SimulationControls {
@@ -63,9 +63,9 @@ export class SimulationControls {
     const sceneFolder = gui.addFolder('Scene')
     sceneFolder.open()
 
-    sceneFolder.add(this.state, 'poolShape', ['Box', 'Cylinder'])
+    sceneFolder.add(this.state, 'poolShape', ['Box', 'Cylinder', 'Morphed'])
       .name('Pool Shape')
-      .onChange((shape: 'Box' | 'Cylinder') => {
+      .onChange((shape: 'Box' | 'Cylinder' | 'Morphed') => {
         callbacks.onPoolShapeChange(shape)
       })
 

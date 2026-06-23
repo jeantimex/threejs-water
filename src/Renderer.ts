@@ -80,7 +80,7 @@ export class Renderer {
   }
 
   setPoolShape(shape: PoolShape) {
-    this.opticsState.poolShape = shape === 'Cylinder' ? 1 : 0
+    this.opticsState.poolShape = shape === 'Morphed' ? 2 : (shape === 'Cylinder' ? 1 : 0)
     this.pool.setShape(shape)
     this.caustics.setShape(shape)
   }

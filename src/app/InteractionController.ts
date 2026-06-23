@@ -96,10 +96,22 @@ export class InteractionController {
         .applyQuaternion(camera.quaternion)
         .negate()
     } else {
-      const isCylinder = this.dependencies.renderer.objectRenderResources.opticsState.poolShape === 1
-      const isInsideWater = isCylinder
-        ? (pointOnPlane.x * pointOnPlane.x + pointOnPlane.z * pointOnPlane.z < 1.0)
-        : (Math.abs(pointOnPlane.x) < 1 && Math.abs(pointOnPlane.z) < 1)
+      const poolShape = this.dependencies.renderer.objectRenderResources.opticsState.poolShape
+      let isInsideWater = false
+      if (poolShape === 2) {
+        const px = pointOnPlane.x
+        const pz = pointOnPlane.z
+        const d1 = Math.sqrt((px - (-0.4))**2 + pz**2) - 0.55
+        const d2 = Math.sqrt((px - 0.4)**2 + pz**2) - 0.55
+        const k = 0.15
+        const h = Math.min(Math.max(0.5 + 0.5 * (d2 - d1) / k, 0.0), 1.0)
+        const sdf = (d2 * (1 - h) + d1 * h) - k * h * (1 - h)
+        isInsideWater = sdf < 0.0
+      } else if (poolShape === 1) {
+        isInsideWater = pointOnPlane.x * pointOnPlane.x + pointOnPlane.z * pointOnPlane.z < 1.0
+      } else {
+        isInsideWater = Math.abs(pointOnPlane.x) < 1 && Math.abs(pointOnPlane.z) < 1
+      }
 
       if (isInsideWater) {
         this.mode = InteractionMode.AddDrops
@@ -118,10 +130,22 @@ export class InteractionController {
       const { origin, direction } = this.getRay(x, y)
       const point = origin.clone().addScaledVector(direction, -origin.y / direction.y)
       
-      const isCylinder = renderer.objectRenderResources.opticsState.poolShape === 1
-      const isInsideWater = isCylinder
-        ? (point.x * point.x + point.z * point.z < 1.0)
-        : (Math.abs(point.x) < 1 && Math.abs(point.z) < 1)
+      const poolShape = renderer.objectRenderResources.opticsState.poolShape
+      let isInsideWater = false
+      if (poolShape === 2) {
+        const px = point.x
+        const pz = point.z
+        const d1 = Math.sqrt((px - (-0.4))**2 + pz**2) - 0.55
+        const d2 = Math.sqrt((px - 0.4)**2 + pz**2) - 0.55
+        const k = 0.15
+        const h = Math.min(Math.max(0.5 + 0.5 * (d2 - d1) / k, 0.0), 1.0)
+        const sdf = (d2 * (1 - h) + d1 * h) - k * h * (1 - h)
+        isInsideWater = sdf < 0.0
+      } else if (poolShape === 1) {
+        isInsideWater = point.x * point.x + point.z * point.z < 1.0
+      } else {
+        isInsideWater = Math.abs(point.x) < 1 && Math.abs(point.z) < 1
+      }
 
       if (isInsideWater) {
         water.addDrop(point.x, point.z, 0.03, 0.01)

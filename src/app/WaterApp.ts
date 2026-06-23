@@ -48,7 +48,7 @@ export class WaterApp {
       onPausedChange: (paused) => {
         if (paused) this.draw()
       },
-      onPoolShapeChange: (shape: 'Box' | 'Cylinder') => {
+      onPoolShapeChange: (shape: 'Box' | 'Cylinder' | 'Morphed') => {
         this.renderer.setPoolShape(shape)
         this.draw()
       },

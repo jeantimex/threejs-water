@@ -64,13 +64,57 @@ vec2 intersectCylinder(vec3 origin, vec3 r, float radius, float yMin, float yMax
   return vec2(tNear, tFar);
 }
 
+float smin(float a, float b, float k) {
+  float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+  return mix(b, a, h) - k * h * (1.0 - h);
+}
+
+float getPoolSDF(vec2 p) {
+  float d1 = length(p - vec2(-0.4, 0.0)) - 0.55;
+  float d2 = length(p - vec2(0.4, 0.0)) - 0.55;
+  return smin(d1, d2, 0.15);
+}
+
+vec2 intersectMorphed(vec3 origin, vec3 r, float yMin, float yMax) {
+  float tPlaneNear = -1.0e6;
+  float tPlaneFar = 1.0e6;
+  if (abs(r.y) > 1.0e-6) {
+    float tPlane1 = (yMin - origin.y) / r.y;
+    float tPlane2 = (yMax - origin.y) / r.y;
+    tPlaneNear = min(tPlane1, tPlane2);
+    tPlaneFar = max(tPlane1, tPlane2);
+  } else {
+    if (origin.y < yMin || origin.y > yMax) {
+      return vec2(-1.0e6, -1.0e6);
+    }
+  }
+  
+  float t = 0.0;
+  float d = 0.0;
+  for (int i = 0; i < 30; i++) {
+    vec2 p = origin.xz + t * r.xz;
+    d = getPoolSDF(p);
+    if (abs(d) < 0.0005) {
+      break;
+    }
+    t += abs(d) / max(length(r.xz), 1.0e-6);
+    if (t > 4.0) break;
+  }
+  
+  float tNear = tPlaneNear;
+  float tFar = min(t, tPlaneFar);
+  return vec2(tNear, tFar);
+}
+
 bool validIntersection(vec2 t) {
   return t.x <= t.y && t.y > -1.0e5 && t.y < 1.0e5;
 }
 
 vec4 project(vec3 origin, vec3 r, vec3 refractedLight) {
   vec2 t;
-  if (poolShape == 1) {
+  if (poolShape == 2) {
+    t = intersectMorphed(origin, r, -poolHeight, 2.0);
+  } else if (poolShape == 1) {
     t = intersectCylinder(origin, r, 1.0, -poolHeight, 2.0);
   } else {
     t = intersectCube(origin, r, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
