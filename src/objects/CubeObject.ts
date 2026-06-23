@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { SimulationObjectRenderResources } from '../rendering/SimulationObjectRendering'
-import { keepPointInsideMorphedPool } from '../rendering/MorphedPoolShape'
+import { keepObjectInsidePool } from '../rendering/MorphedPoolShape'
 import cubeRenderVert from '../shaders/objectCubeRender.vert'
 import cubeRenderFrag from '../shaders/objectCubeRender.frag'
 import type { Water } from '../Water'
@@ -110,30 +110,12 @@ export class CubeObject implements SimulationObject {
   moveBy(delta: THREE.Vector3) {
     this.position.add(delta)
     this.position.y = THREE.MathUtils.clamp(this.position.y, this.halfSize.y - 1, 10)
-    if (this.resources.opticsState.poolShape === 2) {
-      const radius = Math.sqrt(this.halfSize.x * this.halfSize.x + this.halfSize.z * this.halfSize.z)
-      keepPointInsideMorphedPool(this.position, radius)
-    } else if (this.resources.opticsState.poolShape === 1) {
-      const radius = Math.sqrt(this.halfSize.x * this.halfSize.x + this.halfSize.z * this.halfSize.z)
-      const limit = 1 - radius
-      const dist = Math.sqrt(this.position.x * this.position.x + this.position.z * this.position.z)
-      if (dist > limit) {
-        const factor = limit / dist
-        this.position.x *= factor
-        this.position.z *= factor
-      }
-    } else {
-      this.position.x = THREE.MathUtils.clamp(
-        this.position.x,
-        this.halfSize.x - 1,
-        1 - this.halfSize.x
-      )
-      this.position.z = THREE.MathUtils.clamp(
-        this.position.z,
-        this.halfSize.z - 1,
-        1 - this.halfSize.z
-      )
-    }
+    const radius = Math.sqrt(this.halfSize.x * this.halfSize.x + this.halfSize.z * this.halfSize.z)
+    keepObjectInsidePool(
+      this.position,
+      { radius, boxHalfSize: new THREE.Vector2(this.halfSize.x, this.halfSize.z) },
+      this.resources.opticsState.poolShapeName
+    )
   }
 
   prepareRender(water: Water) {

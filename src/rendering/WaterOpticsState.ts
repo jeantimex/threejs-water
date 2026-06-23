@@ -1,9 +1,11 @@
 import * as THREE from 'three'
 import type { WaterOpticsDescriptor } from '../water/WaterOptics'
+import type { PoolShape } from './MorphedPoolShape'
 
 export class WaterOpticsState {
   readonly lightDirection = new THREE.Vector3(2, 2, -1).normalize()
-  poolShape = 0 // 0 = Box, 1 = Cylinder
+  poolShapeName: PoolShape = 'Box'
+  poolShape = 0 // 0 = Box, 1 = Cylinder, 2 = Morphed
   readonly sphereCenter = new THREE.Vector3()
   sphereRadius = 0.25
   sphereEnabled = false

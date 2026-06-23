@@ -3,7 +3,8 @@ import type { Water } from '../Water'
 import causticsVert from '../shaders/caustics.vert'
 import causticsFrag from '../shaders/caustics.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
-import { CausticsShapeGeometry, type PoolShape } from './CausticsShape'
+import { CausticsShapeGeometry } from './CausticsShape'
+import type { PoolShape } from './MorphedPoolShape'
 
 export class CausticsPass {
   readonly texture: THREE.Texture

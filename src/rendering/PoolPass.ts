@@ -3,7 +3,7 @@ import type { Water } from '../Water'
 import poolVert from '../shaders/cube.vert'
 import poolFrag from '../shaders/cube.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
-import { getMorphedPoolSdf } from './MorphedPoolShape'
+import { getMorphedPoolRadiusAtAngle } from './MorphedPoolShape'
 
 export class PoolPass {
   readonly mesh: THREE.Mesh
@@ -73,25 +73,6 @@ export class PoolPass {
     return geometry
   }
 
-  private getMorphedRadius(theta: number): number {
-    let low = 0.0
-    let high = 2.0
-    for (let iter = 0; iter < 20; iter++) {
-      const mid = (low + high) * 0.5
-      const x = mid * Math.cos(theta)
-      const z = mid * Math.sin(theta)
-      
-      const { sdf } = getMorphedPoolSdf(x, z)
-      
-      if (sdf < 0) {
-        low = mid
-      } else {
-        high = mid
-      }
-    }
-    return low
-  }
-
   private createMorphedGeometry() {
     const geometry = new THREE.BufferGeometry()
     const positions: number[] = []
@@ -101,7 +82,7 @@ export class PoolPass {
     const points: THREE.Vector2[] = []
     for (let i = 0; i < N; i++) {
       const theta = (i / N) * Math.PI * 2
-      const r = this.getMorphedRadius(theta)
+      const r = getMorphedPoolRadiusAtAngle(theta)
       points.push(new THREE.Vector2(r * Math.cos(theta), r * Math.sin(theta)))
     }
     

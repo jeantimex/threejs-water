@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { SimulationObjectRenderResources } from '../rendering/SimulationObjectRendering'
-import { keepPointInsideMorphedPool } from '../rendering/MorphedPoolShape'
+import { keepObjectInsidePool } from '../rendering/MorphedPoolShape'
 import torusKnotRenderVert from '../shaders/torusKnotRender.vert'
 import torusKnotRenderFrag from '../shaders/torusKnotRender.frag'
 import type { Water } from '../Water'
@@ -140,20 +140,7 @@ export class TorusKnotObject implements SimulationObject {
     const radius = this.boundingRadius
     this.position.add(delta)
     this.position.y = THREE.MathUtils.clamp(this.position.y, this.floorClearance - 1, 10)
-    if (this.resources.opticsState.poolShape === 2) {
-      keepPointInsideMorphedPool(this.position, radius)
-    } else if (this.resources.opticsState.poolShape === 1) {
-      const limit = 1 - radius
-      const dist = Math.sqrt(this.position.x * this.position.x + this.position.z * this.position.z)
-      if (dist > limit) {
-        const factor = limit / dist
-        this.position.x *= factor
-        this.position.z *= factor
-      }
-    } else {
-      this.position.x = THREE.MathUtils.clamp(this.position.x, radius - 1, 1 - radius)
-      this.position.z = THREE.MathUtils.clamp(this.position.z, radius - 1, 1 - radius)
-    }
+    keepObjectInsidePool(this.position, { radius }, this.resources.opticsState.poolShapeName)
     this.mesh.position.copy(this.position)
   }
 

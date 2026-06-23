@@ -1,7 +1,5 @@
 import * as THREE from 'three'
-import { getMorphedPoolSdf } from './MorphedPoolShape'
-
-export type PoolShape = 'Box' | 'Cylinder' | 'Morphed'
+import { getMorphedPoolSdf, type PoolShape } from './MorphedPoolShape'
 
 const CAUSTICS_SUBDIVISIONS = 200
 

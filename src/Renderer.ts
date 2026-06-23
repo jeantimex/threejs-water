@@ -8,7 +8,7 @@ import type {
 } from './rendering/SimulationObjectRendering'
 import { WaterSurfacePass } from './rendering/WaterSurfacePass'
 import { WaterOpticsState } from './rendering/WaterOpticsState'
-import type { PoolShape } from './rendering/CausticsShape'
+import type { PoolShape } from './rendering/MorphedPoolShape'
 import type { WaterOpticsDescriptor } from './water/WaterOptics'
 
 export class Renderer {
@@ -80,6 +80,7 @@ export class Renderer {
   }
 
   setPoolShape(shape: PoolShape) {
+    this.opticsState.poolShapeName = shape
     this.opticsState.poolShape = shape === 'Morphed' ? 2 : (shape === 'Cylinder' ? 1 : 0)
     this.pool.setShape(shape)
     this.caustics.setShape(shape)
