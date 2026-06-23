@@ -7,7 +7,7 @@ const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 uniform vec3 light;
 uniform sampler2D water;
 uniform sampler2D causticTex;
-uniform bool isTexturePass;
+uniform int texturePassMode;
 
 varying vec3 vPosition;
 varying vec3 vNormal;
@@ -17,6 +17,9 @@ void main() {
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(-refractedLight, normalize(vNormal))) * 0.5;
   vec4 info = texture2D(water, vPosition.xz * 0.5 + 0.5);
+  if (texturePassMode == 2 && vPosition.y < info.r) {
+    discard;
+  }
 
   if (vPosition.y < info.r) {
     vec4 caustic = texture2D(
@@ -28,5 +31,5 @@ void main() {
 
   color += diffuse;
   if (vPosition.y < info.r) color *= underwaterColor * 1.2;
-  gl_FragColor = vec4(color, (!isTexturePass || vPosition.y < info.r) ? 1.0 : 0.0);
+  gl_FragColor = vec4(color, 1.0);
 }

@@ -15,8 +15,9 @@ export class TorusKnotObject implements SimulationObject {
   readonly floorY = this.floorClearance - 1
   readonly displacement: CompoundSphereWaterDisplacement
   readonly optics = {
-    kind: 'torusknot' as const,
+    kind: 'mesh' as const,
     center: this.position,
+    boundingRadius: this.boundingRadius,
   }
   readonly mesh: THREE.Mesh
   enabled = false
@@ -34,7 +35,7 @@ export class TorusKnotObject implements SimulationObject {
         torusKnotCenter: { value: this.position.clone() },
         water: { value: null },
         causticTex: { value: resources.causticTexture },
-        isTexturePass: { value: false },
+        texturePassMode: { value: 0 },
       },
       depthTest: true,
       depthWrite: true,
