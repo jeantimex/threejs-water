@@ -6,6 +6,8 @@ import type { WaterOpticsDescriptor } from '../water/WaterOptics'
 export interface ObjectUpdateContext {
   dragging: boolean
   physicsEnabled: boolean
+  densityEnabled: boolean
+  density: number
   gravity: THREE.Vector3
 }
 

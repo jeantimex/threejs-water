@@ -96,6 +96,8 @@ export class WaterApp {
     this.objects.update(seconds, {
       dragging: this.interaction.draggingObject,
       physicsEnabled: this.controls.physicsEnabled,
+      densityEnabled: this.controls.densityEnabled,
+      density: this.controls.density,
       gravity: this.gravity,
     }, this.water)
 

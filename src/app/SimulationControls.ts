@@ -8,39 +8,67 @@ export interface SimulationControlCallbacks {
 export class SimulationControls {
   paused = false
   physicsEnabled = false
+  densityEnabled = false
+  density = 0.9
 
   private readonly state = {
     object: 'Sphere',
     gravity: false,
+    densityEnabled: false,
+    density: 0.9,
     paused: false,
   }
   private readonly gravityController: Controller
+  private readonly densityEnabledController: Controller
+  private readonly densityController: Controller
   private readonly pausedController: Controller
+  private physicsAvailable = true
 
   constructor(
     objectOptions: string[],
     private readonly callbacks: SimulationControlCallbacks
   ) {
-    const gui = new GUI({ title: 'Simulation' })
+    const gui = new GUI({ title: 'Settings' })
     gui.domElement.style.left = '0'
     gui.domElement.style.right = 'auto'
 
-    gui.add(this.state, 'object', objectOptions)
+    const objectFolder = gui.addFolder('Object')
+    objectFolder.open()
+
+    objectFolder.add(this.state, 'object', objectOptions)
       .name('Object')
       .onChange((name: string) => callbacks.onObjectChange(name))
 
-    this.gravityController = gui.add(this.state, 'gravity')
-      .name('Gravity')
+    this.gravityController = objectFolder.add(this.state, 'gravity')
+      .name('Toggle Gravity')
       .onChange((enabled: boolean) => {
         this.physicsEnabled = enabled
       })
 
-    this.pausedController = gui.add(this.state, 'paused')
+    this.densityEnabledController = objectFolder.add(this.state, 'densityEnabled')
+      .name('Enable Density')
+      .onChange((enabled: boolean) => {
+        this.densityEnabled = enabled
+        this.updateDensityController()
+      })
+
+    this.densityController = objectFolder.add(this.state, 'density', 0.2, 2.0, 0.01)
+      .name('Density')
+      .onChange((density: number) => {
+        this.density = density
+      })
+
+    const sceneFolder = gui.addFolder('Scene')
+    sceneFolder.open()
+
+    this.pausedController = sceneFolder.add(this.state, 'paused')
       .name('Paused')
       .onChange((paused: boolean) => {
         this.paused = paused
         callbacks.onPausedChange(paused)
       })
+
+    this.updateDensityController()
   }
 
   togglePaused() {
@@ -57,6 +85,13 @@ export class SimulationControls {
   }
 
   setPhysicsAvailable(available: boolean) {
+    this.physicsAvailable = available
     this.gravityController.disable(!available)
+    this.densityEnabledController.disable(!available)
+    this.updateDensityController()
+  }
+
+  private updateDensityController() {
+    this.densityController.disable(!this.physicsAvailable || !this.densityEnabled)
   }
 }

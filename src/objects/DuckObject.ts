@@ -124,9 +124,10 @@ export class DuckObject implements SimulationObject {
       this.velocity.set(0, 0, 0)
     } else if (context.physicsEnabled) {
       const radius = this.boundingRadius
+      const buoyancyScale = context.densityEnabled ? 1 / context.density : 1.1
       const percentUnderWater = THREE.MathUtils.clamp((radius - this.position.y) / (2 * radius), 0, 1)
       this.velocity.add(
-        context.gravity.clone().multiplyScalar(seconds - 1.1 * seconds * percentUnderWater)
+        context.gravity.clone().multiplyScalar(seconds - buoyancyScale * seconds * percentUnderWater)
       )
       const speedSq = this.velocity.lengthSq()
       if (speedSq > 0) {

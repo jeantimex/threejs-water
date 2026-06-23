@@ -65,6 +65,7 @@ export class CubeObject implements SimulationObject {
     if (context.dragging) {
       this.velocity.set(0, 0, 0)
     } else if (context.physicsEnabled) {
+      const buoyancyScale = context.densityEnabled ? 1 / context.density : 1.1
       const percentUnderWater = THREE.MathUtils.clamp(
         (this.halfSize.y - this.position.y) / (2 * this.halfSize.y),
         0,
@@ -72,7 +73,7 @@ export class CubeObject implements SimulationObject {
       )
       this.velocity.addScaledVector(
         context.gravity,
-        seconds - 1.1 * seconds * percentUnderWater
+        seconds - buoyancyScale * seconds * percentUnderWater
       )
       const speedSq = this.velocity.lengthSq()
       if (speedSq > 0) {
