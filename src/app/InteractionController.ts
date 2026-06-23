@@ -95,12 +95,19 @@ export class InteractionController {
       this.dragPlaneNormal = new THREE.Vector3(0, 0, -1)
         .applyQuaternion(camera.quaternion)
         .negate()
-    } else if (Math.abs(pointOnPlane.x) < 1 && Math.abs(pointOnPlane.z) < 1) {
-      this.mode = InteractionMode.AddDrops
-      this.duringDrag(x, y, time)
     } else {
-      this.mode = InteractionMode.OrbitCamera
-      cameraController.beginOrbit(x, y, time)
+      const isCylinder = this.dependencies.renderer.objectRenderResources.opticsState.poolShape === 1
+      const isInsideWater = isCylinder
+        ? (pointOnPlane.x * pointOnPlane.x + pointOnPlane.z * pointOnPlane.z < 1.0)
+        : (Math.abs(pointOnPlane.x) < 1 && Math.abs(pointOnPlane.z) < 1)
+
+      if (isInsideWater) {
+        this.mode = InteractionMode.AddDrops
+        this.duringDrag(x, y, time)
+      } else {
+        this.mode = InteractionMode.OrbitCamera
+        cameraController.beginOrbit(x, y, time)
+      }
     }
   }
 
@@ -110,10 +117,18 @@ export class InteractionController {
     if (this.mode === InteractionMode.AddDrops) {
       const { origin, direction } = this.getRay(x, y)
       const point = origin.clone().addScaledVector(direction, -origin.y / direction.y)
-      water.addDrop(point.x, point.z, 0.03, 0.01)
-      if (controls.paused) {
-        water.updateNormals()
-        renderer.updateCaustics(water)
+      
+      const isCylinder = renderer.objectRenderResources.opticsState.poolShape === 1
+      const isInsideWater = isCylinder
+        ? (point.x * point.x + point.z * point.z < 1.0)
+        : (Math.abs(point.x) < 1 && Math.abs(point.z) < 1)
+
+      if (isInsideWater) {
+        water.addDrop(point.x, point.z, 0.03, 0.01)
+        if (controls.paused) {
+          water.updateNormals()
+          renderer.updateCaustics(water)
+        }
       }
     } else if (this.mode === InteractionMode.MoveObject) {
       if (!this.previousHit || !this.dragPlaneNormal || !objects.active) return

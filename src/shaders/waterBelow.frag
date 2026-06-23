@@ -368,6 +368,9 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
 }
 
 void main() {
+  if (poolShape == 1 && dot(vPosition.xz, vPosition.xz) > 0.996) {
+    discard;
+  }
   vec2 coord = vPosition.xz * 0.5 + 0.5;
   vec4 info = texture2D(water, coord);
 
