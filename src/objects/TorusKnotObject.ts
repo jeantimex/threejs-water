@@ -9,8 +9,10 @@ import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 export class TorusKnotObject implements SimulationObject {
   readonly name = 'TorusKnot'
   readonly boundingRadius = 0.31
-  readonly position = new THREE.Vector3(-0.4, this.boundingRadius - 1, 0.2)
+  readonly floorClearance = 0.13
+  readonly position = new THREE.Vector3(-0.4, this.floorClearance - 1, 0.2)
   readonly velocity = new THREE.Vector3()
+  readonly floorY = this.floorClearance - 1
   readonly displacement: CompoundSphereWaterDisplacement
   readonly optics = {
     kind: 'torusknot' as const,
@@ -71,6 +73,9 @@ export class TorusKnotObject implements SimulationObject {
 
     const inactivePosition = this.getInactivePosition()
     if (enabled) {
+      if (this.position.y <= this.boundingRadius - 1) {
+        this.position.y = this.floorClearance - 1
+      }
       this.displacement.move(water, inactivePosition, this.position)
       this.mesh.position.copy(this.position)
     } else {
@@ -105,8 +110,9 @@ export class TorusKnotObject implements SimulationObject {
       }
       this.position.addScaledVector(this.velocity, seconds)
 
-      if (this.position.y < radius - 1) {
-        this.position.y = radius - 1
+      const floor = this.floorClearance - 1
+      if (this.position.y < floor) {
+        this.position.y = floor
         this.velocity.y = Math.abs(this.velocity.y) * 0.7
       }
     }
@@ -132,7 +138,7 @@ export class TorusKnotObject implements SimulationObject {
     const radius = this.boundingRadius
     this.position.add(delta)
     this.position.x = THREE.MathUtils.clamp(this.position.x, radius - 1, 1 - radius)
-    this.position.y = THREE.MathUtils.clamp(this.position.y, radius - 1, 10)
+    this.position.y = THREE.MathUtils.clamp(this.position.y, this.floorClearance - 1, 10)
     this.position.z = THREE.MathUtils.clamp(this.position.z, radius - 1, 1 - radius)
     this.mesh.position.copy(this.position)
   }

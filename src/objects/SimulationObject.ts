@@ -15,6 +15,7 @@ export interface SimulationObject {
   readonly name: string
   readonly mesh: THREE.Object3D
   readonly position: THREE.Vector3
+  readonly floorY: number
   readonly optics: WaterOpticsDescriptor
   readonly displacement: WaterDisplacementStrategy
   enabled: boolean

@@ -5,6 +5,7 @@ const float IOR_WATER = 1.333;
 const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);
 const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 const float poolHeight = 1.0;
+const float torusKnotShadowRadius = 0.13;
 
 uniform vec3 light;
 uniform vec3 sphereCenter;
@@ -207,7 +208,7 @@ vec3 getWallColor(vec3 point) {
     scale *= 1.0 - 0.9 / pow(max(cubeDistance, 0.001), 4.0);
   } else if (torusKnotEnabled) {
     float knotDistance = length(point - torusKnotCenter);
-    scale *= 1.0 - 0.9 / pow(knotDistance / 0.31, 4.0);
+    scale *= 1.0 - 0.9 / pow(knotDistance / torusKnotShadowRadius, 4.0);
   } else if (meshEnabled) {
     float meshDistance = length(point - meshCenter);
     scale *= 1.0 - 0.9 / pow(meshDistance / meshBoundingRadius, 4.0);

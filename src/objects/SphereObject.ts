@@ -11,6 +11,7 @@ export class SphereObject implements SimulationObject {
   readonly position = new THREE.Vector3(-0.4, -0.75, 0.2)
   readonly velocity = new THREE.Vector3()
   readonly interactionRadius = 0.25
+  readonly floorY = this.interactionRadius - 1
   readonly displacement = new SphereWaterDisplacement(this.interactionRadius)
   readonly optics = {
     kind: 'sphere' as const,

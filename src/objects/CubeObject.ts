@@ -11,6 +11,7 @@ export class CubeObject implements SimulationObject {
   readonly halfSize = new THREE.Vector3(0.25, 0.25, 0.25)
   readonly position = new THREE.Vector3(-0.4, this.halfSize.y - 1, 0.2)
   readonly velocity = new THREE.Vector3()
+  readonly floorY = this.halfSize.y - 1
   readonly displacement = new BoxWaterDisplacement(this.halfSize)
   readonly optics = {
     kind: 'box' as const,

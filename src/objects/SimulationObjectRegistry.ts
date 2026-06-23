@@ -54,6 +54,7 @@ export class SimulationObjectRegistry {
     this.activeObject = nextObject ?? null
     if (this.activeObject) {
       this.activeObject.position.copy(this.sharedPosition)
+      this.activeObject.position.y = Math.max(this.activeObject.position.y, this.activeObject.floorY)
       this.activeObject.setEnabled(true, water)
     }
   }
