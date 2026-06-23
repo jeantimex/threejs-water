@@ -3,6 +3,7 @@ import GUI, { type Controller } from 'lil-gui'
 export interface SimulationControlCallbacks {
   onObjectChange(name: string): void
   onPausedChange(paused: boolean): void
+  onPoolShapeChange(shape: 'Box' | 'Cylinder'): void
 }
 
 export class SimulationControls {
@@ -17,6 +18,7 @@ export class SimulationControls {
     densityEnabled: false,
     density: 0.9,
     paused: false,
+    poolShape: 'Box',
   }
   private readonly gravityController: Controller
   private readonly densityEnabledController: Controller
@@ -60,6 +62,12 @@ export class SimulationControls {
 
     const sceneFolder = gui.addFolder('Scene')
     sceneFolder.open()
+
+    sceneFolder.add(this.state, 'poolShape', ['Box', 'Cylinder'])
+      .name('Pool Shape')
+      .onChange((shape: 'Box' | 'Cylinder') => {
+        callbacks.onPoolShapeChange(shape)
+      })
 
     this.pausedController = sceneFolder.add(this.state, 'paused')
       .name('Paused')

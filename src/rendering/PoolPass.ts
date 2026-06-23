@@ -28,7 +28,7 @@ export class PoolPass {
       depthWrite: true,
     })
 
-    this.mesh = new THREE.Mesh(this.createGeometry(), this.material)
+    this.mesh = new THREE.Mesh(this.createGeometry('Box'), this.material)
     this.mesh.frustumCulled = false
   }
 
@@ -39,8 +39,15 @@ export class PoolPass {
     this.material.uniformsNeedUpdate = true
   }
 
-  private createGeometry() {
-    const geometry = new THREE.BoxGeometry(2, 2, 2)
+  setShape(shape: 'Box' | 'Cylinder') {
+    this.mesh.geometry.dispose()
+    this.mesh.geometry = this.createGeometry(shape)
+  }
+
+  private createGeometry(shape: 'Box' | 'Cylinder') {
+    const geometry = shape === 'Cylinder'
+      ? new THREE.CylinderGeometry(1, 1, 2, 64, 1, false)
+      : new THREE.BoxGeometry(2, 2, 2)
     const positions = geometry.attributes.position
     const source = geometry.index!
     const indices: number[] = []

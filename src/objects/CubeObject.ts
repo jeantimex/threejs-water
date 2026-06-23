@@ -108,17 +108,28 @@ export class CubeObject implements SimulationObject {
 
   moveBy(delta: THREE.Vector3) {
     this.position.add(delta)
-    this.position.x = THREE.MathUtils.clamp(
-      this.position.x,
-      this.halfSize.x - 1,
-      1 - this.halfSize.x
-    )
     this.position.y = THREE.MathUtils.clamp(this.position.y, this.halfSize.y - 1, 10)
-    this.position.z = THREE.MathUtils.clamp(
-      this.position.z,
-      this.halfSize.z - 1,
-      1 - this.halfSize.z
-    )
+    if (this.resources.opticsState.poolShape === 1) {
+      const radius = Math.sqrt(this.halfSize.x * this.halfSize.x + this.halfSize.z * this.halfSize.z)
+      const limit = 1 - radius
+      const dist = Math.sqrt(this.position.x * this.position.x + this.position.z * this.position.z)
+      if (dist > limit) {
+        const factor = limit / dist
+        this.position.x *= factor
+        this.position.z *= factor
+      }
+    } else {
+      this.position.x = THREE.MathUtils.clamp(
+        this.position.x,
+        this.halfSize.x - 1,
+        1 - this.halfSize.x
+      )
+      this.position.z = THREE.MathUtils.clamp(
+        this.position.z,
+        this.halfSize.z - 1,
+        1 - this.halfSize.z
+      )
+    }
   }
 
   prepareRender(water: Water) {

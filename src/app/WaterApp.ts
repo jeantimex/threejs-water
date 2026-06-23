@@ -48,6 +48,10 @@ export class WaterApp {
       onPausedChange: (paused) => {
         if (paused) this.draw()
       },
+      onPoolShapeChange: (shape: 'Box' | 'Cylinder') => {
+        this.renderer.setPoolShape(shape)
+        this.draw()
+      },
     })
     this.interaction = new InteractionController({
       canvas: this.webglRenderer.domElement,

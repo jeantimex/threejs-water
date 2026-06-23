@@ -32,6 +32,7 @@ export class Renderer {
     this.objectRenderResources = {
       lightDirection: this.lightDir,
       causticTexture: this.caustics.texture,
+      opticsState: this.opticsState,
     }
     this.pool = new PoolPass(tileTexture, this.caustics.texture, this.opticsState)
     this.waterSurface = new WaterSurfacePass(
@@ -75,6 +76,11 @@ export class Renderer {
       viewProjectionMatrix: this.objectTextures.viewProjectionMatrix,
       reflectionViewProjectionMatrix: this.objectTextures.reflectionViewProjectionMatrix,
     })
+  }
+
+  setPoolShape(shape: 'Box' | 'Cylinder') {
+    this.opticsState.poolShape = shape === 'Cylinder' ? 1 : 0
+    this.pool.setShape(shape)
   }
 
   setWaterOptics(optics: WaterOpticsDescriptor) {

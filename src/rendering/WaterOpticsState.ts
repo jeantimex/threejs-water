@@ -3,6 +3,7 @@ import type { WaterOpticsDescriptor } from '../water/WaterOptics'
 
 export class WaterOpticsState {
   readonly lightDirection = new THREE.Vector3(2, 2, -1).normalize()
+  poolShape = 0 // 0 = Box, 1 = Cylinder
   readonly sphereCenter = new THREE.Vector3()
   sphereRadius = 0.25
   sphereEnabled = false
@@ -41,6 +42,7 @@ export class WaterOpticsState {
 
   createUniforms() {
     return {
+      poolShape: { value: this.poolShape },
       sphereCenter: { value: this.sphereCenter.clone() },
       sphereRadius: { value: this.sphereRadius },
       sphereEnabled: { value: this.sphereEnabled },
@@ -56,6 +58,9 @@ export class WaterOpticsState {
   }
 
   syncUniforms(material: THREE.ShaderMaterial) {
+    if (material.uniforms.poolShape) {
+      material.uniforms.poolShape.value = this.poolShape
+    }
     material.uniforms.sphereCenter.value.copy(this.sphereCenter)
     material.uniforms.sphereRadius.value = this.sphereRadius
     material.uniforms.sphereEnabled.value = this.sphereEnabled

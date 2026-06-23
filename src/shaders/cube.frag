@@ -6,6 +6,7 @@ const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 const float poolHeight = 1.0;
 const float torusKnotShadowRadius = 0.13;
 
+uniform int poolShape;
 uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
@@ -34,19 +35,73 @@ vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {
   return vec2(tNear, tFar);
 }
 
+vec2 intersectCylinder(vec3 origin, vec3 r, float radius, float yMin, float yMax) {
+  float a = r.x * r.x + r.z * r.z;
+  float b = 2.0 * (origin.x * r.x + origin.z * r.z);
+  float c = origin.x * origin.x + origin.z * origin.z - radius * radius;
+  
+  float tNear = -1.0e6;
+  float tFar = 1.0e6;
+  
+  if (a > 1.0e-6) {
+    float discriminant = b * b - 4.0 * a * c;
+    if (discriminant < 0.0) {
+      return vec2(-1.0e6, -1.0e6);
+    }
+    float root = sqrt(discriminant);
+    float t1 = (-b - root) / (2.0 * a);
+    float t2 = (-b + root) / (2.0 * a);
+    tNear = min(t1, t2);
+    tFar = max(t1, t2);
+  } else {
+    if (origin.x * origin.x + origin.z * origin.z > radius * radius) {
+      return vec2(-1.0e6, -1.0e6);
+    }
+  }
+  
+  float tPlaneNear = -1.0e6;
+  float tPlaneFar = 1.0e6;
+  if (abs(r.y) > 1.0e-6) {
+    float tPlane1 = (yMin - origin.y) / r.y;
+    float tPlane2 = (yMax - origin.y) / r.y;
+    tPlaneNear = min(tPlane1, tPlane2);
+    tPlaneFar = max(tPlane1, tPlane2);
+  } else {
+    if (origin.y < yMin || origin.y > yMax) {
+      return vec2(-1.0e6, -1.0e6);
+    }
+  }
+  
+  tNear = max(tNear, tPlaneNear);
+  tFar = min(tFar, tPlaneFar);
+  
+  return vec2(tNear, tFar);
+}
+
 vec3 getWallColor(vec3 point) {
   float scale = 0.5;
   vec3 wallColor;
   vec3 normal;
-  if (abs(point.x) > 0.999) {
-    wallColor = texture2D(tiles, point.yz * 0.5 + vec2(1.0, 0.5)).rgb;
-    normal = vec3(-point.x, 0.0, 0.0);
-  } else if (abs(point.z) > 0.999) {
-    wallColor = texture2D(tiles, point.yx * 0.5 + vec2(1.0, 0.5)).rgb;
-    normal = vec3(0.0, 0.0, -point.z);
+  if (poolShape == 1) {
+    if (point.y < -0.999) {
+      wallColor = texture2D(tiles, point.xz * 0.5 + 0.5).rgb;
+      normal = vec3(0.0, 1.0, 0.0);
+    } else {
+      float angle = atan(point.z, point.x);
+      wallColor = texture2D(tiles, vec2(angle / 6.283185307179586 * 4.0, point.y * 0.5)).rgb;
+      normal = vec3(-point.x, 0.0, -point.z);
+    }
   } else {
-    wallColor = texture2D(tiles, point.xz * 0.5 + 0.5).rgb;
-    normal = vec3(0.0, 1.0, 0.0);
+    if (abs(point.x) > 0.999) {
+      wallColor = texture2D(tiles, point.yz * 0.5 + vec2(1.0, 0.5)).rgb;
+      normal = vec3(-point.x, 0.0, 0.0);
+    } else if (abs(point.z) > 0.999) {
+      wallColor = texture2D(tiles, point.yx * 0.5 + vec2(1.0, 0.5)).rgb;
+      normal = vec3(0.0, 0.0, -point.z);
+    } else {
+      wallColor = texture2D(tiles, point.xz * 0.5 + 0.5).rgb;
+      normal = vec3(0.0, 1.0, 0.0);
+    }
   }
 
   scale /= length(point);
@@ -70,7 +125,12 @@ vec3 getWallColor(vec3 point) {
     vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
     scale += diffuse * caustic.r * 2.0 * caustic.g;
   } else {
-    vec2 t = intersectCube(point, refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
+    vec2 t;
+    if (poolShape == 1) {
+      t = intersectCylinder(point, refractedLight, 1.0, -poolHeight, 2.0);
+    } else {
+      t = intersectCube(point, refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
+    }
     diffuse *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
     scale += diffuse * 0.5;
   }

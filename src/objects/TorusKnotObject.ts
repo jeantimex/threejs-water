@@ -138,9 +138,19 @@ export class TorusKnotObject implements SimulationObject {
   moveBy(delta: THREE.Vector3) {
     const radius = this.boundingRadius
     this.position.add(delta)
-    this.position.x = THREE.MathUtils.clamp(this.position.x, radius - 1, 1 - radius)
     this.position.y = THREE.MathUtils.clamp(this.position.y, this.floorClearance - 1, 10)
-    this.position.z = THREE.MathUtils.clamp(this.position.z, radius - 1, 1 - radius)
+    if (this.resources.opticsState.poolShape === 1) {
+      const limit = 1 - radius
+      const dist = Math.sqrt(this.position.x * this.position.x + this.position.z * this.position.z)
+      if (dist > limit) {
+        const factor = limit / dist
+        this.position.x *= factor
+        this.position.z *= factor
+      }
+    } else {
+      this.position.x = THREE.MathUtils.clamp(this.position.x, radius - 1, 1 - radius)
+      this.position.z = THREE.MathUtils.clamp(this.position.z, radius - 1, 1 - radius)
+    }
     this.mesh.position.copy(this.position)
   }
 
