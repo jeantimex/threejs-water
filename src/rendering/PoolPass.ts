@@ -3,6 +3,7 @@ import type { Water } from '../Water'
 import poolVert from '../shaders/cube.vert'
 import poolFrag from '../shaders/cube.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
+import { getMorphedPoolSdf } from './MorphedPoolShape'
 
 export class PoolPass {
   readonly mesh: THREE.Mesh
@@ -80,12 +81,7 @@ export class PoolPass {
       const x = mid * Math.cos(theta)
       const z = mid * Math.sin(theta)
       
-      const d1 = Math.sqrt((x - (-0.35))**2 + z**2) - 0.65
-      const d2 = Math.sqrt((x - 0.35)**2 + z**2) - 0.55
-      
-      const k = 0.15
-      const h = Math.min(Math.max(0.5 + 0.5 * (d2 - d1) / k, 0.0), 1.0)
-      const sdf = (d2 * (1 - h) + d1 * h) - k * h * (1 - h)
+      const { sdf } = getMorphedPoolSdf(x, z)
       
       if (sdf < 0) {
         low = mid

@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { getMorphedPoolSdf } from '../rendering/MorphedPoolShape'
 import type { CameraController } from '../camera/CameraController'
 import type { Renderer } from '../Renderer'
 import type { SimulationObjectRegistry } from '../objects/SimulationObjectRegistry'
@@ -101,11 +102,7 @@ export class InteractionController {
       if (poolShape === 2) {
         const px = pointOnPlane.x
         const pz = pointOnPlane.z
-        const d1 = Math.sqrt((px - (-0.35))**2 + pz**2) - 0.65
-        const d2 = Math.sqrt((px - 0.35)**2 + pz**2) - 0.55
-        const k = 0.15
-        const h = Math.min(Math.max(0.5 + 0.5 * (d2 - d1) / k, 0.0), 1.0)
-        const sdf = (d2 * (1 - h) + d1 * h) - k * h * (1 - h)
+        const { sdf } = getMorphedPoolSdf(px, pz)
         isInsideWater = sdf < 0.0
       } else if (poolShape === 1) {
         isInsideWater = pointOnPlane.x * pointOnPlane.x + pointOnPlane.z * pointOnPlane.z < 1.0
@@ -135,11 +132,7 @@ export class InteractionController {
       if (poolShape === 2) {
         const px = point.x
         const pz = point.z
-        const d1 = Math.sqrt((px - (-0.35))**2 + pz**2) - 0.65
-        const d2 = Math.sqrt((px - 0.35)**2 + pz**2) - 0.55
-        const k = 0.15
-        const h = Math.min(Math.max(0.5 + 0.5 * (d2 - d1) / k, 0.0), 1.0)
-        const sdf = (d2 * (1 - h) + d1 * h) - k * h * (1 - h)
+        const { sdf } = getMorphedPoolSdf(px, pz)
         isInsideWater = sdf < 0.0
       } else if (poolShape === 1) {
         isInsideWater = point.x * point.x + point.z * point.z < 1.0

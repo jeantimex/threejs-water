@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { getMorphedPoolSdf } from './MorphedPoolShape'
 
 export type PoolShape = 'Box' | 'Cylinder' | 'Morphed'
 
@@ -71,12 +72,7 @@ export class CausticsShapeGeometry {
       const x = vertices[index * 3]
       const z = vertices[index * 3 + 1]
       
-      const d1 = Math.sqrt((x - (-0.35))**2 + z**2) - 0.65
-      const d2 = Math.sqrt((x - 0.35)**2 + z**2) - 0.55
-      
-      const k = 0.15
-      const h = Math.min(Math.max(0.5 + 0.5 * (d2 - d1) / k, 0.0), 1.0)
-      const sdf = (d2 * (1 - h) + d1 * h) - k * h * (1 - h)
+      const { sdf } = getMorphedPoolSdf(x, z)
       
       return sdf <= 0.000001
     }

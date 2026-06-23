@@ -70,8 +70,8 @@ float smin(float a, float b, float k) {
 }
 
 float getPoolSDF(vec2 p) {
-  float d1 = length(p - vec2(-0.35, 0.0)) - 0.65;
-  float d2 = length(p - vec2(0.35, 0.0)) - 0.55;
+  float d1 = length(p - vec2(-0.35, 0.0)) - 0.75;
+  float d2 = length(p - vec2(0.35, 0.0)) - 0.65;
   return smin(d1, d2, 0.15);
 }
 
