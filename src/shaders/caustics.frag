@@ -65,7 +65,12 @@ vec2 intersectMorphed(vec3 origin, vec3 r, float yMin, float yMax) {
       return vec2(-1.0e6, -1.0e6);
     }
   }
-  
+
+  float startSdf = getPoolSDF(origin.xz);
+  if (startSdf >= -0.01) {
+    return vec2(tPlaneNear, tPlaneFar);
+  }
+
   float t = 0.0;
   float d = 0.0;
   for (int i = 0; i < 30; i++) {
@@ -77,7 +82,7 @@ vec2 intersectMorphed(vec3 origin, vec3 r, float yMin, float yMax) {
     t += abs(d) / max(length(r.xz), 1.0e-6);
     if (t > 4.0) break;
   }
-  
+
   float tNear = tPlaneNear;
   float tFar = min(t, tPlaneFar);
   return vec2(tNear, tFar);
@@ -138,6 +143,11 @@ vec2 intersectRoundedBox(vec3 origin, vec3 r, float yMin, float yMax) {
     if (origin.y < yMin || origin.y > yMax) {
       return vec2(-1.0e6, -1.0e6);
     }
+  }
+
+  float startSdf = getRoundedBoxSDF(origin.xz);
+  if (startSdf >= -0.01) {
+    return vec2(tPlaneNear, tPlaneFar);
   }
 
   float t = 0.0;

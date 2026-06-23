@@ -2,6 +2,10 @@ import * as THREE from 'three'
 import { getMorphedPoolSdf, getRoundedBoxSdf, type PoolShape } from './MorphedPoolShape'
 
 const CAUSTICS_SUBDIVISIONS = 200
+const MORPHED_EXTENT_X_MIN = -1.2
+const MORPHED_EXTENT_X_MAX = 1.1
+const MORPHED_EXTENT_Z_MIN = -0.85
+const MORPHED_EXTENT_Z_MAX = 0.85
 
 export class CausticsShapeGeometry {
   static create(shape: PoolShape, roundedBoxRadius = 0) {
@@ -52,26 +56,38 @@ export class CausticsShapeGeometry {
   }
 
   private static createMorphedGeometry() {
-    return this.createSdfGeometry((x, z) => getMorphedPoolSdf(x, z).sdf)
+    return this.createSdfGeometry(
+      (x, z) => getMorphedPoolSdf(x, z).sdf,
+      MORPHED_EXTENT_X_MIN,
+      MORPHED_EXTENT_X_MAX,
+      MORPHED_EXTENT_Z_MIN,
+      MORPHED_EXTENT_Z_MAX
+    )
   }
 
   private static createRoundedBoxGeometry(roundedBoxRadius: number) {
     return this.createSdfGeometry((x, z) => getRoundedBoxSdf(x, z, roundedBoxRadius))
   }
 
-  private static createSdfGeometry(getSdf: (x: number, z: number) => number) {
+  private static createSdfGeometry(
+    getSdf: (x: number, z: number) => number,
+    xMin = -1,
+    xMax = 1,
+    zMin = -1,
+    zMax = 1
+  ) {
     const vertices: number[] = []
     const indices: number[] = []
     const stride = CAUSTICS_SUBDIVISIONS + 1
 
     for (let y = 0; y <= CAUSTICS_SUBDIVISIONS; y++) {
       const v = y / CAUSTICS_SUBDIVISIONS
-      const py = v * 2 - 1
+      const pz = zMin + v * (zMax - zMin)
 
       for (let x = 0; x <= CAUSTICS_SUBDIVISIONS; x++) {
         const u = x / CAUSTICS_SUBDIVISIONS
-        const px = u * 2 - 1
-        vertices.push(px, py, 0)
+        const px = xMin + u * (xMax - xMin)
+        vertices.push(px, pz, 0)
       }
     }
 
