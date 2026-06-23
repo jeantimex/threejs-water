@@ -499,6 +499,8 @@ void main() {
     discard;
   } else if (poolShape == 1 && dot(vPosition.xz, vPosition.xz) > 0.996) {
     discard;
+  } else if (poolShape == 0 && max(abs(vPosition.x), abs(vPosition.z)) > 0.996) {
+    discard;
   }
   vec2 coord = vPosition.xz * 0.5 + 0.5;
   vec4 info = texture2D(water, coord);

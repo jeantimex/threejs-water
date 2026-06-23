@@ -49,7 +49,7 @@ export class WaterSurfacePass {
       objectRefractionTexture
     )
 
-    const geometry = new THREE.PlaneGeometry(2, 2, 200, 200)
+    const geometry = new THREE.PlaneGeometry(2.4, 2.4, 240, 240)
     this.aboveMesh = new THREE.Mesh(geometry, this.aboveMaterial)
     this.belowMesh = new THREE.Mesh(geometry.clone(), this.belowMaterial)
     this.aboveMesh.frustumCulled = false
