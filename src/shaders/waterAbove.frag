@@ -22,6 +22,7 @@ uniform bool meshEnabled;
 uniform sampler2D tiles;
 uniform sampler2D causticTex;
 uniform sampler2D objectReflectionTex;
+uniform sampler2D objectClippedReflectionTex;
 uniform sampler2D objectRefractionTex;
 uniform sampler2D water;
 uniform samplerCube sky;
@@ -322,7 +323,7 @@ void main() {
     vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, meshCenter, meshBoundingRadius);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
     vec4 reflectedObject = sampleProjectedTexture(
-      objectReflectionTex,
+      objectClippedReflectionTex,
       reflectionViewProjectionMatrix,
       vPosition
     );

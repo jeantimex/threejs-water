@@ -26,6 +26,7 @@ void main() {
 
 export class ObjectTexturePass {
   readonly reflectionTarget: THREE.WebGLRenderTarget
+  readonly clippedReflectionTarget: THREE.WebGLRenderTarget
   readonly refractionTarget: THREE.WebGLRenderTarget
   readonly shadowTarget: THREE.WebGLRenderTarget
   readonly reflectionViewProjectionMatrix = new THREE.Matrix4()
@@ -50,6 +51,7 @@ export class ObjectTexturePass {
     }
 
     this.reflectionTarget = new THREE.WebGLRenderTarget(512, 512, options)
+    this.clippedReflectionTarget = new THREE.WebGLRenderTarget(512, 512, options)
     this.refractionTarget = new THREE.WebGLRenderTarget(512, 512, options)
     this.shadowTarget = new THREE.WebGLRenderTarget(1024, 1024, {
       minFilter: THREE.LinearFilter,
@@ -77,6 +79,10 @@ export class ObjectTexturePass {
       Math.max(1, Math.floor(width * scale)),
       Math.max(1, Math.floor(height * scale))
     )
+    this.clippedReflectionTarget.setSize(
+      Math.max(1, Math.floor(width * scale)),
+      Math.max(1, Math.floor(height * scale))
+    )
     this.refractionTarget.setSize(
       Math.max(1, Math.floor(width * scale)),
       Math.max(1, Math.floor(height * scale))
@@ -89,6 +95,7 @@ export class ObjectTexturePass {
     if (!renderableObject) {
       this.withTransparentClear(() => {
         this.clearTarget(this.reflectionTarget)
+        this.clearTarget(this.clippedReflectionTarget)
         this.clearTarget(this.refractionTarget)
         this.clearTarget(this.shadowTarget)
       })
@@ -106,6 +113,7 @@ export class ObjectTexturePass {
       this.withTransparentClear(() => {
         this.renderRefraction(scene, camera, materials)
         this.renderReflection(scene, camera, materials)
+        this.renderClippedReflection(scene, materials)
         this.renderShadow(scene)
       })
     })
@@ -159,8 +167,15 @@ export class ObjectTexturePass {
       this.reflectionCamera.matrixWorldInverse
     )
 
-    this.setTexturePassMode(materials, 2)
+    this.setTexturePassMode(materials, 1)
     this.renderer.setRenderTarget(this.reflectionTarget)
+    this.renderer.clear()
+    this.renderer.render(scene, this.reflectionCamera)
+  }
+
+  private renderClippedReflection(scene: THREE.Scene, materials: THREE.ShaderMaterial[]) {
+    this.setTexturePassMode(materials, 2)
+    this.renderer.setRenderTarget(this.clippedReflectionTarget)
     this.renderer.clear()
     this.renderer.render(scene, this.reflectionCamera)
   }

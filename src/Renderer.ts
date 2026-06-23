@@ -39,6 +39,7 @@ export class Renderer {
       cubemap,
       this.caustics.texture,
       this.objectTextures.reflectionTarget.texture,
+      this.objectTextures.clippedReflectionTarget.texture,
       this.objectTextures.refractionTarget.texture,
       this.opticsState
     )

@@ -22,6 +22,7 @@ export class WaterSurfacePass {
     cubemap: THREE.CubeTexture,
     causticTexture: THREE.Texture,
     objectReflectionTexture: THREE.Texture,
+    objectClippedReflectionTexture: THREE.Texture,
     objectRefractionTexture: THREE.Texture,
     private readonly state: WaterOpticsState
   ) {
@@ -33,6 +34,7 @@ export class WaterSurfacePass {
       cubemap,
       causticTexture,
       objectReflectionTexture,
+      objectClippedReflectionTexture,
       objectRefractionTexture
     )
     this.belowMaterial = this.createMaterial(
@@ -43,6 +45,7 @@ export class WaterSurfacePass {
       cubemap,
       causticTexture,
       objectReflectionTexture,
+      objectClippedReflectionTexture,
       objectRefractionTexture
     )
 
@@ -68,6 +71,7 @@ export class WaterSurfacePass {
     cubemap: THREE.CubeTexture,
     causticTexture: THREE.Texture,
     objectReflectionTexture: THREE.Texture,
+    objectClippedReflectionTexture: THREE.Texture,
     objectRefractionTexture: THREE.Texture
   ) {
     return new THREE.ShaderMaterial({
@@ -79,6 +83,7 @@ export class WaterSurfacePass {
         tiles: { value: tileTexture },
         causticTex: { value: causticTexture },
         objectReflectionTex: { value: objectReflectionTexture },
+        objectClippedReflectionTex: { value: objectClippedReflectionTexture },
         objectRefractionTex: { value: objectRefractionTexture },
         viewProjectionMatrix: { value: new THREE.Matrix4() },
         reflectionViewProjectionMatrix: { value: new THREE.Matrix4() },
