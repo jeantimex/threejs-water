@@ -179,16 +179,16 @@ export class DuckObject implements SimulationObject {
     if (this.resources.opticsState.poolShape === 2) {
       const x = this.position.x
       const z = this.position.z
-      const d1 = Math.sqrt((x - (-0.4))**2 + z**2) - 0.55
-      const d2 = Math.sqrt((x - 0.4)**2 + z**2) - 0.55
+      const d1 = Math.sqrt((x - (-0.35))**2 + z**2) - 0.65
+      const d2 = Math.sqrt((x - 0.35)**2 + z**2) - 0.55
       const k = 0.15
       const h = Math.min(Math.max(0.5 + 0.5 * (d2 - d1) / k, 0.0), 1.0)
       const sdf = (d2 * (1 - h) + d1 * h) - k * h * (1 - h)
       
       const limit = -radius
       if (sdf > limit) {
-        const diff1 = new THREE.Vector2(x - (-0.4), z)
-        const diff2 = new THREE.Vector2(x - 0.4, z)
+        const diff1 = new THREE.Vector2(x - (-0.35), z)
+        const diff2 = new THREE.Vector2(x - 0.35, z)
         const len1 = diff1.length()
         const len2 = diff2.length()
         const n1 = len1 > 1e-5 ? diff1.normalize() : new THREE.Vector2(1, 0)

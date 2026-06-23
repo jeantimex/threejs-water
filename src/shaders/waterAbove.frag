@@ -92,8 +92,8 @@ float smin(float a, float b, float k) {
 }
 
 float getPoolSDF(vec2 p) {
-  float d1 = length(p - vec2(-0.4, 0.0)) - 0.55;
-  float d2 = length(p - vec2(0.4, 0.0)) - 0.55;
+  float d1 = length(p - vec2(-0.35, 0.0)) - 0.65;
+  float d2 = length(p - vec2(0.35, 0.0)) - 0.55;
   return smin(d1, d2, 0.15);
 }
 
@@ -129,14 +129,14 @@ vec2 intersectMorphed(vec3 origin, vec3 r, float yMin, float yMax) {
 }
 
 vec3 getMorphedNormal(vec2 p) {
-  vec2 diff1 = p - vec2(-0.4, 0.0);
-  vec2 diff2 = p - vec2(0.4, 0.0);
+  vec2 diff1 = p - vec2(-0.35, 0.0);
+  vec2 diff2 = p - vec2(0.35, 0.0);
   float len1 = length(diff1);
   float len2 = length(diff2);
   vec2 n1 = len1 > 1.0e-5 ? diff1 / len1 : vec2(1.0, 0.0);
   vec2 n2 = len2 > 1.0e-5 ? diff2 / len2 : vec2(1.0, 0.0);
   
-  float d1 = len1 - 0.55;
+  float d1 = len1 - 0.65;
   float d2 = len2 - 0.55;
   float k = 0.15;
   float h = clamp(0.5 + 0.5 * (d2 - d1) / k, 0.0, 1.0);

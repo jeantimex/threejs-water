@@ -80,8 +80,8 @@ export class PoolPass {
       const x = mid * Math.cos(theta)
       const z = mid * Math.sin(theta)
       
-      const d1 = Math.sqrt((x - (-0.4))**2 + z**2) - 0.55
-      const d2 = Math.sqrt((x - 0.4)**2 + z**2) - 0.55
+      const d1 = Math.sqrt((x - (-0.35))**2 + z**2) - 0.65
+      const d2 = Math.sqrt((x - 0.35)**2 + z**2) - 0.55
       
       const k = 0.15
       const h = Math.min(Math.max(0.5 + 0.5 * (d2 - d1) / k, 0.0), 1.0)
