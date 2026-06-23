@@ -9,6 +9,7 @@ uniform sampler2D water;
 varying vec3 oldPos;
 varying vec3 newPos;
 varying vec3 ray;
+varying float causticValid;
 
 vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
   vec3 tMin = (cubeMin - origin) / r;
@@ -63,16 +64,23 @@ vec2 intersectCylinder(vec3 origin, vec3 r, float radius, float yMin, float yMax
   return vec2(tNear, tFar);
 }
 
-vec3 project(vec3 origin, vec3 r, vec3 refractedLight) {
+bool validIntersection(vec2 t) {
+  return t.x <= t.y && t.y > -1.0e5 && t.y < 1.0e5;
+}
+
+vec4 project(vec3 origin, vec3 r, vec3 refractedLight) {
   vec2 t;
   if (poolShape == 1) {
     t = intersectCylinder(origin, r, 1.0, -poolHeight, 2.0);
   } else {
     t = intersectCube(origin, r, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
   }
+  if (!validIntersection(t)) {
+    return vec4(0.0, 0.0, 0.0, 0.0);
+  }
   origin += r * t.y;
   float tplane = (-origin.y - 1.0) / refractedLight.y;
-  return origin + refractedLight * tplane;
+  return vec4(origin + refractedLight * tplane, 1.0);
 }
 
 void main() {
@@ -82,8 +90,14 @@ void main() {
 
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   ray = refract(-light, normal, IOR_AIR / IOR_WATER);
-  oldPos = project(position.xzy, refractedLight, refractedLight);
-  newPos = project(position.xzy + vec3(0.0, info.r, 0.0), ray, refractedLight);
+  vec4 oldProjection = project(position.xzy, refractedLight, refractedLight);
+  vec4 newProjection = project(position.xzy + vec3(0.0, info.r, 0.0), ray, refractedLight);
+  oldPos = oldProjection.xyz;
+  newPos = newProjection.xyz;
+  causticValid = oldProjection.w * newProjection.w;
 
-  gl_Position = vec4(0.75 * (newPos.xz + refractedLight.xz / refractedLight.y), 0.0, 1.0);
+  vec2 projectedPosition = causticValid > 0.5
+    ? 0.75 * (newPos.xz + refractedLight.xz / refractedLight.y)
+    : vec2(2.0);
+  gl_Position = vec4(projectedPosition, 0.0, 1.0);
 }

@@ -3,6 +3,7 @@ import type { Water } from '../Water'
 import causticsVert from '../shaders/caustics.vert'
 import causticsFrag from '../shaders/caustics.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
+import { CausticsShapeGeometry, type PoolShape } from './CausticsShape'
 
 export class CausticsPass {
   readonly texture: THREE.Texture
@@ -11,6 +12,7 @@ export class CausticsPass {
   private readonly scene = new THREE.Scene()
   private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
   private readonly material: THREE.ShaderMaterial
+  private readonly mesh: THREE.Mesh
 
   constructor(
     private readonly renderer: THREE.WebGLRenderer,
@@ -39,9 +41,14 @@ export class CausticsPass {
       depthWrite: false,
     })
 
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2, 200, 200), this.material)
-    mesh.frustumCulled = false
-    this.scene.add(mesh)
+    this.mesh = new THREE.Mesh(CausticsShapeGeometry.create('Box'), this.material)
+    this.mesh.frustumCulled = false
+    this.scene.add(this.mesh)
+  }
+
+  setShape(shape: PoolShape) {
+    this.mesh.geometry.dispose()
+    this.mesh.geometry = CausticsShapeGeometry.create(shape)
   }
 
   update(water: Water) {

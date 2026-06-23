@@ -22,6 +22,7 @@ uniform sampler2D objectShadowTex;
 varying vec3 oldPos;
 varying vec3 newPos;
 varying vec3 ray;
+varying float causticValid;
 
 vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
   vec3 tMin = (cubeMin - origin) / r;
@@ -172,6 +173,10 @@ float torusKnotOcclusion(vec3 origin, vec3 direction) {
 }
 
 void main() {
+  if (causticValid < 0.5) {
+    discard;
+  }
+
   float oldArea = length(dFdx(oldPos)) * length(dFdy(oldPos));
   float newArea = length(dFdx(newPos)) * length(dFdy(newPos));
   gl_FragColor = vec4(oldArea / newArea * 0.2, 1.0, 0.0, 0.0);
