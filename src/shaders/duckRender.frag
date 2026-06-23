@@ -8,6 +8,7 @@ uniform vec3 light;
 uniform sampler2D water;
 uniform sampler2D causticTex;
 uniform sampler2D modelTexture;
+uniform int texturePassMode;
 
 varying vec3 vPosition;
 varying vec3 vNormal;
@@ -20,6 +21,9 @@ void main() {
   float diffuse = max(0.0, dot(-refractedLight, n)) * 0.6;
 
   vec4 info = texture2D(water, vPosition.xz * 0.5 + 0.5);
+  if (texturePassMode == 2 && vPosition.y < info.r) {
+    discard;
+  }
 
   if (vPosition.y < info.r) {
     vec4 caustic = texture2D(

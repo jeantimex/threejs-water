@@ -102,10 +102,10 @@ export class ObjectTexturePass {
       }
     }
 
-    this.withHiddenWaterMeshes(scene, () => {
+    this.withOnlyObjectVisible(scene, renderableObject, () => {
       this.withTransparentClear(() => {
-        this.renderRefraction(scene, camera)
-        this.renderReflection(scene, camera)
+        this.renderRefraction(scene, camera, materials)
+        this.renderReflection(scene, camera, materials)
         this.renderShadow(scene)
       })
     })
@@ -113,6 +113,9 @@ export class ObjectTexturePass {
     for (const mat of materials) {
       if (mat.uniforms?.isTexturePass) {
         mat.uniforms.isTexturePass.value = false
+      }
+      if (mat.uniforms?.texturePassMode) {
+        mat.uniforms.texturePassMode.value = 0
       }
     }
   }
@@ -122,13 +125,22 @@ export class ObjectTexturePass {
     this.viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
   }
 
-  private renderRefraction(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
+  private renderRefraction(
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera,
+    materials: THREE.ShaderMaterial[]
+  ) {
+    this.setTexturePassMode(materials, 1)
     this.renderer.setRenderTarget(this.refractionTarget)
     this.renderer.clear()
     this.renderer.render(scene, camera)
   }
 
-  private renderReflection(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
+  private renderReflection(
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera,
+    materials: THREE.ShaderMaterial[]
+  ) {
     const position = new THREE.Vector3()
     const direction = new THREE.Vector3()
     const target = new THREE.Vector3()
@@ -147,6 +159,7 @@ export class ObjectTexturePass {
       this.reflectionCamera.matrixWorldInverse
     )
 
+    this.setTexturePassMode(materials, 2)
     this.renderer.setRenderTarget(this.reflectionTarget)
     this.renderer.clear()
     this.renderer.render(scene, this.reflectionCamera)
@@ -180,11 +193,15 @@ export class ObjectTexturePass {
     this.renderer.setClearColor(this.previousClearColor, previousClearAlpha)
   }
 
-  private withHiddenWaterMeshes(scene: THREE.Scene, render: () => void) {
+  private withOnlyObjectVisible(
+    scene: THREE.Scene,
+    renderableObject: THREE.Object3D,
+    render: () => void
+  ) {
     const changed: Array<[THREE.Object3D, boolean]> = []
 
     scene.traverse((object) => {
-      if (object.userData.waterOpticsHidden) {
+      if (object !== scene && !this.isObjectOrDescendant(object, renderableObject)) {
         changed.push([object, object.visible])
         object.visible = false
       }
@@ -194,6 +211,22 @@ export class ObjectTexturePass {
 
     for (const [object, visible] of changed) {
       object.visible = visible
+    }
+  }
+
+  private isObjectOrDescendant(object: THREE.Object3D, root: THREE.Object3D) {
+    for (let current: THREE.Object3D | null = object; current; current = current.parent) {
+      if (current === root) return true
+    }
+    return false
+  }
+
+  private setTexturePassMode(materials: THREE.ShaderMaterial[], mode: number) {
+    for (const mat of materials) {
+      if (mat.uniforms?.texturePassMode) {
+        mat.uniforms.texturePassMode.value = mode
+        mat.uniformsNeedUpdate = true
+      }
     }
   }
 

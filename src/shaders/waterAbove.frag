@@ -209,9 +209,6 @@ vec3 getWallColor(vec3 point) {
   } else if (torusKnotEnabled) {
     float knotDistance = length(point - torusKnotCenter);
     scale *= 1.0 - 0.9 / pow(knotDistance / torusKnotShadowRadius, 4.0);
-  } else if (meshEnabled) {
-    float meshDistance = length(point - meshCenter);
-    scale *= 1.0 - 0.9 / pow(meshDistance / meshBoundingRadius, 4.0);
   }
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
@@ -324,7 +321,11 @@ void main() {
   } else if (meshEnabled) {
     vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, meshCenter, meshBoundingRadius);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
-    vec4 reflectedObject = sampleObjectReflection(vPosition, reflectedRay, meshCenter, meshBoundingRadius);
+    vec4 reflectedObject = sampleProjectedTexture(
+      objectReflectionTex,
+      reflectionViewProjectionMatrix,
+      vPosition
+    );
     reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
   }
 

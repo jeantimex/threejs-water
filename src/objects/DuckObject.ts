@@ -66,6 +66,7 @@ export class DuckObject implements SimulationObject {
           water: { value: null },
           causticTex: { value: this.resources.causticTexture },
           modelTexture: { value: texture },
+          texturePassMode: { value: 0 },
         },
         depthTest: true,
         depthWrite: true,
