@@ -1,9 +1,11 @@
 import GUI, { type Controller } from 'lil-gui'
+import { DEFAULT_ROUNDED_BOX_RADIUS, type PoolShape } from '../rendering/MorphedPoolShape'
 
 export interface SimulationControlCallbacks {
   onObjectChange(name: string): void
   onPausedChange(paused: boolean): void
-  onPoolShapeChange(shape: 'Box' | 'Cylinder' | 'Morphed'): void
+  onPoolShapeChange(shape: PoolShape): void
+  onRoundedBoxRadiusChange(radius: number): void
 }
 
 export class SimulationControls {
@@ -18,12 +20,14 @@ export class SimulationControls {
     densityEnabled: false,
     density: 0.9,
     paused: false,
-    poolShape: 'Box',
+    poolShape: 'Box' as PoolShape,
+    roundedBoxRadius: DEFAULT_ROUNDED_BOX_RADIUS,
   }
   private readonly gravityController: Controller
   private readonly densityEnabledController: Controller
   private readonly densityController: Controller
   private readonly pausedController: Controller
+  private readonly roundedBoxRadiusController: Controller
   private physicsAvailable = true
 
   constructor(
@@ -63,10 +67,17 @@ export class SimulationControls {
     const sceneFolder = gui.addFolder('Scene')
     sceneFolder.open()
 
-    sceneFolder.add(this.state, 'poolShape', ['Box', 'Cylinder', 'Morphed'])
+    sceneFolder.add(this.state, 'poolShape', ['Box', 'Rounded Box', 'Cylinder', 'Morphed'])
       .name('Pool Shape')
-      .onChange((shape: 'Box' | 'Cylinder' | 'Morphed') => {
+      .onChange((shape: PoolShape) => {
         callbacks.onPoolShapeChange(shape)
+        this.updateRoundedBoxRadiusController()
+      })
+
+    this.roundedBoxRadiusController = sceneFolder.add(this.state, 'roundedBoxRadius', 0, 1, 0.01)
+      .name('Rounded Box Radius')
+      .onChange((radius: number) => {
+        callbacks.onRoundedBoxRadiusChange(radius)
       })
 
     this.pausedController = sceneFolder.add(this.state, 'paused')
@@ -77,6 +88,7 @@ export class SimulationControls {
       })
 
     this.updateDensityController()
+    this.updateRoundedBoxRadiusController()
   }
 
   togglePaused() {
@@ -101,5 +113,9 @@ export class SimulationControls {
 
   private updateDensityController() {
     this.densityController.disable(!this.physicsAvailable || !this.densityEnabled)
+  }
+
+  private updateRoundedBoxRadiusController() {
+    this.roundedBoxRadiusController.disable(this.state.poolShape !== 'Rounded Box')
   }
 }

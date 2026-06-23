@@ -114,7 +114,8 @@ export class CubeObject implements SimulationObject {
     keepObjectInsidePool(
       this.position,
       { radius, boxHalfSize: new THREE.Vector2(this.halfSize.x, this.halfSize.z) },
-      this.resources.opticsState.poolShapeName
+      this.resources.opticsState.poolShapeName,
+      this.resources.opticsState.roundedBoxRadius
     )
   }
 

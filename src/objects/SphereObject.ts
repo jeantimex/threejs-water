@@ -110,7 +110,12 @@ export class SphereObject implements SimulationObject {
     const radius = this.interactionRadius
     this.position.add(delta)
     this.position.y = THREE.MathUtils.clamp(this.position.y, radius - 1, 10)
-    keepObjectInsidePool(this.position, { radius }, this.resources.opticsState.poolShapeName)
+    keepObjectInsidePool(
+      this.position,
+      { radius },
+      this.resources.opticsState.poolShapeName,
+      this.resources.opticsState.roundedBoxRadius
+    )
   }
 
   prepareRender(water: Water) {

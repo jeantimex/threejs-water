@@ -42,14 +42,20 @@ export class CausticsPass {
       depthWrite: false,
     })
 
-    this.mesh = new THREE.Mesh(CausticsShapeGeometry.create('Box'), this.material)
+    this.mesh = new THREE.Mesh(CausticsShapeGeometry.create('Box', state.roundedBoxRadius), this.material)
     this.mesh.frustumCulled = false
     this.scene.add(this.mesh)
   }
 
   setShape(shape: PoolShape) {
     this.mesh.geometry.dispose()
-    this.mesh.geometry = CausticsShapeGeometry.create(shape)
+    this.mesh.geometry = CausticsShapeGeometry.create(shape, this.state.roundedBoxRadius)
+  }
+
+  setRoundedBoxRadius() {
+    if (this.state.poolShapeName !== 'Rounded Box') return
+    this.mesh.geometry.dispose()
+    this.mesh.geometry = CausticsShapeGeometry.create(this.state.poolShapeName, this.state.roundedBoxRadius)
   }
 
   update(water: Water) {

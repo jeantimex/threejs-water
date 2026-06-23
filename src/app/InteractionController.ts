@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { getMorphedPoolSdf } from '../rendering/MorphedPoolShape'
+import { getMorphedPoolSdf, getRoundedBoxSdf } from '../rendering/MorphedPoolShape'
 import type { CameraController } from '../camera/CameraController'
 import type { Renderer } from '../Renderer'
 import type { SimulationObjectRegistry } from '../objects/SimulationObjectRegistry'
@@ -97,13 +97,16 @@ export class InteractionController {
         .applyQuaternion(camera.quaternion)
         .negate()
     } else {
-      const poolShape = this.dependencies.renderer.objectRenderResources.opticsState.poolShape
+      const opticsState = this.dependencies.renderer.objectRenderResources.opticsState
+      const poolShape = opticsState.poolShape
       let isInsideWater = false
       if (poolShape === 2) {
         const px = pointOnPlane.x
         const pz = pointOnPlane.z
         const { sdf } = getMorphedPoolSdf(px, pz)
         isInsideWater = sdf < 0.0
+      } else if (poolShape === 3) {
+        isInsideWater = getRoundedBoxSdf(pointOnPlane.x, pointOnPlane.z, opticsState.roundedBoxRadius) < 0.0
       } else if (poolShape === 1) {
         isInsideWater = pointOnPlane.x * pointOnPlane.x + pointOnPlane.z * pointOnPlane.z < 1.0
       } else {
@@ -127,13 +130,16 @@ export class InteractionController {
       const { origin, direction } = this.getRay(x, y)
       const point = origin.clone().addScaledVector(direction, -origin.y / direction.y)
       
-      const poolShape = renderer.objectRenderResources.opticsState.poolShape
+      const opticsState = renderer.objectRenderResources.opticsState
+      const poolShape = opticsState.poolShape
       let isInsideWater = false
       if (poolShape === 2) {
         const px = point.x
         const pz = point.z
         const { sdf } = getMorphedPoolSdf(px, pz)
         isInsideWater = sdf < 0.0
+      } else if (poolShape === 3) {
+        isInsideWater = getRoundedBoxSdf(point.x, point.z, opticsState.roundedBoxRadius) < 0.0
       } else if (poolShape === 1) {
         isInsideWater = point.x * point.x + point.z * point.z < 1.0
       } else {

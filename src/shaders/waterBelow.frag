@@ -8,6 +8,7 @@ const float poolHeight = 1.0;
 const float torusKnotShadowRadius = 0.13;
 
 uniform int poolShape;
+uniform float roundedBoxRadius;
 uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
@@ -96,6 +97,12 @@ float getPoolSDF(vec2 p) {
   return smin(d1, d2, 0.15);
 }
 
+float getRoundedBoxSDF(vec2 p) {
+  float radius = clamp(roundedBoxRadius, 0.0, 1.0);
+  vec2 q = abs(p) - vec2(1.0 - radius);
+  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
+}
+
 vec2 intersectMorphed(vec3 origin, vec3 r, float yMin, float yMax) {
   float tPlaneNear = -1.0e6;
   float tPlaneFar = 1.0e6;
@@ -127,6 +134,37 @@ vec2 intersectMorphed(vec3 origin, vec3 r, float yMin, float yMax) {
   return vec2(tNear, tFar);
 }
 
+vec2 intersectRoundedBox(vec3 origin, vec3 r, float yMin, float yMax) {
+  float tPlaneNear = -1.0e6;
+  float tPlaneFar = 1.0e6;
+  if (abs(r.y) > 1.0e-6) {
+    float tPlane1 = (yMin - origin.y) / r.y;
+    float tPlane2 = (yMax - origin.y) / r.y;
+    tPlaneNear = min(tPlane1, tPlane2);
+    tPlaneFar = max(tPlane1, tPlane2);
+  } else {
+    if (origin.y < yMin || origin.y > yMax) {
+      return vec2(-1.0e6, -1.0e6);
+    }
+  }
+
+  float t = 0.0;
+  float d = 0.0;
+  for (int i = 0; i < 30; i++) {
+    vec2 p = origin.xz + t * r.xz;
+    d = getRoundedBoxSDF(p);
+    if (abs(d) < 0.0005) {
+      break;
+    }
+    t += abs(d) / max(length(r.xz), 1.0e-6);
+    if (t > 4.0) break;
+  }
+
+  float tNear = tPlaneNear;
+  float tFar = min(t, tPlaneFar);
+  return vec2(tNear, tFar);
+}
+
 vec3 getMorphedNormal(vec2 p) {
   vec2 diff1 = p - vec2(-0.35, 0.0);
   vec2 diff2 = p - vec2(0.35, 0.0);
@@ -141,6 +179,29 @@ vec3 getMorphedNormal(vec2 p) {
   float h = clamp(0.5 + 0.5 * (d2 - d1) / k, 0.0, 1.0);
   vec2 n2d = mix(n2, n1, h);
   return vec3(-n2d.x, 0.0, -n2d.y); // inward normal
+}
+
+vec3 getRoundedBoxNormal(vec2 p) {
+  float e = 0.001;
+  vec2 grad = vec2(
+    getRoundedBoxSDF(p + vec2(e, 0.0)) - getRoundedBoxSDF(p - vec2(e, 0.0)),
+    getRoundedBoxSDF(p + vec2(0.0, e)) - getRoundedBoxSDF(p - vec2(0.0, e))
+  );
+  vec2 n = length(grad) > 1.0e-6 ? normalize(grad) : normalize(p);
+  return vec3(-n.x, 0.0, -n.y);
+}
+
+vec2 intersectPool(vec3 origin, vec3 ray) {
+  if (poolShape == 3) {
+    return intersectRoundedBox(origin, ray, -poolHeight, 2.0);
+  }
+  if (poolShape == 2) {
+    return intersectMorphed(origin, ray, -poolHeight, 2.0);
+  }
+  if (poolShape == 1) {
+    return intersectCylinder(origin, ray, 1.0, -poolHeight, 2.0);
+  }
+  return intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
 }
 
 float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
@@ -291,7 +352,16 @@ vec3 getWallColor(vec3 point) {
   float scale = 0.5;
   vec3 wallColor;
   vec3 normal;
-  if (poolShape == 2) {
+  if (poolShape == 3) {
+    if (point.y < -0.999) {
+      wallColor = texture2D(tiles, point.xz * 0.5 + 0.5).rgb;
+      normal = vec3(0.0, 1.0, 0.0);
+    } else {
+      float angle = atan(point.z, point.x);
+      wallColor = texture2D(tiles, vec2(angle / 6.283185307179586 * 4.0, point.y * 0.5)).rgb;
+      normal = getRoundedBoxNormal(point.xz);
+    }
+  } else if (poolShape == 2) {
     if (point.y < -0.999) {
       wallColor = texture2D(tiles, point.xz * 0.5 + 0.5).rgb;
       normal = vec3(0.0, 1.0, 0.0);
@@ -344,13 +414,7 @@ vec3 getWallColor(vec3 point) {
     scale += diffuse * caustic.r * 2.0 * caustic.g;
   } else {
     vec2 t;
-    if (poolShape == 2) {
-      t = intersectMorphed(point, refractedLight, -poolHeight, 2.0);
-    } else if (poolShape == 1) {
-      t = intersectCylinder(point, refractedLight, 1.0, -poolHeight, 2.0);
-    } else {
-      t = intersectCube(point, refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-    }
+    t = intersectPool(point, refractedLight);
     diffuse *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
     scale += diffuse * 0.5;
   }
@@ -411,23 +475,11 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
     }
   } else if (ray.y < 0.0) {
     vec2 t;
-    if (poolShape == 2) {
-      t = intersectMorphed(origin, ray, -poolHeight, 2.0);
-    } else if (poolShape == 1) {
-      t = intersectCylinder(origin, ray, 1.0, -poolHeight, 2.0);
-    } else {
-      t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-    }
+    t = intersectPool(origin, ray);
     color = getWallColor(origin + ray * t.y);
   } else {
     vec2 t;
-    if (poolShape == 2) {
-      t = intersectMorphed(origin, ray, -poolHeight, 2.0);
-    } else if (poolShape == 1) {
-      t = intersectCylinder(origin, ray, 1.0, -poolHeight, 2.0);
-    } else {
-      t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-    }
+    t = intersectPool(origin, ray);
     vec3 hit = origin + ray * t.y;
     if (hit.y < 2.0 / 12.0) {
       color = getWallColor(hit);
@@ -441,7 +493,9 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
 }
 
 void main() {
-  if (poolShape == 2 && getPoolSDF(vPosition.xz) > -0.004) {
+  if (poolShape == 3 && getRoundedBoxSDF(vPosition.xz) > -0.004) {
+    discard;
+  } else if (poolShape == 2 && getPoolSDF(vPosition.xz) > -0.004) {
     discard;
   } else if (poolShape == 1 && dot(vPosition.xz, vPosition.xz) > 0.996) {
     discard;

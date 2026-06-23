@@ -177,7 +177,12 @@ export class DuckObject implements SimulationObject {
     const radius = this.boundingRadius
     this.position.add(delta)
     this.position.y = THREE.MathUtils.clamp(this.position.y, this.floorClearance - 1, 10)
-    keepObjectInsidePool(this.position, { radius }, this.resources.opticsState.poolShapeName)
+    keepObjectInsidePool(
+      this.position,
+      { radius },
+      this.resources.opticsState.poolShapeName,
+      this.resources.opticsState.roundedBoxRadius
+    )
     this.mesh.position.copy(this.position)
   }
 

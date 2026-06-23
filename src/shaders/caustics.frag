@@ -5,6 +5,7 @@ const float IOR_WATER = 1.333;
 const float poolHeight = 1.0;
 
 uniform int poolShape;
+uniform float roundedBoxRadius;
 uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
@@ -43,6 +44,12 @@ float getPoolSDF(vec2 p) {
   float d1 = length(p - vec2(-0.35, 0.0)) - 0.75;
   float d2 = length(p - vec2(0.35, 0.0)) - 0.65;
   return smin(d1, d2, 0.15);
+}
+
+float getRoundedBoxSDF(vec2 p) {
+  float radius = clamp(roundedBoxRadius, 0.0, 1.0);
+  vec2 q = abs(p) - vec2(1.0 - radius);
+  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
 }
 
 vec2 intersectMorphed(vec3 origin, vec3 r, float yMin, float yMax) {
@@ -117,6 +124,50 @@ vec2 intersectCylinder(vec3 origin, vec3 r, float radius, float yMin, float yMax
   tFar = min(tFar, tPlaneFar);
   
   return vec2(tNear, tFar);
+}
+
+vec2 intersectRoundedBox(vec3 origin, vec3 r, float yMin, float yMax) {
+  float tPlaneNear = -1.0e6;
+  float tPlaneFar = 1.0e6;
+  if (abs(r.y) > 1.0e-6) {
+    float tPlane1 = (yMin - origin.y) / r.y;
+    float tPlane2 = (yMax - origin.y) / r.y;
+    tPlaneNear = min(tPlane1, tPlane2);
+    tPlaneFar = max(tPlane1, tPlane2);
+  } else {
+    if (origin.y < yMin || origin.y > yMax) {
+      return vec2(-1.0e6, -1.0e6);
+    }
+  }
+
+  float t = 0.0;
+  float d = 0.0;
+  for (int i = 0; i < 30; i++) {
+    vec2 p = origin.xz + t * r.xz;
+    d = getRoundedBoxSDF(p);
+    if (abs(d) < 0.0005) {
+      break;
+    }
+    t += abs(d) / max(length(r.xz), 1.0e-6);
+    if (t > 4.0) break;
+  }
+
+  float tNear = tPlaneNear;
+  float tFar = min(t, tPlaneFar);
+  return vec2(tNear, tFar);
+}
+
+vec2 intersectPool(vec3 origin, vec3 r) {
+  if (poolShape == 3) {
+    return intersectRoundedBox(origin, r, -poolHeight, 2.0);
+  }
+  if (poolShape == 2) {
+    return intersectMorphed(origin, r, -poolHeight, 2.0);
+  }
+  if (poolShape == 1) {
+    return intersectCylinder(origin, r, 1.0, -poolHeight, 2.0);
+  }
+  return intersectCube(origin, r, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
 }
 
 float cubeOcclusion(vec3 origin, vec3 direction) {
@@ -268,12 +319,6 @@ void main() {
   }
 
   vec2 t;
-  if (poolShape == 2) {
-    t = intersectMorphed(newPos, -refractedLight, -poolHeight, 2.0);
-  } else if (poolShape == 1) {
-    t = intersectCylinder(newPos, -refractedLight, 1.0, -poolHeight, 2.0);
-  } else {
-    t = intersectCube(newPos, -refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-  }
+  t = intersectPool(newPos, -refractedLight);
   gl_FragColor.r *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (newPos.y - refractedLight.y * t.y - 2.0 / 12.0)));
 }

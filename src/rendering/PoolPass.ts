@@ -3,11 +3,12 @@ import type { Water } from '../Water'
 import poolVert from '../shaders/cube.vert'
 import poolFrag from '../shaders/cube.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
-import { getMorphedPoolRadiusAtAngle } from './MorphedPoolShape'
+import { getMorphedPoolRadiusAtAngle, getRoundedBoxRadiusAtAngle, type PoolShape } from './MorphedPoolShape'
 
 export class PoolPass {
   readonly mesh: THREE.Mesh
   private readonly material: THREE.ShaderMaterial
+  private currentShape: PoolShape = 'Box'
 
   constructor(
     tileTexture: THREE.Texture,
@@ -40,14 +41,24 @@ export class PoolPass {
     this.material.uniformsNeedUpdate = true
   }
 
-  setShape(shape: 'Box' | 'Cylinder' | 'Morphed') {
+  setShape(shape: PoolShape) {
+    this.currentShape = shape
     this.mesh.geometry.dispose()
     this.mesh.geometry = this.createGeometry(shape)
   }
 
-  private createGeometry(shape: 'Box' | 'Cylinder' | 'Morphed') {
+  setRoundedBoxRadius() {
+    if (this.currentShape !== 'Rounded Box') return
+    this.mesh.geometry.dispose()
+    this.mesh.geometry = this.createGeometry(this.currentShape)
+  }
+
+  private createGeometry(shape: PoolShape) {
     if (shape === 'Morphed') {
       return this.createMorphedGeometry()
+    }
+    if (shape === 'Rounded Box') {
+      return this.createRoundedBoxGeometry()
     }
     const geometry = shape === 'Cylinder'
       ? new THREE.CylinderGeometry(1, 1, 2, 64, 1, false)
@@ -73,7 +84,15 @@ export class PoolPass {
     return geometry
   }
 
+  private createRoundedBoxGeometry() {
+    return this.createOutlineGeometry((theta) => getRoundedBoxRadiusAtAngle(theta, this.state.roundedBoxRadius))
+  }
+
   private createMorphedGeometry() {
+    return this.createOutlineGeometry(getMorphedPoolRadiusAtAngle)
+  }
+
+  private createOutlineGeometry(getRadius: (theta: number) => number) {
     const geometry = new THREE.BufferGeometry()
     const positions: number[] = []
     const indices: number[] = []
@@ -82,7 +101,7 @@ export class PoolPass {
     const points: THREE.Vector2[] = []
     for (let i = 0; i < N; i++) {
       const theta = (i / N) * Math.PI * 2
-      const r = getMorphedPoolRadiusAtAngle(theta)
+      const r = getRadius(theta)
       points.push(new THREE.Vector2(r * Math.cos(theta), r * Math.sin(theta)))
     }
     

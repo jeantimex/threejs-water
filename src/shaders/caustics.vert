@@ -3,6 +3,7 @@ const float IOR_WATER = 1.333;
 const float poolHeight = 1.0;
 
 uniform int poolShape;
+uniform float roundedBoxRadius;
 uniform vec3 light;
 uniform sampler2D water;
 
@@ -75,6 +76,12 @@ float getPoolSDF(vec2 p) {
   return smin(d1, d2, 0.15);
 }
 
+float getRoundedBoxSDF(vec2 p) {
+  float radius = clamp(roundedBoxRadius, 0.0, 1.0);
+  vec2 q = abs(p) - vec2(1.0 - radius);
+  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
+}
+
 vec2 intersectMorphed(vec3 origin, vec3 r, float yMin, float yMax) {
   float tPlaneNear = -1.0e6;
   float tPlaneFar = 1.0e6;
@@ -106,19 +113,57 @@ vec2 intersectMorphed(vec3 origin, vec3 r, float yMin, float yMax) {
   return vec2(tNear, tFar);
 }
 
+vec2 intersectRoundedBox(vec3 origin, vec3 r, float yMin, float yMax) {
+  float tPlaneNear = -1.0e6;
+  float tPlaneFar = 1.0e6;
+  if (abs(r.y) > 1.0e-6) {
+    float tPlane1 = (yMin - origin.y) / r.y;
+    float tPlane2 = (yMax - origin.y) / r.y;
+    tPlaneNear = min(tPlane1, tPlane2);
+    tPlaneFar = max(tPlane1, tPlane2);
+  } else {
+    if (origin.y < yMin || origin.y > yMax) {
+      return vec2(-1.0e6, -1.0e6);
+    }
+  }
+
+  float t = 0.0;
+  float d = 0.0;
+  for (int i = 0; i < 30; i++) {
+    vec2 p = origin.xz + t * r.xz;
+    d = getRoundedBoxSDF(p);
+    if (abs(d) < 0.0005) {
+      break;
+    }
+    t += abs(d) / max(length(r.xz), 1.0e-6);
+    if (t > 4.0) break;
+  }
+
+  float tNear = tPlaneNear;
+  float tFar = min(t, tPlaneFar);
+  return vec2(tNear, tFar);
+}
+
+vec2 intersectPool(vec3 origin, vec3 r) {
+  if (poolShape == 3) {
+    return intersectRoundedBox(origin, r, -poolHeight, 2.0);
+  }
+  if (poolShape == 2) {
+    return intersectMorphed(origin, r, -poolHeight, 2.0);
+  }
+  if (poolShape == 1) {
+    return intersectCylinder(origin, r, 1.0, -poolHeight, 2.0);
+  }
+  return intersectCube(origin, r, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
+}
+
 bool validIntersection(vec2 t) {
   return t.x <= t.y && t.y > -1.0e5 && t.y < 1.0e5;
 }
 
 vec4 project(vec3 origin, vec3 r, vec3 refractedLight) {
   vec2 t;
-  if (poolShape == 2) {
-    t = intersectMorphed(origin, r, -poolHeight, 2.0);
-  } else if (poolShape == 1) {
-    t = intersectCylinder(origin, r, 1.0, -poolHeight, 2.0);
-  } else {
-    t = intersectCube(origin, r, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-  }
+  t = intersectPool(origin, r);
   if (!validIntersection(t)) {
     return vec4(0.0, 0.0, 0.0, 0.0);
   }

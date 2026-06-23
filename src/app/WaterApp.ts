@@ -7,6 +7,7 @@ import { Water } from '../Water'
 import { InteractionController } from './InteractionController'
 import { loadSceneAssets } from './loadSceneAssets'
 import { SimulationControls } from './SimulationControls'
+import type { PoolShape } from '../rendering/MorphedPoolShape'
 
 export class WaterApp {
   private readonly gravity = new THREE.Vector3(0, -4, 0)
@@ -48,8 +49,12 @@ export class WaterApp {
       onPausedChange: (paused) => {
         if (paused) this.draw()
       },
-      onPoolShapeChange: (shape: 'Box' | 'Cylinder' | 'Morphed') => {
+      onPoolShapeChange: (shape: PoolShape) => {
         this.renderer.setPoolShape(shape)
+        this.draw()
+      },
+      onRoundedBoxRadiusChange: (radius) => {
+        this.renderer.setRoundedBoxRadius(radius)
         this.draw()
       },
     })
