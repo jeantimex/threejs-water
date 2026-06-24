@@ -4,6 +4,7 @@ export interface SimulationControlCallbacks {
   onObjectChange(name: string): void
   onPausedChange(paused: boolean): void
   onLightFollowsCameraChange?(): void
+  onPoolShapeChange?(shape: string): void
 }
 
 export class SimulationControls {
@@ -12,6 +13,7 @@ export class SimulationControls {
   densityEnabled = false
   density = 0.9
   lightFollowsCamera = false
+  poolShape = 'Box'
 
   private readonly state = {
     object: 'Sphere',
@@ -20,6 +22,7 @@ export class SimulationControls {
     density: 0.9,
     paused: false,
     lightFollowsCamera: false,
+    poolShape: 'Box',
   }
   private readonly gravityController: Controller
   private readonly densityEnabledController: Controller
@@ -79,6 +82,16 @@ export class SimulationControls {
       .onChange((enabled: boolean) => {
         this.lightFollowsCamera = enabled
         callbacks.onLightFollowsCameraChange?.()
+      })
+
+    const poolFolder = gui.addFolder('Pool')
+    poolFolder.open()
+
+    poolFolder.add(this.state, 'poolShape', ['Box'])
+      .name('Shape')
+      .onChange((shape: string) => {
+        this.poolShape = shape
+        callbacks.onPoolShapeChange?.(shape)
       })
 
     this.updateDensityController()

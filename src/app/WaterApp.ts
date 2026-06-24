@@ -51,6 +51,9 @@ export class WaterApp {
       onLightFollowsCameraChange: () => {
         if (this.controls.paused) this.draw()
       },
+      onPoolShapeChange: () => {
+        // Handle pool shape change (for now it is only 'Box')
+      },
     })
     this.interaction = new InteractionController({
       canvas: this.webglRenderer.domElement,
