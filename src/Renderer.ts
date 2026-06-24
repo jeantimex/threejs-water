@@ -86,12 +86,14 @@ export class Renderer {
       : (shape === 'Morphed' ? 2 : (shape === 'Cylinder' ? 1 : 0))
     this.pool.setShape(shape)
     this.caustics.setShape(shape)
+    this.waterSurface.setShape(shape)
   }
 
   setRoundedBoxRadius(radius: number) {
     this.opticsState.roundedBoxRadius = radius
     this.pool.setRoundedBoxRadius()
     this.caustics.setRoundedBoxRadius()
+    this.waterSurface.setRoundedBoxRadius()
   }
 
   setWaterOptics(optics: WaterOpticsDescriptor) {

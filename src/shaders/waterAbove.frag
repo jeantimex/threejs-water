@@ -118,24 +118,43 @@ vec2 intersectMorphed(vec3 origin, vec3 r, float yMin, float yMax) {
     }
   }
 
-  float startSdf = getPoolSDF(origin.xz);
-  if (startSdf >= -0.01) {
-    return vec2(tPlaneNear, tPlaneFar);
-  }
-
   float t = 0.0;
   float d = 0.0;
+  if (getPoolSDF(origin.xz) >= -0.01) {
+    t = 0.01;
+  }
   for (int i = 0; i < 30; i++) {
     vec2 p = origin.xz + t * r.xz;
     d = getPoolSDF(p);
+    if (d > 0.0) {
+      break;
+    }
     if (abs(d) < 0.0005) {
       break;
     }
-    t += abs(d) / max(length(r.xz), 1.0e-6);
+    t += max(abs(d), 0.001) / max(length(r.xz), 1.0e-6);
     if (t > 4.0) break;
   }
 
-  float tNear = tPlaneNear;
+  float tBackward = 0.0;
+  float dB = 0.0;
+  if (getPoolSDF(origin.xz) >= -0.01) {
+    tBackward = 0.01;
+  }
+  for (int i = 0; i < 30; i++) {
+    vec2 p = origin.xz - tBackward * r.xz;
+    dB = getPoolSDF(p);
+    if (dB > 0.0) {
+      break;
+    }
+    if (abs(dB) < 0.0005) {
+      break;
+    }
+    tBackward += max(abs(dB), 0.001) / max(length(r.xz), 1.0e-6);
+    if (tBackward > 4.0) break;
+  }
+
+  float tNear = max(-tBackward, tPlaneNear);
   float tFar = min(t, tPlaneFar);
   return vec2(tNear, tFar);
 }
@@ -154,24 +173,43 @@ vec2 intersectRoundedBox(vec3 origin, vec3 r, float yMin, float yMax) {
     }
   }
 
-  float startSdf = getRoundedBoxSDF(origin.xz);
-  if (startSdf >= -0.01) {
-    return vec2(tPlaneNear, tPlaneFar);
-  }
-
   float t = 0.0;
   float d = 0.0;
+  if (getRoundedBoxSDF(origin.xz) >= -0.01) {
+    t = 0.01;
+  }
   for (int i = 0; i < 30; i++) {
     vec2 p = origin.xz + t * r.xz;
     d = getRoundedBoxSDF(p);
+    if (d > 0.0) {
+      break;
+    }
     if (abs(d) < 0.0005) {
       break;
     }
-    t += abs(d) / max(length(r.xz), 1.0e-6);
+    t += max(abs(d), 0.001) / max(length(r.xz), 1.0e-6);
     if (t > 4.0) break;
   }
 
-  float tNear = tPlaneNear;
+  float tBackward = 0.0;
+  float dB = 0.0;
+  if (getRoundedBoxSDF(origin.xz) >= -0.01) {
+    tBackward = 0.01;
+  }
+  for (int i = 0; i < 30; i++) {
+    vec2 p = origin.xz - tBackward * r.xz;
+    dB = getRoundedBoxSDF(p);
+    if (dB > 0.0) {
+      break;
+    }
+    if (abs(dB) < 0.0005) {
+      break;
+    }
+    tBackward += max(abs(dB), 0.001) / max(length(r.xz), 1.0e-6);
+    if (tBackward > 4.0) break;
+  }
+
+  float tNear = max(-tBackward, tPlaneNear);
   float tFar = min(t, tPlaneFar);
   return vec2(tNear, tFar);
 }

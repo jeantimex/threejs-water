@@ -5,6 +5,8 @@ import waterAboveFrag from '../shaders/waterAbove.frag'
 import waterBelowVert from '../shaders/waterBelow.vert'
 import waterBelowFrag from '../shaders/waterBelow.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
+import { CausticsShapeGeometry } from './CausticsShape'
+import type { PoolShape } from './MorphedPoolShape'
 
 export interface ObjectTextureMatrices {
   viewProjectionMatrix: THREE.Matrix4
@@ -49,11 +51,27 @@ export class WaterSurfacePass {
       objectRefractionTexture
     )
 
-    const geometry = new THREE.PlaneGeometry(2.4, 2.4, 240, 240)
-    this.aboveMesh = new THREE.Mesh(geometry, this.aboveMaterial)
-    this.belowMesh = new THREE.Mesh(geometry.clone(), this.belowMaterial)
+    const geometryAbove = CausticsShapeGeometry.create('Box', state.roundedBoxRadius)
+    const geometryBelow = CausticsShapeGeometry.create('Box', state.roundedBoxRadius)
+    this.aboveMesh = new THREE.Mesh(geometryAbove, this.aboveMaterial)
+    this.belowMesh = new THREE.Mesh(geometryBelow, this.belowMaterial)
     this.aboveMesh.frustumCulled = false
     this.belowMesh.frustumCulled = false
+  }
+
+  setShape(shape: PoolShape) {
+    this.aboveMesh.geometry.dispose()
+    this.aboveMesh.geometry = CausticsShapeGeometry.create(shape, this.state.roundedBoxRadius)
+    this.belowMesh.geometry.dispose()
+    this.belowMesh.geometry = CausticsShapeGeometry.create(shape, this.state.roundedBoxRadius)
+  }
+
+  setRoundedBoxRadius() {
+    if (this.state.poolShapeName !== 'Rounded Box') return
+    this.aboveMesh.geometry.dispose()
+    this.aboveMesh.geometry = CausticsShapeGeometry.create(this.state.poolShapeName, this.state.roundedBoxRadius)
+    this.belowMesh.geometry.dispose()
+    this.belowMesh.geometry = CausticsShapeGeometry.create(this.state.poolShapeName, this.state.roundedBoxRadius)
   }
 
   prepare(water: Water, camera: THREE.Camera, objectMatrices: ObjectTextureMatrices) {
