@@ -241,7 +241,7 @@ export class InteractionController {
   }
 
   private syncLightDirection() {
-    if (!this.settingLightDirection) return false
+    if (!this.settingLightDirection && !this.dependencies.controls.lightFollowsCamera) return false
     this.dependencies.cameraController.getLightDirection(this.dependencies.renderer.lightDir)
     return true
   }

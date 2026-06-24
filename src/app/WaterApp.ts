@@ -48,6 +48,9 @@ export class WaterApp {
       onPausedChange: (paused) => {
         if (paused) this.draw()
       },
+      onLightFollowsCameraChange: () => {
+        if (this.controls.paused) this.draw()
+      },
     })
     this.interaction = new InteractionController({
       canvas: this.webglRenderer.domElement,

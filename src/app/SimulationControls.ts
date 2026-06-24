@@ -3,6 +3,7 @@ import GUI, { type Controller } from 'lil-gui'
 export interface SimulationControlCallbacks {
   onObjectChange(name: string): void
   onPausedChange(paused: boolean): void
+  onLightFollowsCameraChange?(): void
 }
 
 export class SimulationControls {
@@ -10,6 +11,7 @@ export class SimulationControls {
   physicsEnabled = false
   densityEnabled = false
   density = 0.9
+  lightFollowsCamera = false
 
   private readonly state = {
     object: 'Sphere',
@@ -17,6 +19,7 @@ export class SimulationControls {
     densityEnabled: false,
     density: 0.9,
     paused: false,
+    lightFollowsCamera: false,
   }
   private readonly gravityController: Controller
   private readonly densityEnabledController: Controller
@@ -66,6 +69,16 @@ export class SimulationControls {
       .onChange((paused: boolean) => {
         this.paused = paused
         callbacks.onPausedChange(paused)
+      })
+
+    const lightsFolder = gui.addFolder('Lights')
+    lightsFolder.open()
+
+    lightsFolder.add(this.state, 'lightFollowsCamera')
+      .name('Follow Camera')
+      .onChange((enabled: boolean) => {
+        this.lightFollowsCamera = enabled
+        callbacks.onLightFollowsCameraChange?.()
       })
 
     this.updateDensityController()
