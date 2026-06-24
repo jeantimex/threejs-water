@@ -60,7 +60,7 @@ export function createRoundedBoxPoolGeometry(R: number): THREE.BufferGeometry {
   // Triangulate floor: connect center (index 0) to perimeter
   for (let i = 0; i < totalPoints; i++) {
     const next = (i + 1) % totalPoints
-    indices.push(0, i + 1, next + 1)
+    indices.push(0, next + 1, i + 1)
   }
 
   // Generate wall normals
