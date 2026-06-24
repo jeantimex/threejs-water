@@ -118,44 +118,72 @@ vec2 intersectMorphed(vec3 origin, vec3 r, float yMin, float yMax) {
     }
   }
 
-  float t = 0.0;
-  float d = 0.0;
-  if (getPoolSDF(origin.xz) >= -0.01) {
-    t = 0.01;
+  float tBoxNear = -1.0e6;
+  float tBoxFar = 1.0e6;
+  if (abs(r.x) > 1.0e-6) {
+    float t1 = (-1.2 - origin.x) / r.x;
+    float t2 = (1.1 - origin.x) / r.x;
+    tBoxNear = max(tBoxNear, min(t1, t2));
+    tBoxFar = min(tBoxFar, max(t1, t2));
+  } else if (origin.x < -1.2 || origin.x > 1.1) {
+    return vec2(-1.0e6, -1.0e6);
   }
-  for (int i = 0; i < 30; i++) {
-    vec2 p = origin.xz + t * r.xz;
-    d = getPoolSDF(p);
-    if (d > 0.0) {
-      break;
-    }
-    if (abs(d) < 0.0005) {
-      break;
-    }
-    t += max(abs(d), 0.001) / max(length(r.xz), 1.0e-6);
-    if (t > 4.0) break;
-  }
-
-  float tBackward = 0.0;
-  float dB = 0.0;
-  if (getPoolSDF(origin.xz) >= -0.01) {
-    tBackward = 0.01;
-  }
-  for (int i = 0; i < 30; i++) {
-    vec2 p = origin.xz - tBackward * r.xz;
-    dB = getPoolSDF(p);
-    if (dB > 0.0) {
-      break;
-    }
-    if (abs(dB) < 0.0005) {
-      break;
-    }
-    tBackward += max(abs(dB), 0.001) / max(length(r.xz), 1.0e-6);
-    if (tBackward > 4.0) break;
+  if (abs(r.z) > 1.0e-6) {
+    float t1 = (-0.85 - origin.z) / r.z;
+    float t2 = (0.85 - origin.z) / r.z;
+    tBoxNear = max(tBoxNear, min(t1, t2));
+    tBoxFar = min(tBoxFar, max(t1, t2));
+  } else if (origin.z < -0.85 || origin.z > 0.85) {
+    return vec2(-1.0e6, -1.0e6);
   }
 
-  float tNear = max(-tBackward, tPlaneNear);
-  float tFar = min(t, tPlaneFar);
+  float tNear = max(tPlaneNear, tBoxNear);
+  float tFar = min(tPlaneFar, tBoxFar);
+  if (tNear > tFar) {
+    return vec2(-1.0e6, -1.0e6);
+  }
+
+  bool foundInside = false;
+  float tInside = tNear;
+  for (int i = 0; i <= 48; i++) {
+    float tSample = mix(tNear, tFar, float(i) / 48.0);
+    if (!foundInside && getPoolSDF(origin.xz + tSample * r.xz) <= 0.000001) {
+      foundInside = true;
+      tInside = tSample;
+    }
+  }
+  if (!foundInside) {
+    return vec2(-1.0e6, -1.0e6);
+  }
+
+  if (getPoolSDF(origin.xz + tNear * r.xz) > 0.000001) {
+    float lo = tNear;
+    float hi = tInside;
+    for (int i = 0; i < 18; i++) {
+      float mid = 0.5 * (lo + hi);
+      if (getPoolSDF(origin.xz + mid * r.xz) <= 0.000001) {
+        hi = mid;
+      } else {
+        lo = mid;
+      }
+    }
+    tNear = hi;
+  }
+
+  if (getPoolSDF(origin.xz + tFar * r.xz) > 0.000001) {
+    float lo = tInside;
+    float hi = tFar;
+    for (int i = 0; i < 18; i++) {
+      float mid = 0.5 * (lo + hi);
+      if (getPoolSDF(origin.xz + mid * r.xz) <= 0.000001) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    tFar = lo;
+  }
+
   return vec2(tNear, tFar);
 }
 
