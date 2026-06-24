@@ -81,6 +81,12 @@ export class Renderer {
     this.opticsState.apply(optics)
   }
 
+  setPoolShape(shape: string, cornerRadius: number) {
+    this.pool.setPoolShape(shape, cornerRadius)
+    this.caustics.setPoolShape(shape, cornerRadius)
+    this.waterSurface.setPoolShape(shape, cornerRadius)
+  }
+
   getPoolMesh() {
     return this.pool.mesh
   }
@@ -99,3 +105,4 @@ export class Renderer {
     this.waterSurface.belowMesh.userData.waterOpticsHidden = true
   }
 }
+

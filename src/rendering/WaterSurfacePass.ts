@@ -2,8 +2,10 @@ import * as THREE from 'three'
 import type { Water } from '../Water'
 import waterAboveVert from '../shaders/waterAbove.vert'
 import waterAboveFrag from '../shaders/waterAbove.frag'
+import roundedBoxWaterAboveFrag from '../shaders/roundedbox_waterAbove.frag'
 import waterBelowVert from '../shaders/waterBelow.vert'
 import waterBelowFrag from '../shaders/waterBelow.frag'
+import roundedBoxWaterBelowFrag from '../shaders/roundedbox_waterBelow.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
 
 export interface ObjectTextureMatrices {
@@ -16,14 +18,16 @@ export class WaterSurfacePass {
   readonly belowMesh: THREE.Mesh
   private readonly aboveMaterial: THREE.ShaderMaterial
   private readonly belowMaterial: THREE.ShaderMaterial
+  private roundedBoxAboveMaterial: THREE.ShaderMaterial | null = null
+  private roundedBoxBelowMaterial: THREE.ShaderMaterial | null = null
 
   constructor(
-    tileTexture: THREE.Texture,
-    cubemap: THREE.CubeTexture,
-    causticTexture: THREE.Texture,
-    objectReflectionTexture: THREE.Texture,
-    objectClippedReflectionTexture: THREE.Texture,
-    objectRefractionTexture: THREE.Texture,
+    private readonly tileTexture: THREE.Texture,
+    private readonly cubemap: THREE.CubeTexture,
+    private readonly causticTexture: THREE.Texture,
+    private readonly objectReflectionTexture: THREE.Texture,
+    private readonly objectClippedReflectionTexture: THREE.Texture,
+    private readonly objectRefractionTexture: THREE.Texture,
     private readonly state: WaterOpticsState
   ) {
     this.aboveMaterial = this.createMaterial(
@@ -56,11 +60,52 @@ export class WaterSurfacePass {
     this.belowMesh.frustumCulled = false
   }
 
+  setPoolShape(shape: string, cornerRadius: number) {
+    if (shape === 'Box') {
+      this.aboveMesh.material = this.aboveMaterial
+      this.belowMesh.material = this.belowMaterial
+    } else {
+      if (!this.roundedBoxAboveMaterial) {
+        this.roundedBoxAboveMaterial = this.createMaterial(
+          waterAboveVert,
+          roundedBoxWaterAboveFrag,
+          THREE.BackSide,
+          this.tileTexture,
+          this.cubemap,
+          this.causticTexture,
+          this.objectReflectionTexture,
+          this.objectClippedReflectionTexture,
+          this.objectRefractionTexture
+        )
+        this.roundedBoxAboveMaterial.uniforms.cornerRadius = { value: cornerRadius }
+
+        this.roundedBoxBelowMaterial = this.createMaterial(
+          waterBelowVert,
+          roundedBoxWaterBelowFrag,
+          THREE.FrontSide,
+          this.tileTexture,
+          this.cubemap,
+          this.causticTexture,
+          this.objectReflectionTexture,
+          this.objectClippedReflectionTexture,
+          this.objectRefractionTexture
+        )
+        this.roundedBoxBelowMaterial.uniforms.cornerRadius = { value: cornerRadius }
+      } else {
+        this.roundedBoxAboveMaterial.uniforms.cornerRadius.value = cornerRadius
+        this.roundedBoxBelowMaterial!.uniforms.cornerRadius.value = cornerRadius
+      }
+
+      this.aboveMesh.material = this.roundedBoxAboveMaterial
+      this.belowMesh.material = this.roundedBoxBelowMaterial!
+    }
+  }
+
   prepare(water: Water, camera: THREE.Camera, objectMatrices: ObjectTextureMatrices) {
     const eye = new THREE.Vector3()
     camera.getWorldPosition(eye)
-    this.prepareMaterial(this.aboveMaterial, water, eye, objectMatrices)
-    this.prepareMaterial(this.belowMaterial, water, eye, objectMatrices)
+    this.prepareMaterial(this.aboveMesh.material as THREE.ShaderMaterial, water, eye, objectMatrices)
+    this.prepareMaterial(this.belowMesh.material as THREE.ShaderMaterial, water, eye, objectMatrices)
   }
 
   private createMaterial(
@@ -114,3 +159,4 @@ export class WaterSurfacePass {
     material.uniformsNeedUpdate = true
   }
 }
+

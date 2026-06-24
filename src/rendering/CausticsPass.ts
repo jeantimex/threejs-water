@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { Water } from '../Water'
 import causticsVert from '../shaders/caustics.vert'
 import causticsFrag from '../shaders/caustics.frag'
+import roundedBoxCausticsFrag from '../shaders/roundedbox_caustics.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
 
 export class CausticsPass {
@@ -10,12 +11,14 @@ export class CausticsPass {
   private readonly target: THREE.WebGLRenderTarget
   private readonly scene = new THREE.Scene()
   private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
-  private readonly material: THREE.ShaderMaterial
+  private readonly mesh: THREE.Mesh
+  private readonly boxMaterial: THREE.ShaderMaterial
+  private roundedBoxMaterial: THREE.ShaderMaterial | null = null
 
   constructor(
     private readonly renderer: THREE.WebGLRenderer,
     private readonly state: WaterOpticsState,
-    objectShadowTexture: THREE.Texture
+    private readonly objectShadowTexture: THREE.Texture
   ) {
     this.target = new THREE.WebGLRenderTarget(1024, 1024, {
       minFilter: THREE.LinearFilter,
@@ -24,7 +27,7 @@ export class CausticsPass {
     })
     this.texture = this.target.texture
 
-    this.material = new THREE.ShaderMaterial({
+    this.boxMaterial = new THREE.ShaderMaterial({
       vertexShader: causticsVert,
       fragmentShader: causticsFrag,
       uniforms: {
@@ -39,16 +42,44 @@ export class CausticsPass {
       depthWrite: false,
     })
 
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2, 200, 200), this.material)
-    mesh.frustumCulled = false
-    this.scene.add(mesh)
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2, 200, 200), this.boxMaterial)
+    this.mesh.frustumCulled = false
+    this.scene.add(this.mesh)
+  }
+
+  setPoolShape(shape: string, cornerRadius: number) {
+    if (shape === 'Box') {
+      this.mesh.material = this.boxMaterial
+    } else {
+      if (!this.roundedBoxMaterial) {
+        this.roundedBoxMaterial = new THREE.ShaderMaterial({
+          vertexShader: causticsVert,
+          fragmentShader: roundedBoxCausticsFrag,
+          uniforms: {
+            light: { value: this.state.lightDirection.clone() },
+            water: { value: null },
+            objectShadowTex: { value: this.objectShadowTexture },
+            ...this.state.createUniforms(),
+            cornerRadius: { value: cornerRadius },
+          },
+          blending: THREE.NoBlending,
+          side: THREE.DoubleSide,
+          depthTest: false,
+          depthWrite: false,
+        })
+      } else {
+        this.roundedBoxMaterial.uniforms.cornerRadius.value = cornerRadius
+      }
+      this.mesh.material = this.roundedBoxMaterial
+    }
   }
 
   update(water: Water) {
-    this.material.uniforms.water.value = water.textureA.texture
-    this.material.uniforms.light.value.copy(this.state.lightDirection)
-    this.state.syncUniforms(this.material)
-    this.material.uniformsNeedUpdate = true
+    const activeMaterial = this.mesh.material as THREE.ShaderMaterial
+    activeMaterial.uniforms.water.value = water.textureA.texture
+    activeMaterial.uniforms.light.value.copy(this.state.lightDirection)
+    this.state.syncUniforms(activeMaterial)
+    activeMaterial.uniformsNeedUpdate = true
 
     this.renderer.setRenderTarget(this.target)
     this.renderer.setClearColor(0x000000, 1)
@@ -57,3 +88,4 @@ export class CausticsPass {
     this.renderer.setRenderTarget(null)
   }
 }
+

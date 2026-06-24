@@ -2,18 +2,24 @@ import * as THREE from 'three'
 import type { Water } from '../Water'
 import poolVert from '../shaders/cube.vert'
 import poolFrag from '../shaders/cube.frag'
+import roundedBoxVert from '../shaders/roundedbox.vert'
+import roundedBoxFrag from '../shaders/roundedbox.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
+import { createRoundedBoxPoolGeometry } from './createRoundedBoxPoolGeometry'
 
 export class PoolPass {
   readonly mesh: THREE.Mesh
-  private readonly material: THREE.ShaderMaterial
+  private readonly boxGeometry: THREE.BufferGeometry
+  private readonly boxMaterial: THREE.ShaderMaterial
+  private roundedBoxGeometry: THREE.BufferGeometry | null = null
+  private roundedBoxMaterial: THREE.ShaderMaterial | null = null
 
   constructor(
-    tileTexture: THREE.Texture,
-    causticTexture: THREE.Texture,
+    private readonly tileTexture: THREE.Texture,
+    private readonly causticTexture: THREE.Texture,
     private readonly state: WaterOpticsState
   ) {
-    this.material = new THREE.ShaderMaterial({
+    this.boxMaterial = new THREE.ShaderMaterial({
       vertexShader: poolVert,
       fragmentShader: poolFrag,
       uniforms: {
@@ -28,15 +34,52 @@ export class PoolPass {
       depthWrite: true,
     })
 
-    this.mesh = new THREE.Mesh(this.createGeometry(), this.material)
+    this.boxGeometry = this.createGeometry()
+    this.mesh = new THREE.Mesh(this.boxGeometry, this.boxMaterial)
     this.mesh.frustumCulled = false
   }
 
+  setPoolShape(shape: string, cornerRadius: number) {
+    if (shape === 'Box') {
+      this.mesh.geometry = this.boxGeometry
+      this.mesh.material = this.boxMaterial
+    } else {
+      if (this.roundedBoxGeometry) {
+        this.roundedBoxGeometry.dispose()
+      }
+      this.roundedBoxGeometry = createRoundedBoxPoolGeometry(cornerRadius)
+      
+      if (!this.roundedBoxMaterial) {
+        this.roundedBoxMaterial = new THREE.ShaderMaterial({
+          vertexShader: roundedBoxVert,
+          fragmentShader: roundedBoxFrag,
+          uniforms: {
+            light: { value: this.state.lightDirection.clone() },
+            ...this.state.createUniforms(),
+            tiles: { value: this.tileTexture },
+            causticTex: { value: this.causticTexture },
+            water: { value: null },
+            cornerRadius: { value: cornerRadius },
+          },
+          side: THREE.FrontSide,
+          depthTest: true,
+          depthWrite: true,
+        })
+      } else {
+        this.roundedBoxMaterial.uniforms.cornerRadius.value = cornerRadius
+      }
+
+      this.mesh.geometry = this.roundedBoxGeometry
+      this.mesh.material = this.roundedBoxMaterial
+    }
+  }
+
   prepare(water: Water) {
-    this.material.uniforms.water.value = water.textureA.texture
-    this.material.uniforms.light.value.copy(this.state.lightDirection)
-    this.state.syncUniforms(this.material)
-    this.material.uniformsNeedUpdate = true
+    const activeMaterial = this.mesh.material as THREE.ShaderMaterial
+    activeMaterial.uniforms.water.value = water.textureA.texture
+    activeMaterial.uniforms.light.value.copy(this.state.lightDirection)
+    this.state.syncUniforms(activeMaterial)
+    activeMaterial.uniformsNeedUpdate = true
   }
 
   private createGeometry() {
@@ -62,3 +105,4 @@ export class PoolPass {
     return geometry
   }
 }
+

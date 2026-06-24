@@ -5,6 +5,7 @@ export interface SimulationControlCallbacks {
   onPausedChange(paused: boolean): void
   onLightFollowsCameraChange?(): void
   onPoolShapeChange?(shape: string): void
+  onCornerRadiusChange?(radius: number): void
 }
 
 export class SimulationControls {
@@ -14,6 +15,7 @@ export class SimulationControls {
   density = 0.9
   lightFollowsCamera = false
   poolShape = 'Box'
+  cornerRadius = 0.1
 
   private readonly state = {
     object: 'Sphere',
@@ -23,11 +25,13 @@ export class SimulationControls {
     paused: false,
     lightFollowsCamera: false,
     poolShape: 'Box',
+    cornerRadius: 0.1,
   }
   private readonly gravityController: Controller
   private readonly densityEnabledController: Controller
   private readonly densityController: Controller
   private readonly pausedController: Controller
+  private readonly cornerRadiusController: Controller
   private physicsAvailable = true
 
   constructor(
@@ -87,14 +91,23 @@ export class SimulationControls {
     const poolFolder = gui.addFolder('Pool')
     poolFolder.open()
 
-    poolFolder.add(this.state, 'poolShape', ['Box'])
+    poolFolder.add(this.state, 'poolShape', ['Box', 'Rounded Box'])
       .name('Shape')
       .onChange((shape: string) => {
         this.poolShape = shape
+        this.updatePoolShapeControllers()
         callbacks.onPoolShapeChange?.(shape)
       })
 
+    this.cornerRadiusController = poolFolder.add(this.state, 'cornerRadius', 0.0, 1.0, 0.01)
+      .name('Corner Radius')
+      .onChange((radius: number) => {
+        this.cornerRadius = radius
+        callbacks.onCornerRadiusChange?.(radius)
+      })
+
     this.updateDensityController()
+    this.updatePoolShapeControllers()
   }
 
   togglePaused() {
@@ -120,4 +133,13 @@ export class SimulationControls {
   private updateDensityController() {
     this.densityController.disable(!this.physicsAvailable || !this.densityEnabled)
   }
+
+  private updatePoolShapeControllers() {
+    if (this.state.poolShape === 'Rounded Box') {
+      this.cornerRadiusController.show()
+    } else {
+      this.cornerRadiusController.hide()
+    }
+  }
 }
+
