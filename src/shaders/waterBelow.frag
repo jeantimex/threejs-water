@@ -18,6 +18,7 @@ uniform vec3 torusKnotCenter;
 uniform bool torusKnotEnabled;
 uniform vec3 meshCenter;
 uniform float meshBoundingRadius;
+uniform float meshShadowRadius;
 uniform bool meshEnabled;
 uniform sampler2D tiles;
 uniform sampler2D causticTex;
@@ -202,17 +203,18 @@ vec3 getWallColor(vec3 point) {
 
   scale /= length(point);
   if (sphereEnabled) {
-    scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0);
+    scale *= 1.0 - 0.9 / pow(max(length(point - sphereCenter) / sphereRadius, 1.0), 4.0);
   } else if (cubeEnabled) {
     float cubeDistance = length((point - cubeCenter) / cubeHalfSize);
-    scale *= 1.0 - 0.9 / pow(max(cubeDistance, 0.001), 4.0);
+    scale *= 1.0 - 0.9 / pow(max(cubeDistance, 1.0), 4.0);
   } else if (torusKnotEnabled) {
     float knotDistance = length(point - torusKnotCenter);
-    scale *= 1.0 - 0.9 / pow(knotDistance / torusKnotShadowRadius, 4.0);
+    scale *= 1.0 - 0.9 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
   } else if (meshEnabled) {
     float meshDistance = length(point - meshCenter);
-    scale *= 1.0 - 0.9 / pow(meshDistance / meshBoundingRadius, 4.0);
+    scale *= 1.0 - 0.9 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
   }
+
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(refractedLight, normal));

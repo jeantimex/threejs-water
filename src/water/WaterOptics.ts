@@ -5,6 +5,6 @@ export type WaterOpticsDescriptor =
   | { kind: 'sphere'; center: THREE.Vector3; radius: number }
   | { kind: 'box'; center: THREE.Vector3; halfSize: THREE.Vector3 }
   | { kind: 'torusknot'; center: THREE.Vector3 }
-  | { kind: 'mesh'; center: THREE.Vector3; boundingRadius: number }
+  | { kind: 'mesh'; center: THREE.Vector3; boundingRadius: number; shadowRadius?: number }
 
 export const NO_WATER_OPTICS: WaterOpticsDescriptor = { kind: 'none' }

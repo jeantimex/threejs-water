@@ -13,6 +13,7 @@ export class WaterOpticsState {
   torusKnotEnabled = false
   readonly meshCenter = new THREE.Vector3()
   meshBoundingRadius = 0.25
+  meshShadowRadius = 0.25
   meshEnabled = false
 
   apply(optics: WaterOpticsDescriptor) {
@@ -35,6 +36,7 @@ export class WaterOpticsState {
     } else if (optics.kind === 'mesh') {
       this.meshCenter.copy(optics.center)
       this.meshBoundingRadius = optics.boundingRadius
+      this.meshShadowRadius = optics.shadowRadius ?? optics.boundingRadius
       this.meshEnabled = true
     }
   }
@@ -51,6 +53,7 @@ export class WaterOpticsState {
       torusKnotEnabled: { value: this.torusKnotEnabled },
       meshCenter: { value: this.meshCenter.clone() },
       meshBoundingRadius: { value: this.meshBoundingRadius },
+      meshShadowRadius: { value: this.meshShadowRadius },
       meshEnabled: { value: this.meshEnabled },
     }
   }
@@ -73,6 +76,9 @@ export class WaterOpticsState {
     }
     if (material.uniforms.meshBoundingRadius) {
       material.uniforms.meshBoundingRadius.value = this.meshBoundingRadius
+    }
+    if (material.uniforms.meshShadowRadius) {
+      material.uniforms.meshShadowRadius.value = this.meshShadowRadius
     }
     if (material.uniforms.meshEnabled) {
       material.uniforms.meshEnabled.value = this.meshEnabled

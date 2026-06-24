@@ -18,6 +18,7 @@ export class TorusKnotObject implements SimulationObject {
     kind: 'mesh' as const,
     center: this.position,
     boundingRadius: this.boundingRadius,
+    shadowRadius: 0.13,
   }
   readonly mesh: THREE.Mesh
   enabled = false
