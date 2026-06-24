@@ -28,9 +28,9 @@ uniform float cornerRadius;
 varying vec3 vPosition;
 
 vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
-  float t1 = 1e6;
-  float t2 = -1e6;
-  int count = 0;
+  float tNear = 1e6;
+  float tFar = -1e6;
+  bool found = false;
   
   float r_sub = 1.0 - R;
   float eps = 1.0e-3;
@@ -40,8 +40,9 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
     float t = (1.0 - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
     if (z >= -r_sub - eps && z <= r_sub + eps) {
-      if (count == 0) { t1 = t; count = 1; }
-      else { t2 = t; count = 2; }
+      tNear = min(tNear, t);
+      tFar = max(tFar, t);
+      found = true;
     }
   }
   // 2. Line x = -1 (z in [-r_sub, r_sub])
@@ -49,8 +50,9 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
     float t = (-1.0 - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
     if (z >= -r_sub - eps && z <= r_sub + eps) {
-      if (count == 0) { t1 = t; count = 1; }
-      else { t2 = t; count = 2; }
+      tNear = min(tNear, t);
+      tFar = max(tFar, t);
+      found = true;
     }
   }
   // 3. Line z = 1 (x in [-r_sub, r_sub])
@@ -58,8 +60,9 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
     float t = (1.0 - origin.y) / ray.y;
     float x = origin.x + t * ray.x;
     if (x >= -r_sub - eps && x <= r_sub + eps) {
-      if (count == 0) { t1 = t; count = 1; }
-      else { t2 = t; count = 2; }
+      tNear = min(tNear, t);
+      tFar = max(tFar, t);
+      found = true;
     }
   }
   // 4. Line z = -1 (x in [-r_sub, r_sub])
@@ -67,8 +70,9 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
     float t = (-1.0 - origin.y) / ray.y;
     float x = origin.x + t * ray.x;
     if (x >= -r_sub - eps && x <= r_sub + eps) {
-      if (count == 0) { t1 = t; count = 1; }
-      else { t2 = t; count = 2; }
+      tNear = min(tNear, t);
+      tFar = max(tFar, t);
+      found = true;
     }
   }
 
@@ -100,8 +104,9 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
         else if (i == 2) validA = (ptA.x <= -r_sub + eps && ptA.y <= -r_sub + eps);
         else if (i == 3) validA = (ptA.x >= r_sub - eps && ptA.y <= -r_sub + eps);
         if (validA) {
-          if (count == 0) { t1 = tA; count = 1; }
-          else { t2 = tA; count = 2; }
+          tNear = min(tNear, tA);
+          tFar = max(tFar, tA);
+          found = true;
         }
         
         // Check tB
@@ -112,20 +117,19 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
         else if (i == 2) validB = (ptB.x <= -r_sub + eps && ptB.y <= -r_sub + eps);
         else if (i == 3) validB = (ptB.x >= r_sub - eps && ptB.y <= -r_sub + eps);
         if (validB) {
-          if (count == 0) { t1 = tB; count = 1; }
-          else { t2 = tB; count = 2; }
+          tNear = min(tNear, tB);
+          tFar = max(tFar, tB);
+          found = true;
         }
       }
     }
   }
 
-  if (count == 1) {
-    t2 = t1;
-  } else if (count == 0) {
+  if (!found) {
     return vec2(-1e6, 1e6);
   }
   
-  return vec2(min(t1, t2), max(t1, t2));
+  return vec2(tNear, tFar);
 }
 
 vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
