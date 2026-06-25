@@ -298,10 +298,14 @@ export class WaterApp {
 
   /**
    * Window resize handler. Recomputes camera aspect ratio projection and resizes render targets.
-   * Canvas always takes full page, info panel overlays on top.
+   * Desktop: canvas and info panel side by side. Mobile: info panel floats on top.
    */
   private resize = () => {
-    const width = window.innerWidth
+    const help = document.getElementById('help')!
+    const isMobile = window.matchMedia('(max-width: 600px)').matches
+
+    // Mobile uses full width, desktop subtracts help panel width
+    const width = isMobile ? window.innerWidth : window.innerWidth - help.clientWidth - 20
     const height = window.innerHeight
 
     this.camera.aspect = width / height

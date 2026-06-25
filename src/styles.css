@@ -45,8 +45,6 @@ canvas {
   width: 280px;
   padding: 0 20px 0 10px;
   overflow: auto;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 5;
 }
 
 #loading {
@@ -111,9 +109,10 @@ canvas {
 @media (max-width: 600px) {
   #help {
     width: 200px;
-    background: rgba(0, 0, 0, 0.85);
+    background: #222;
     padding-left: 10px;
     padding-top: 40px;
+    z-index: 5;
     transition: transform 0.3s ease-in-out;
     transform: translateX(0);
   }
