@@ -7,6 +7,8 @@
 
 import * as THREE from 'three'
 
+const MIN_STRAIGHT_POOL_EDGE = 0.05
+
 /**
  * Creates a THREE.BufferGeometry representing a pool with rounded corners.
  * Generates positions, normals, and indices for the pool floor and walls.
@@ -25,6 +27,10 @@ export function createRoundedBoxPoolGeometry(
   poolLength: number
 ): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry()
+  const cornerRadius = Math.min(
+    R,
+    Math.max(0, Math.min(poolWidth, poolLength) - MIN_STRAIGHT_POOL_EDGE)
+  )
 
   const positions: number[] = []
   const normals: number[] = []
@@ -32,8 +38,8 @@ export function createRoundedBoxPoolGeometry(
 
   const yFloor = -poolHeight
   const yRim = 2.0 / 12.0
-  const rSubX = poolWidth - R
-  const rSubZ = poolLength - R
+  const rSubX = poolWidth - cornerRadius
+  const rSubZ = poolLength - cornerRadius
 
   const segmentsPerCorner = 16
   const totalPoints = 4 * segmentsPerCorner
@@ -69,8 +75,8 @@ export function createRoundedBoxPoolGeometry(
 
     for (let i = 0; i < segmentsPerCorner; i++) {
       const angle = startAngle + (i / segmentsPerCorner) * (Math.PI / 2)
-      const x = cx + R * Math.cos(angle)
-      const z = cz + R * Math.sin(angle)
+      const x = cx + cornerRadius * Math.cos(angle)
+      const z = cz + cornerRadius * Math.sin(angle)
       floorVertices.push(new THREE.Vector3(x, yFloor, z))
     }
   }
@@ -97,7 +103,7 @@ export function createRoundedBoxPoolGeometry(
   for (let i = 0; i < totalPoints; i++) {
     const v = floorVertices[i]
     const normal = new THREE.Vector3()
-    if (Math.abs(v.x) > rSubX && Math.abs(v.z) > rSubZ && R > 0) {
+    if (Math.abs(v.x) > rSubX && Math.abs(v.z) > rSubZ && cornerRadius > 0) {
       const cx = Math.sign(v.x) * rSubX
       const cz = Math.sign(v.z) * rSubZ
       normal

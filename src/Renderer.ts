@@ -8,6 +8,8 @@ import { WaterSurfacePass } from './rendering/WaterSurfacePass'
 import { WaterOpticsState } from './rendering/WaterOpticsState'
 import type { WaterOpticsDescriptor } from './water/WaterOptics'
 
+const MIN_STRAIGHT_POOL_EDGE = 0.05
+
 /**
  * High-level orchestration class for the rendering pipeline.
  * Coordinates all specific rendering passes:
@@ -128,9 +130,13 @@ export class Renderer {
     poolHeight: number,
     poolLength: number
   ) {
-    this.pool.setPoolShape(shape, cornerRadius, poolWidth, poolHeight, poolLength)
-    this.caustics.setPoolShape(shape, cornerRadius, poolWidth, poolHeight, poolLength)
-    this.waterSurface.setPoolShape(shape, cornerRadius, poolWidth, poolHeight, poolLength)
+    const maxCornerRadius = Math.max(0, Math.min(poolWidth, poolLength) - MIN_STRAIGHT_POOL_EDGE)
+    const safeCornerRadius =
+      shape === 'Box' ? cornerRadius : Math.min(cornerRadius, maxCornerRadius)
+
+    this.pool.setPoolShape(shape, safeCornerRadius, poolWidth, poolHeight, poolLength)
+    this.caustics.setPoolShape(shape, safeCornerRadius, poolWidth, poolHeight, poolLength)
+    this.waterSurface.setPoolShape(shape, safeCornerRadius, poolWidth, poolHeight, poolLength)
     this.objectTextures.setPoolBounds(poolWidth, poolLength)
   }
 

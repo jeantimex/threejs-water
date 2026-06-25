@@ -1,5 +1,7 @@
 import GUI, { type Controller } from 'lil-gui'
 
+const MIN_STRAIGHT_POOL_EDGE = 0.05
+
 export interface SimulationControlCallbacks {
   onObjectChange(name: string): void
   onPausedChange(paused: boolean): void
@@ -130,8 +132,11 @@ export class SimulationControls {
       .add(this.state, 'cornerRadius', 0.0, 1.0, 0.01)
       .name('Corner Radius')
       .onChange((radius: number) => {
-        this.cornerRadius = radius
-        callbacks.onCornerRadiusChange?.(radius)
+        const cornerRadius = this.clampCornerRadius(radius)
+        this.cornerRadius = cornerRadius
+        this.state.cornerRadius = cornerRadius
+        this.cornerRadiusController.updateDisplay()
+        callbacks.onCornerRadiusChange?.(cornerRadius)
       })
 
     // Pool Width slider
@@ -140,6 +145,7 @@ export class SimulationControls {
       .name('Pool Width')
       .onChange((width: number) => {
         this.poolWidth = width
+        this.updateCornerRadiusLimit()
         callbacks.onPoolWidthChange?.(width)
       })
 
@@ -158,6 +164,7 @@ export class SimulationControls {
       .name('Pool Length')
       .onChange((length: number) => {
         this.poolLength = length
+        this.updateCornerRadiusLimit()
         callbacks.onPoolLengthChange?.(length)
       })
 
@@ -175,6 +182,7 @@ export class SimulationControls {
       })
 
     // Sync initial controller visibility configurations
+    this.updateCornerRadiusLimit()
     this.updateDensityController()
     this.updatePoolShapeControllers()
   }
@@ -213,6 +221,26 @@ export class SimulationControls {
    */
   private updateDensityController() {
     this.densityController.show(this.physicsAvailable && this.densityEnabled)
+  }
+
+  private updateCornerRadiusLimit() {
+    const cornerRadius = this.clampCornerRadius(this.cornerRadius)
+    this.cornerRadiusController.max(this.maxCornerRadius)
+
+    if (cornerRadius !== this.cornerRadius) {
+      this.cornerRadius = cornerRadius
+      this.state.cornerRadius = cornerRadius
+      this.cornerRadiusController.updateDisplay()
+      this.callbacks.onCornerRadiusChange?.(cornerRadius)
+    }
+  }
+
+  private clampCornerRadius(radius: number) {
+    return Math.min(radius, this.maxCornerRadius)
+  }
+
+  private get maxCornerRadius() {
+    return Math.max(0, Math.min(this.poolWidth, this.poolLength) - MIN_STRAIGHT_POOL_EDGE)
   }
 
   /**
