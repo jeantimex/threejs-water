@@ -8,9 +8,9 @@
  * This shader also passes UV coordinates for texture mapping.
  */
 
-varying vec3 vPosition;  // World position for fragment shader
-varying vec3 vNormal;    // World-space normal for lighting
-varying vec2 vUv;        // Texture coordinates for albedo map
+varying vec3 vPosition; // World position for fragment shader
+varying vec3 vNormal; // World-space normal for lighting
+varying vec2 vUv; // Texture coordinates for albedo map
 
 void main() {
   // Transform vertex position to world space

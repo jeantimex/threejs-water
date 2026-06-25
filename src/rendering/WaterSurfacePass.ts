@@ -47,7 +47,7 @@ export class WaterSurfacePass {
 
   /**
    * Constructs the WaterSurfacePass.
-   * 
+   *
    * @param tileTexture Tile texture mapping the pool walls/floor.
    * @param cubemap Cube texture of the surrounding sky.
    * @param causticTexture Dynamic caustic light intensity texture.
@@ -97,14 +97,20 @@ export class WaterSurfacePass {
 
   /**
    * Configures materials for the water mesh based on the selected pool shape (Box or Rounded).
-   * 
+   *
    * @param shape The shape description ('Box' or otherwise).
    * @param cornerRadius Corner radius of rounded pools.
    * @param poolWidth Half-width of the pool.
    * @param poolHeight Depth of the pool.
    * @param poolLength Half-length of the pool.
    */
-  setPoolShape(shape: string, cornerRadius: number, poolWidth: number, poolHeight: number, poolLength: number) {
+  setPoolShape(
+    shape: string,
+    cornerRadius: number,
+    poolWidth: number,
+    poolHeight: number,
+    poolLength: number
+  ) {
     if (shape === 'Box') {
       this.aboveMesh.material = this.aboveMaterial
       this.belowMesh.material = this.belowMaterial
@@ -160,7 +166,7 @@ export class WaterSurfacePass {
   /**
    * Prepares the above and below water surface materials by copying camera positions,
    * heightmap textures, light directions, and projection matrices.
-   * 
+   *
    * @param water The Water simulation instance.
    * @param camera The active viewing camera.
    * @param objectMatrices Projection matrices for reflections/refractions.
@@ -168,8 +174,18 @@ export class WaterSurfacePass {
   prepare(water: Water, camera: THREE.Camera, objectMatrices: ObjectTextureMatrices) {
     const eye = new THREE.Vector3()
     camera.getWorldPosition(eye)
-    this.prepareMaterial(this.aboveMesh.material as THREE.ShaderMaterial, water, eye, objectMatrices)
-    this.prepareMaterial(this.belowMesh.material as THREE.ShaderMaterial, water, eye, objectMatrices)
+    this.prepareMaterial(
+      this.aboveMesh.material as THREE.ShaderMaterial,
+      water,
+      eye,
+      objectMatrices
+    )
+    this.prepareMaterial(
+      this.belowMesh.material as THREE.ShaderMaterial,
+      water,
+      eye,
+      objectMatrices
+    )
   }
 
   /**
@@ -229,5 +245,3 @@ export class WaterSurfacePass {
     material.uniformsNeedUpdate = true
   }
 }
-
-

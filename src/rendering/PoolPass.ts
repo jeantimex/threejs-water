@@ -31,7 +31,7 @@ export class PoolPass {
 
   /**
    * Constructs the PoolPass.
-   * 
+   *
    * @param tileTexture The base repeating texture representing pool tiles.
    * @param causticTexture The dynamic caustic map texture.
    * @param state The state tracking objects inside the water.
@@ -63,14 +63,20 @@ export class PoolPass {
 
   /**
    * Adjusts the geometry and material properties to match the pool shape configuration.
-   * 
+   *
    * @param shape The shape description (e.g. 'Box' or otherwise).
    * @param cornerRadius The radius of the pool's rounded corners.
    * @param poolWidth The half-width of the pool.
    * @param poolHeight The depth of the pool.
    * @param poolLength The half-length of the pool.
    */
-  setPoolShape(shape: string, cornerRadius: number, poolWidth: number, poolHeight: number, poolLength: number) {
+  setPoolShape(
+    shape: string,
+    cornerRadius: number,
+    poolWidth: number,
+    poolHeight: number,
+    poolLength: number
+  ) {
     if (shape === 'Box') {
       this.mesh.geometry = this.boxGeometry
       this.mesh.material = this.boxMaterial
@@ -78,8 +84,13 @@ export class PoolPass {
       if (this.roundedBoxGeometry) {
         this.roundedBoxGeometry.dispose()
       }
-      this.roundedBoxGeometry = createRoundedBoxPoolGeometry(cornerRadius, poolWidth, poolHeight, poolLength)
-      
+      this.roundedBoxGeometry = createRoundedBoxPoolGeometry(
+        cornerRadius,
+        poolWidth,
+        poolHeight,
+        poolLength
+      )
+
       if (!this.roundedBoxMaterial) {
         this.roundedBoxMaterial = new THREE.ShaderMaterial({
           vertexShader: roundedBoxVert,
@@ -114,7 +125,7 @@ export class PoolPass {
   /**
    * Prepares the active pool material uniforms prior to rendering the scene.
    * Copies current water texture, light vectors, and optical state variables.
-   * 
+   *
    * @param water The Water simulation instance.
    */
   prepare(water: Water) {
@@ -138,11 +149,7 @@ export class PoolPass {
       const a = source.getX(i)
       const b = source.getX(i + 1)
       const c = source.getX(i + 2)
-      if (!(
-        positions.getY(a) < 0
-        && positions.getY(b) < 0
-        && positions.getY(c) < 0
-      )) {
+      if (!(positions.getY(a) < 0 && positions.getY(b) < 0 && positions.getY(c) < 0)) {
         indices.push(a, b, c)
       }
     }
@@ -151,5 +158,3 @@ export class PoolPass {
     return geometry
   }
 }
-
-

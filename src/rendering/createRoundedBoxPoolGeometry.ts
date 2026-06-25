@@ -11,15 +11,19 @@ import * as THREE from 'three'
  * Creates a THREE.BufferGeometry representing a pool with rounded corners.
  * Generates positions, normals, and indices for the pool floor and walls.
  * The normals of the walls point inwards to facilitate rendering from the inside of the pool.
- * 
+ *
  * @param R The corner radius of the pool's rounded corners.
  * @param poolWidth The half-width of the pool along the X axis.
  * @param poolHeight The depth/height of the pool along the Y axis.
  * @param poolLength The half-length of the pool along the Z axis.
  * @returns A buffer geometry object configured for rendering.
  */
-export function createRoundedBoxPoolGeometry(R: number, poolWidth: number, poolHeight: number, poolLength: number): THREE.BufferGeometry {
-
+export function createRoundedBoxPoolGeometry(
+  R: number,
+  poolWidth: number,
+  poolHeight: number,
+  poolLength: number
+): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry()
 
   const positions: number[] = []
@@ -35,26 +39,31 @@ export function createRoundedBoxPoolGeometry(R: number, poolWidth: number, poolH
   const totalPoints = 4 * segmentsPerCorner
 
   const floorVertices: THREE.Vector3[] = []
-  
+
   // Generate perimeter points in counterclockwise order
   for (let c = 0; c < 4; c++) {
-    let cx = 0, cz = 0
+    let cx = 0,
+      cz = 0
     let startAngle = 0
     if (c === 0) {
       // North-East
-      cx = rSubX; cz = rSubZ
+      cx = rSubX
+      cz = rSubZ
       startAngle = 0
     } else if (c === 1) {
       // North-West
-      cx = -rSubX; cz = rSubZ
+      cx = -rSubX
+      cz = rSubZ
       startAngle = Math.PI / 2
     } else if (c === 2) {
       // South-West
-      cx = -rSubX; cz = -rSubZ
+      cx = -rSubX
+      cz = -rSubZ
       startAngle = Math.PI
     } else {
       // South-East
-      cx = rSubX; cz = -rSubZ
+      cx = rSubX
+      cz = -rSubZ
       startAngle = 1.5 * Math.PI
     }
 
@@ -91,7 +100,10 @@ export function createRoundedBoxPoolGeometry(R: number, poolWidth: number, poolH
     if (Math.abs(v.x) > rSubX && Math.abs(v.z) > rSubZ && R > 0) {
       const cx = Math.sign(v.x) * rSubX
       const cz = Math.sign(v.z) * rSubZ
-      normal.set(v.x - cx, 0, v.z - cz).normalize().negate() // points inwards
+      normal
+        .set(v.x - cx, 0, v.z - cz)
+        .normalize()
+        .negate() // points inwards
     } else {
       if (Math.abs(v.x) >= poolWidth - 0.001) {
         normal.set(-Math.sign(v.x), 0, 0)
@@ -108,7 +120,7 @@ export function createRoundedBoxPoolGeometry(R: number, poolWidth: number, poolH
   for (let i = 0; i < totalPoints; i++) {
     const v = floorVertices[i]
     const n = wallNormals[i]
-    
+
     // Bottom vertex
     positions.push(v.x, yFloor, v.z)
     normals.push(n.x, n.y, n.z)
@@ -121,7 +133,7 @@ export function createRoundedBoxPoolGeometry(R: number, poolWidth: number, poolH
   // Triangulate walls: connect bottom & top rings
   for (let i = 0; i < totalPoints; i++) {
     const next = (i + 1) % totalPoints
-    
+
     const bCurr = wallStartIndex + 2 * i
     const tCurr = wallStartIndex + 2 * i + 1
     const bNext = wallStartIndex + 2 * next

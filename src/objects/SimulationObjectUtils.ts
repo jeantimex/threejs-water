@@ -65,18 +65,12 @@ export function updatePhysics(
   )
 
   // Accumulate velocity: net force = gravity (downward) - buoyancy (upward, scaled by submergence)
-  velocity.addScaledVector(
-    context.gravity,
-    seconds - buoyancyScale * seconds * percentUnderWater
-  )
+  velocity.addScaledVector(context.gravity, seconds - buoyancyScale * seconds * percentUnderWater)
 
   // Apply fluid drag: resistance is proportional to velocity squared and submergence percentage
   const speedSq = velocity.lengthSq()
   if (speedSq > 0) {
-    velocity.addScaledVector(
-      velocity.clone().normalize(),
-      -percentUnderWater * seconds * speedSq
-    )
+    velocity.addScaledVector(velocity.clone().normalize(), -percentUnderWater * seconds * speedSq)
   }
 
   // Integrate position: translate the object by its current velocity
@@ -111,10 +105,10 @@ export function clampAndMoveObject(
 ) {
   const limitX = poolWidth - xLimitRadius
   const limitZ = poolLength - zLimitRadius
-  
+
   // Apply translation offset
   position.add(delta)
-  
+
   // Constrain coordinates within pool dimensions
   position.x = THREE.MathUtils.clamp(position.x, -limitX, limitX)
   position.y = THREE.MathUtils.clamp(position.y, floorClearance - poolHeight, 10)

@@ -46,10 +46,10 @@ uniform sampler2D causticTex;
 uniform sampler2D water;
 
 // Pool geometry parameters
-uniform float cornerRadius;   // Radius of rounded corners
-uniform float poolWidth;      // Half-width of pool (X direction)
-uniform float poolHeight;     // Depth of pool (Y direction)
-uniform float poolLength;     // Half-length of pool (Z direction)
+uniform float cornerRadius; // Radius of rounded corners
+uniform float poolWidth; // Half-width of pool (X direction)
+uniform float poolHeight; // Depth of pool (Y direction)
+uniform float poolLength; // Half-length of pool (Z direction)
 
 varying vec3 vPosition;
 
@@ -85,7 +85,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   float tNear = 1e6;
   float tFar = -1e6;
   bool found = false;
-  
+
   // Straight wall segment limits (inner width/length before curvature starts)
   float r_sub_x = poolWidth - R;
   float r_sub_z = poolLength - R;
@@ -152,27 +152,27 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
         float sqrtDisc = sqrt(disc);
         float tA = (-b - sqrtDisc) / (2.0 * a);
         float tB = (-b + sqrtDisc) / (2.0 * a);
-        
+
         // Validate intersection A falls in the correct corner quadrant
         vec2 ptA = origin + tA * ray;
         bool validA = false;
-        if (i == 0) validA = (ptA.x >= r_sub_x - eps && ptA.y >= r_sub_z - eps);
-        else if (i == 1) validA = (ptA.x <= -r_sub_x + eps && ptA.y >= r_sub_z - eps);
-        else if (i == 2) validA = (ptA.x <= -r_sub_x + eps && ptA.y <= -r_sub_z + eps);
-        else if (i == 3) validA = (ptA.x >= r_sub_x - eps && ptA.y <= -r_sub_z + eps);
+        if (i == 0) validA = ptA.x >= r_sub_x - eps && ptA.y >= r_sub_z - eps;
+        else if (i == 1) validA = ptA.x <= -r_sub_x + eps && ptA.y >= r_sub_z - eps;
+        else if (i == 2) validA = ptA.x <= -r_sub_x + eps && ptA.y <= -r_sub_z + eps;
+        else if (i == 3) validA = ptA.x >= r_sub_x - eps && ptA.y <= -r_sub_z + eps;
         if (validA) {
           tNear = min(tNear, tA);
           tFar = max(tFar, tA);
           found = true;
         }
-        
+
         // Validate intersection B falls in the correct corner quadrant
         vec2 ptB = origin + tB * ray;
         bool validB = false;
-        if (i == 0) validB = (ptB.x >= r_sub_x - eps && ptB.y >= r_sub_z - eps);
-        else if (i == 1) validB = (ptB.x <= -r_sub_x + eps && ptB.y >= r_sub_z - eps);
-        else if (i == 2) validB = (ptB.x <= -r_sub_x + eps && ptB.y <= -r_sub_z + eps);
-        else if (i == 3) validB = (ptB.x >= r_sub_x - eps && ptB.y <= -r_sub_z + eps);
+        if (i == 0) validB = ptB.x >= r_sub_x - eps && ptB.y >= r_sub_z - eps;
+        else if (i == 1) validB = ptB.x <= -r_sub_x + eps && ptB.y >= r_sub_z - eps;
+        else if (i == 2) validB = ptB.x <= -r_sub_x + eps && ptB.y <= -r_sub_z + eps;
+        else if (i == 3) validB = ptB.x >= r_sub_x - eps && ptB.y <= -r_sub_z + eps;
         if (validB) {
           tNear = min(tNear, tB);
           tFar = max(tFar, tB);
@@ -185,7 +185,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   if (!found) {
     return vec2(-1e6, 1e6);
   }
-  
+
   return vec2(tNear, tFar);
 }
 
@@ -196,7 +196,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
 vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
   float tYNear = -1.0e6;
   float tYFar = 1.0e6;
-  
+
   // Calculate bounds on the vertical axis: floor Y=-poolHeight to ceiling Y=2.0
   if (abs(ray.y) > 1.0e-7) {
     float tYMin = (-poolHeight - origin.y) / ray.y;
@@ -204,10 +204,10 @@ vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
     tYNear = min(tYMin, tYMax);
     tYFar = max(tYMin, tYMax);
   }
-  
+
   // Intersect with 2D rounded boundary layout
   vec2 tXZ = intersectRoundedRectangle2D(origin.xz, ray.xz, R);
-  
+
   // Combine 1D interval intersections: [max(near), min(far)]
   float tNear = max(tYNear, tXZ.x);
   float tFar = min(tYFar, tXZ.y);
@@ -244,23 +244,23 @@ vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
 void getRoundedBoxNormalAndUV(vec3 point, float R, out vec3 normal, out vec2 uv) {
   float r_sub_x = poolWidth - R;
   float r_sub_z = poolLength - R;
-  
+
   // Floor check
   if (point.y < -poolHeight + 0.001) {
     normal = vec3(0.0, 1.0, 0.0);
     uv = point.xz * 0.5 + 0.5;
     return;
   }
-  
+
   vec2 absP = abs(point.xz);
-  
+
   // Curved corner region check
   if (absP.x > r_sub_x && absP.y > r_sub_z && R > 0.0) {
     // Center of the quadrant corner circle
     vec2 center = sign(point.xz) * vec2(r_sub_x, r_sub_z);
     vec2 d = point.xz - center;
     normal = vec3(-normalize(d).x, 0.0, -normalize(d).y);
-    
+
     // Compute wrapping perimeter coordinate 's' for tile mapping continuity
     float s = 0.0;
     if (point.x >= r_sub_x && point.z >= -r_sub_z && point.z <= r_sub_z) {
@@ -308,7 +308,7 @@ vec3 getWallColor(vec3 point) {
   vec3 wallColor;
   vec3 normal;
   vec2 uv;
-  
+
   // 1. Get physical normal and tile UV map values
   getRoundedBoxNormalAndUV(point, cornerRadius, normal, uv);
   wallColor = texture2D(tiles, uv).rgb;
@@ -331,18 +331,27 @@ vec3 getWallColor(vec3 point) {
   // 3. Compute refracted light vector inside pool
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(refractedLight, normal));
-  
+
   // Sample local water displacement height
   vec4 info = texture2D(water, point.xz * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5);
-  
+
   if (point.y < info.r) {
     // Under-water: project along refracted light ray and lookup precomputed caustic texture
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5);
+    vec4 caustic = texture2D(
+      causticTex,
+      0.75 *
+        (point.xz - point.y * refractedLight.xz / refractedLight.y) *
+        vec2(0.5 / poolWidth, 0.5 / poolLength) +
+        0.5
+    );
     scale += diffuse * caustic.r * 2.0 * caustic.g;
   } else {
     // Above-water: trace soft shadow edges near the boundary surface
     vec2 t = intersectRoundedBox(point, refractedLight, cornerRadius);
-    diffuse *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
+    diffuse *=
+      1.0 /
+      (1.0 +
+        exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
     scale += diffuse * 0.5;
   }
   return wallColor * scale;
@@ -350,7 +359,7 @@ vec3 getWallColor(vec3 point) {
 
 void main() {
   gl_FragColor = vec4(getWallColor(vPosition), 1.0);
-  
+
   // Apply underwater blue-green color absorption tinting
   vec4 info = texture2D(water, vPosition.xz * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5);
   if (vPosition.y < info.r) {

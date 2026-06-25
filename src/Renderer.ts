@@ -3,9 +3,7 @@ import type { Water } from './Water'
 import { CausticsPass } from './rendering/CausticsPass'
 import { ObjectTexturePass } from './rendering/ObjectTexturePass'
 import { PoolPass } from './rendering/PoolPass'
-import type {
-  SimulationObjectRenderResources,
-} from './rendering/SimulationObjectRendering'
+import type { SimulationObjectRenderResources } from './rendering/SimulationObjectRendering'
 import { WaterSurfacePass } from './rendering/WaterSurfacePass'
 import { WaterOpticsState } from './rendering/WaterOpticsState'
 import type { WaterOpticsDescriptor } from './water/WaterOptics'
@@ -37,21 +35,25 @@ export class Renderer {
   ) {
     this.opticsState = new WaterOpticsState()
     this.lightDir = this.opticsState.lightDirection
-    
+
     // 1. Instantiate render targets for reflections/refractions/shadow maps
     this.objectTextures = new ObjectTexturePass(renderer, this.lightDir)
-    
+
     // 2. Instantiate caustics generation pass
-    this.caustics = new CausticsPass(renderer, this.opticsState, this.objectTextures.shadowTarget.texture)
-    
+    this.caustics = new CausticsPass(
+      renderer,
+      this.opticsState,
+      this.objectTextures.shadowTarget.texture
+    )
+
     this.objectRenderResources = {
       lightDirection: this.lightDir,
       causticTexture: this.caustics.texture,
     }
-    
+
     // 3. Instantiate pool interior rendering pass
     this.pool = new PoolPass(tileTexture, this.caustics.texture, this.opticsState)
-    
+
     // 4. Instantiate water surface boundary mesh pass
     this.waterSurface = new WaterSurfacePass(
       tileTexture,
@@ -88,11 +90,7 @@ export class Renderer {
     renderableObject: THREE.Object3D | null
   ) {
     const needsObjectTextures = this.opticsState.torusKnotEnabled || this.opticsState.meshEnabled
-    this.objectTextures.update(
-      scene,
-      camera,
-      needsObjectTextures ? renderableObject : null
-    )
+    this.objectTextures.update(scene, camera, needsObjectTextures ? renderableObject : null)
   }
 
   /**
@@ -123,7 +121,13 @@ export class Renderer {
    * Propagates new pool geometry dimensions (width, height, length) and corner radius settings
    * to all respective rendering passes.
    */
-  setPoolShape(shape: string, cornerRadius: number, poolWidth: number, poolHeight: number, poolLength: number) {
+  setPoolShape(
+    shape: string,
+    cornerRadius: number,
+    poolWidth: number,
+    poolHeight: number,
+    poolLength: number
+  ) {
     this.pool.setPoolShape(shape, cornerRadius, poolWidth, poolHeight, poolLength)
     this.caustics.setPoolShape(shape, cornerRadius, poolWidth, poolHeight, poolLength)
     this.waterSurface.setPoolShape(shape, cornerRadius, poolWidth, poolHeight, poolLength)

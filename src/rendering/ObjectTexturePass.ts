@@ -66,7 +66,7 @@ export class ObjectTexturePass {
 
   /**
    * Constructs the ObjectTexturePass.
-   * 
+   *
    * @param renderer The active WebGLRenderer.
    * @param lightDirection Normalized direction pointing to the light source.
    */
@@ -109,7 +109,7 @@ export class ObjectTexturePass {
 
   /**
    * Configures the pool boundaries on the shadow shader to properly bound the projected shadows.
-   * 
+   *
    * @param poolWidth Half-width of the pool.
    * @param poolLength Half-length of the pool.
    */
@@ -121,7 +121,7 @@ export class ObjectTexturePass {
   /**
    * Updates resolution sizes of the reflection, clipped reflection, and refraction render targets.
    * Scales rendering size dynamically to fit within a 1024 max dimension.
-   * 
+   *
    * @param width Screen width.
    * @param height Screen height.
    */
@@ -144,12 +144,16 @@ export class ObjectTexturePass {
   /**
    * Main entry point to update all targets (reflection, refraction, clipped reflection, shadow)
    * for the given renderableObject inside the Scene.
-   * 
+   *
    * @param scene The global scene instance.
    * @param camera The user/rendering camera.
    * @param renderableObject The specific object (e.g. sphere, box) to render passes for.
    */
-  update(scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderableObject: THREE.Object3D | null) {
+  update(
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera,
+    renderableObject: THREE.Object3D | null
+  ) {
     this.updateViewProjection(camera)
 
     if (!renderableObject) {
@@ -190,7 +194,7 @@ export class ObjectTexturePass {
 
   /**
    * Helper to recalculate viewProjectionMatrix from the current main camera.
-   * 
+   *
    * @param camera The active rendering perspective camera.
    */
   private updateViewProjection(camera: THREE.PerspectiveCamera) {
@@ -200,7 +204,7 @@ export class ObjectTexturePass {
 
   /**
    * Renders the underwater refraction texture.
-   * 
+   *
    * @param scene The global scene.
    * @param camera The perspective camera.
    * @param materials Collected materials of the active object.
@@ -218,7 +222,7 @@ export class ObjectTexturePass {
 
   /**
    * Renders the reflection texture by mirroring the camera below the water surface level.
-   * 
+   *
    * @param scene The global scene.
    * @param camera The perspective camera.
    * @param materials Collected materials of the active object.
@@ -254,7 +258,7 @@ export class ObjectTexturePass {
 
   /**
    * Renders the reflection texture clipped at the water boundary plane.
-   * 
+   *
    * @param scene The global scene.
    * @param materials Collected materials of the active object.
    */
@@ -267,7 +271,7 @@ export class ObjectTexturePass {
 
   /**
    * Renders the orthographic shadows of the object.
-   * 
+   *
    * @param scene The global scene.
    */
   private renderShadow(scene: THREE.Scene) {
@@ -284,7 +288,7 @@ export class ObjectTexturePass {
 
   /**
    * Clears a single WebGLRenderTarget.
-   * 
+   *
    * @param target Render target to clear.
    */
   private clearTarget(target: THREE.WebGLRenderTarget) {
@@ -295,7 +299,7 @@ export class ObjectTexturePass {
   /**
    * Helper function to execute rendering callbacks with a transparent black clear color,
    * restoring the original clear configuration afterwards.
-   * 
+   *
    * @param render Callback function containing rendering operations.
    */
   private withTransparentClear(render: () => void) {
@@ -312,7 +316,7 @@ export class ObjectTexturePass {
   /**
    * Temporarily toggles visibility of all objects in the scene off except the target object
    * to render it in isolation.
-   * 
+   *
    * @param scene The global scene.
    * @param renderableObject The object to keep visible.
    * @param render Callback function containing rendering operations.
@@ -340,7 +344,7 @@ export class ObjectTexturePass {
 
   /**
    * Recursively checks if an object is or is a descendant of a specific root object.
-   * 
+   *
    * @param object The object to check.
    * @param root The root object to compare against.
    * @returns True if object is a descendant or is the root, false otherwise.
@@ -354,7 +358,7 @@ export class ObjectTexturePass {
 
   /**
    * Helper to set uniform texturePassMode on all object materials to tell the shaders how to render them.
-   * 
+   *
    * @param materials The list of materials.
    * @param mode The texture pass mode code.
    */
@@ -369,7 +373,7 @@ export class ObjectTexturePass {
 
   /**
    * Helper to collect all ShaderMaterial instances within a given Object3D's hierarchy.
-   * 
+   *
    * @param object The root object to traverse.
    * @returns Array of collected ShaderMaterials.
    */
@@ -383,4 +387,3 @@ export class ObjectTexturePass {
     return materials
   }
 }
-

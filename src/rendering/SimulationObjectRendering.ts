@@ -16,4 +16,3 @@ export interface SimulationObjectRenderResources {
   /** The generated caustic texture representing light focused through the moving water surface. */
   causticTexture: THREE.Texture
 }
-

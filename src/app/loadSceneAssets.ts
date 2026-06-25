@@ -7,11 +7,11 @@ export interface SceneAssets {
 
 /**
  * Asynchronously loads static textures and skybox cubemaps required to render the scene.
- * 
+ *
  * 1. Repeating Tile Texture:
  *    Loads tiles.jpg, wrapping it horizontally/vertically with bilinear mipmap filtering
  *    to yield high-quality surface lookups at different viewing distances.
- * 
+ *
  * 2. Skybox Cubemap:
  *    Loads 6 directional faces. Configures axis mapping, disables mipmaps (since reflections
  *    require sharp boundaries), and flips the vertical mapping direction for camera reflection parity.

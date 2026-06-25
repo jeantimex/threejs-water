@@ -50,4 +50,3 @@ export type WaterOpticsDescriptor =
  * Constant representing a null or empty water optics configuration.
  */
 export const NO_WATER_OPTICS: WaterOpticsDescriptor = { kind: 'none' }
-

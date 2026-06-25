@@ -11,12 +11,12 @@ precision highp float;
  * the submerged volume of the sphere at each (X, Z) column position.
  */
 
-uniform sampler2D tInput;         // Current water simulation state texture
-uniform vec3 oldCenter;           // Sphere center position in previous frame
-uniform vec3 newCenter;           // Sphere center position in current frame
-uniform float radius;             // Sphere radius
-uniform float displacementScale;  // Multiplier for displacement strength
-varying vec2 coord;               // Texture coordinate for this pixel
+uniform sampler2D tInput; // Current water simulation state texture
+uniform vec3 oldCenter; // Sphere center position in previous frame
+uniform vec3 newCenter; // Sphere center position in current frame
+uniform float radius; // Sphere radius
+uniform float displacementScale; // Multiplier for displacement strength
+varying vec2 coord; // Texture coordinate for this pixel
 
 /**
  * Computes an approximation of the submerged "column volume" of the sphere

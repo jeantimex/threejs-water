@@ -46,9 +46,9 @@ uniform float poolHeight;
 uniform float poolLength;
 
 // From vertex shader
-varying vec3 oldPos;   // Flat water projection point
-varying vec3 newPos;   // Wavy water projection point
-varying vec3 ray;      // Refracted ray direction
+varying vec3 oldPos; // Flat water projection point
+varying vec3 newPos; // Wavy water projection point
+varying vec3 ray; // Refracted ray direction
 
 /**
  * Solves 2D intersections of a ray with a rounded rectangle layout on the horizontal XZ plane.
@@ -57,7 +57,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   float tNear = 1e6;
   float tFar = -1e6;
   bool found = false;
-  
+
   float r_sub_x = poolWidth - R;
   float r_sub_z = poolLength - R;
   float eps = 1.0e-3;
@@ -122,25 +122,25 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
         float sqrtDisc = sqrt(disc);
         float tA = (-b - sqrtDisc) / (2.0 * a);
         float tB = (-b + sqrtDisc) / (2.0 * a);
-        
+
         vec2 ptA = origin + tA * ray;
         bool validA = false;
-        if (i == 0) validA = (ptA.x >= r_sub_x - eps && ptA.y >= r_sub_z - eps);
-        else if (i == 1) validA = (ptA.x <= -r_sub_x + eps && ptA.y >= r_sub_z - eps);
-        else if (i == 2) validA = (ptA.x <= -r_sub_x + eps && ptA.y <= -r_sub_z + eps);
-        else if (i == 3) validA = (ptA.x >= r_sub_x - eps && ptA.y <= -r_sub_z + eps);
+        if (i == 0) validA = ptA.x >= r_sub_x - eps && ptA.y >= r_sub_z - eps;
+        else if (i == 1) validA = ptA.x <= -r_sub_x + eps && ptA.y >= r_sub_z - eps;
+        else if (i == 2) validA = ptA.x <= -r_sub_x + eps && ptA.y <= -r_sub_z + eps;
+        else if (i == 3) validA = ptA.x >= r_sub_x - eps && ptA.y <= -r_sub_z + eps;
         if (validA) {
           tNear = min(tNear, tA);
           tFar = max(tFar, tA);
           found = true;
         }
-        
+
         vec2 ptB = origin + tB * ray;
         bool validB = false;
-        if (i == 0) validB = (ptB.x >= r_sub_x - eps && ptB.y >= r_sub_z - eps);
-        else if (i == 1) validB = (ptB.x <= -r_sub_x + eps && ptB.y >= r_sub_z - eps);
-        else if (i == 2) validB = (ptB.x <= -r_sub_x + eps && ptB.y <= -r_sub_z + eps);
-        else if (i == 3) validB = (ptB.x >= r_sub_x - eps && ptB.y <= -r_sub_z + eps);
+        if (i == 0) validB = ptB.x >= r_sub_x - eps && ptB.y >= r_sub_z - eps;
+        else if (i == 1) validB = ptB.x <= -r_sub_x + eps && ptB.y >= r_sub_z - eps;
+        else if (i == 2) validB = ptB.x <= -r_sub_x + eps && ptB.y <= -r_sub_z + eps;
+        else if (i == 3) validB = ptB.x >= r_sub_x - eps && ptB.y <= -r_sub_z + eps;
         if (validB) {
           tNear = min(tNear, tB);
           tFar = max(tFar, tB);
@@ -153,7 +153,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   if (!found) {
     return vec2(-1e6, 1e6);
   }
-  
+
   return vec2(tNear, tFar);
 }
 
@@ -193,12 +193,7 @@ vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
  * Checks if a shadow ray intersects the cube obstacle.
  */
 float cubeOcclusion(vec3 origin, vec3 direction) {
-  vec2 hit = intersectCube(
-    origin,
-    direction,
-    cubeCenter - cubeHalfSize,
-    cubeCenter + cubeHalfSize
-  );
+  vec2 hit = intersectCube(origin, direction, cubeCenter - cubeHalfSize, cubeCenter + cubeHalfSize);
   return step(0.0, hit.y) * step(hit.x, hit.y);
 }
 
@@ -210,7 +205,7 @@ float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
   float a = dot(ray, ray);
   float b = 2.0 * dot(toSphere, ray);
   float c = dot(toSphere, toSphere) - radius * radius;
-  float discriminant = b*b - 4.0*a*c;
+  float discriminant = b * b - 4.0 * a * c;
   if (discriminant > 0.0) {
     float t = (-b - sqrt(discriminant)) / (2.0 * a);
     if (t > 0.0) return t;
@@ -226,7 +221,7 @@ float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
   float a = dot(ray, ray);
   float b = 2.0 * dot(toSphere, ray);
   float c = dot(toSphere, toSphere) - radius * radius;
-  float discriminant = b*b - 4.0*a*c;
+  float discriminant = b * b - 4.0 * a * c;
   if (discriminant > 0.0) {
     float root = sqrt(discriminant);
     float near = (-b - root) / (2.0 * a);
@@ -252,10 +247,10 @@ float sdTorusKnot(vec3 p, vec3 center) {
   const float tube = 0.045;
   const float p_knot = 2.0;
   const float q_knot = 3.0;
-  
+
   vec3 prevPt = vec3(0.0);
   for (int i = 0; i <= segments; i++) {
-    float theta = (float(i) / float(segments)) * 6.283185307179586;
+    float theta = float(i) / float(segments) * 6.283185307179586;
     float rad = radius * (2.0 + cos(q_knot * theta)) * 0.5;
     vec3 pt = vec3(
       rad * cos(p_knot * theta),
@@ -280,7 +275,7 @@ float sdTorusKnot(vec3 p, vec3 center) {
 float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
   float t_bound = intersectSphereBounds(origin, ray, center, 0.31);
   if (t_bound > 1.0e5) return 1.0e6;
-  
+
   float t = t_bound;
   for (int i = 0; i < 30; i++) {
     vec3 p = origin + ray * t;
@@ -299,7 +294,9 @@ float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
  */
 float torusKnotOcclusion(vec3 origin, vec3 direction) {
   float hit = intersectTorusKnot(origin, direction, torusKnotCenter);
-  return hit < 1.0e5 ? 1.0 : 0.0;
+  return hit < 1.0e5
+    ? 1.0
+    : 0.0;
 }
 
 void main() {
@@ -308,7 +305,7 @@ void main() {
   // When rays converge, newArea becomes smaller than oldArea, focusing light and creating caustics.
   float oldArea = length(dFdx(oldPos)) * length(dFdy(oldPos));
   float newArea = length(dFdx(newPos)) * length(dFdy(newPos));
-  
+
   // Store the focusing ratio in the red channel (scaled by 0.2)
   gl_FragColor = vec4(oldArea / newArea * 0.2, 1.0, 0.0, 0.0);
 
@@ -335,16 +332,18 @@ void main() {
 
     for (int x = -1; x <= 1; x++) {
       for (int y = -1; y <= 1; y++) {
-        vec3 sampleOrigin = newPos
-          + right * float(x) * spread
-          + up * float(y) * spread;
+        vec3 sampleOrigin = newPos + right * float(x) * spread + up * float(y) * spread;
         occlusion += cubeOcclusion(sampleOrigin, shadowRay);
       }
     }
     gl_FragColor.g = 1.0 - occlusion / 9.0;
   } else if (torusKnotEnabled || meshEnabled) {
     // PCF (Percentage Closer Filtering) 3x3 shadow sampling for the custom mesh/Torus Knot
-    vec2 shadowUV = 0.75 * (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5;
+    vec2 shadowUV =
+      0.75 *
+        (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) *
+        vec2(0.5 / poolWidth, 0.5 / poolLength) +
+      0.5;
     const float d = 4.0 / 1024.0;
     float occlusion = texture2D(objectShadowTex, shadowUV).r;
     occlusion += texture2D(objectShadowTex, shadowUV + vec2(d, 0.0)).r;
@@ -362,5 +361,8 @@ void main() {
 
   // 3. Attenuate caustics near the pool edges using shadow boundaries check
   vec2 t = intersectRoundedBox(newPos, -refractedLight, cornerRadius);
-  gl_FragColor.r *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (newPos.y - refractedLight.y * t.y - 2.0 / 12.0)));
+  gl_FragColor.r *=
+    1.0 /
+    (1.0 +
+      exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (newPos.y - refractedLight.y * t.y - 2.0 / 12.0)));
 }

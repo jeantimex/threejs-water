@@ -53,18 +53,18 @@ export interface SimulationObject {
    * If enabled, starts drawing the mesh and dispatches entrance waves to the water grid.
    */
   setEnabled(enabled: boolean, water: Water): void
-  
+
   /**
    * Force syncs the tracking of previous position coordinates.
    * Prevents large instant velocity calculations when resetting or moving layouts.
    */
   syncPreviousPosition(): void
-  
+
   /**
    * Runs physical integration (gravity, buoyancy, floor collisions) and clamps positions to pool bounds.
    */
   update(seconds: number, context: ObjectUpdateContext, water: Water): void
-  
+
   /**
    * Performs a ray-cast intersection test against the object's geometry.
    * Used for user cursor drag interactions.
@@ -72,12 +72,12 @@ export interface SimulationObject {
    * @returns The hit coordinate point in 3D space, or null if no intersection occurs.
    */
   hitTest(origin: THREE.Vector3, direction: THREE.Vector3): THREE.Vector3 | null
-  
+
   /**
    * Translates the object by a spatial offset vector and keeps it strictly inside pool boundaries.
    */
   moveBy(delta: THREE.Vector3, poolWidth?: number, poolHeight?: number, poolLength?: number): void
-  
+
   /**
    * Binds uniforms (light vectors, caustic textures) to the object's material ahead of the render pass.
    */

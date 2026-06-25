@@ -12,10 +12,10 @@
 uniform sampler2D water;
 
 // Pool dimensions for coordinate scaling
-uniform float poolWidth;   // Half-width (X scale)
-uniform float poolLength;  // Half-length (Z scale)
+uniform float poolWidth; // Half-width (X scale)
+uniform float poolLength; // Half-length (Z scale)
 
-varying vec3 vPosition;  // World position for fragment shader
+varying vec3 vPosition; // World position for fragment shader
 
 void main() {
   // Sample wave height at this vertex's UV position

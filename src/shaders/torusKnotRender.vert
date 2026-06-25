@@ -9,8 +9,8 @@
  * the torus knot uses the model matrix for transformation.
  */
 
-varying vec3 vPosition;  // World position for fragment shader
-varying vec3 vNormal;    // Surface normal for lighting
+varying vec3 vPosition; // World position for fragment shader
+varying vec3 vNormal; // Surface normal for lighting
 
 void main() {
   // Transform vertex to world space using model matrix

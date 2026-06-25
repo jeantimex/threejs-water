@@ -52,33 +52,34 @@ float volumeInCube(vec3 center) {
   vec3 point = vec3(coord.x * 2.0 - 1.0, 0.0, coord.y * 2.0 - 1.0);
 
   /**
-   * BOX SDF COMPUTATION
-   *
-   * Vector from box surface to query point:
-   *   q = |p - center| - halfSize
-   *
-   * For each axis:
-   *   q.i > 0: point is outside box in this dimension (distance = q.i)
-   *   q.i < 0: point is inside box in this dimension (penetration = -q.i)
-   *   q.i = 0: point is exactly on the box face
-   */
+ * * BOX SDF COMPUTATION
+ *    *
+ *    * Vector from box surface to query point:
+ *    *   q = |p - center| - halfSize
+ *    *
+ *    * For each axis:
+ *    *   q.i > 0: point is outside box in this dimension (distance = q.i)
+ *    *   q.i < 0: point is inside box in this dimension (penetration = -q.i)
+ *    *   q.i = 0: point is exactly on the box face
+ */
   vec3 distanceToBox = abs(point - center) - halfSize;
 
   /**
-   * SIGNED DISTANCE CALCULATION
-   *
-   * Case 1: Point outside box (at least one q.i > 0)
-   *   Distance = Euclidean distance to nearest corner/edge/face
-   *   = length(max(q, 0))
-   *
-   * Case 2: Point inside box (all q.i < 0)
-   *   Distance = negative of smallest penetration (closest face)
-   *   = min(max(q.x, q.y, q.z), 0)  [returns negative value]
-   *
-   * Combined formula covers both cases:
-   */
-  float signedDistance = length(max(distanceToBox, 0.0))                           // Outside: distance to surface
-    + min(max(distanceToBox.x, max(distanceToBox.y, distanceToBox.z)), 0.0);       // Inside: negative penetration
+ * * SIGNED DISTANCE CALCULATION
+ *    *
+ *    * Case 1: Point outside box (at least one q.i > 0)
+ *    *   Distance = Euclidean distance to nearest corner/edge/face
+ *    *   = length(max(q, 0))
+ *    *
+ *    * Case 2: Point inside box (all q.i < 0)
+ *    *   Distance = negative of smallest penetration (closest face)
+ *    *   = min(max(q.x, q.y, q.z), 0)  [returns negative value]
+ *    *
+ *    * Combined formula covers both cases:
+ */
+  float signedDistance =
+    length(max(distanceToBox, 0.0)) + // Outside: distance to surface
+    min(max(distanceToBox.x, max(distanceToBox.y, distanceToBox.z)), 0.0); // Inside: negative penetration
 
   // Normalize distance by largest box dimension for consistent falloff behavior
   float scale = max(max(halfSize.x, halfSize.y), halfSize.z);
@@ -87,14 +88,14 @@ float volumeInCube(vec3 center) {
   float t = max(signedDistance, 0.0) / scale;
 
   /**
-   * SMOOTH FALLOFF PROFILE
-   *
-   * Like the sphere shader, we use a super-Gaussian falloff to create
-   * smooth wave profiles without sharp discontinuities at box edges.
-   *
-   * exp(-(1.5*t)^6) is nearly 1 inside and on the box surface (t ≈ 0),
-   * and drops quickly to 0 as we move away from the box.
-   */
+ * * SMOOTH FALLOFF PROFILE
+ *    *
+ *    * Like the sphere shader, we use a super-Gaussian falloff to create
+ *    * smooth wave profiles without sharp discontinuities at box edges.
+ *    *
+ *    * exp(-(1.5*t)^6) is nearly 1 inside and on the box surface (t ≈ 0),
+ *    * and drops quickly to 0 as we move away from the box.
+ */
   float dy = exp(-pow(t * 1.5, 6.0));
 
   // Compute intersection of box column with underwater region (Y ≤ 0)
@@ -107,12 +108,12 @@ float volumeInCube(vec3 center) {
 
 void main() {
   vec4 info = texture2D(tInput, coord);
-  
+
   // Add water height where the cube was (water flows back in)
   info.r += volumeInCube(oldCenter);
-  
+
   // Subtract water height where the cube is moving to (cube displaces water)
   info.r -= volumeInCube(newCenter);
-  
+
   gl_FragColor = info;
 }

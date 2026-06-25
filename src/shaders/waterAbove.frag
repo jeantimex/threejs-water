@@ -14,15 +14,15 @@ precision highp float;
  */
 
 // Index of Refraction constants
-const float IOR_AIR = 1.0;     // n₁: air (approximately vacuum)
+const float IOR_AIR = 1.0; // n₁: air (approximately vacuum)
 const float IOR_WATER = 1.333; // n₂: water at 20°C for visible light
 
 // Water tinting colors for light absorption simulation (Beer's Law approximation)
-const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);  // Tint when looking down into water
-const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);    // Tint when looking up from underwater
+const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25); // Tint when looking down into water
+const vec3 underwaterColor = vec3(0.4, 0.9, 1.0); // Tint when looking up from underwater
 
-const float poolHeight = 1.0;           // Pool depth below rest water level
-const float torusKnotShadowRadius = 0.13;  // Shadow falloff radius for torus knot
+const float poolHeight = 1.0; // Pool depth below rest water level
+const float torusKnotShadowRadius = 0.13; // Shadow falloff radius for torus knot
 
 uniform vec3 light;
 uniform vec3 sphereCenter;
@@ -82,17 +82,17 @@ vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {
  * We use -b - √... to get the nearest intersection (smallest positive t).
  */
 float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
-  vec3 toSphere = origin - center;  // Vector from sphere center to ray origin
-  float a = dot(ray, ray);          // ||D||² (= 1 if ray is normalized)
+  vec3 toSphere = origin - center; // Vector from sphere center to ray origin
+  float a = dot(ray, ray); // ||D||² (= 1 if ray is normalized)
   float b = 2.0 * dot(toSphere, ray);
   float c = dot(toSphere, toSphere) - radius * radius;
-  float discriminant = b*b - 4.0*a*c;
+  float discriminant = b * b - 4.0 * a * c;
 
   if (discriminant > 0.0) {
-    float t = (-b - sqrt(discriminant)) / (2.0 * a);  // Nearest intersection
-    if (t > 0.0) return t;  // Only valid if in front of ray origin
+    float t = (-b - sqrt(discriminant)) / (2.0 * a); // Nearest intersection
+    if (t > 0.0) return t; // Only valid if in front of ray origin
   }
-  return 1.0e6;  // No valid intersection
+  return 1.0e6; // No valid intersection
 }
 
 /**
@@ -103,7 +103,7 @@ float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
   float a = dot(ray, ray);
   float b = 2.0 * dot(toSphere, ray);
   float c = dot(toSphere, toSphere) - radius * radius;
-  float discriminant = b*b - 4.0*a*c;
+  float discriminant = b * b - 4.0 * a * c;
   if (discriminant > 0.0) {
     float root = sqrt(discriminant);
     float near = (-b - root) / (2.0 * a);
@@ -137,16 +137,16 @@ float sdTorusKnot(vec3 p, vec3 center) {
   }
 
   float minDist = 1.0e6;
-  const int segments = 64;      // Curve discretization resolution
-  const float radius = 0.17;    // Major radius of the torus
-  const float tube = 0.045;     // Tube thickness
-  const float p_knot = 2.0;     // Winds through hole p times
-  const float q_knot = 3.0;     // Winds around torus q times
+  const int segments = 64; // Curve discretization resolution
+  const float radius = 0.17; // Major radius of the torus
+  const float tube = 0.045; // Tube thickness
+  const float p_knot = 2.0; // Winds through hole p times
+  const float q_knot = 3.0; // Winds around torus q times
 
   vec3 prevPt = vec3(0.0);
   for (int i = 0; i <= segments; i++) {
     // Parametric angle along the knot curve
-    float theta = (float(i) / float(segments)) * 6.283185307179586;
+    float theta = float(i) / float(segments) * 6.283185307179586;
 
     // Torus knot parametric equations (creates the trefoil shape)
     float rad = radius * (2.0 + cos(q_knot * theta)) * 0.5;
@@ -158,7 +158,7 @@ float sdTorusKnot(vec3 p, vec3 center) {
 
     if (i > 0) {
       // Point-to-segment distance formula
-      vec3 ba = pt - prevPt;  // Segment direction
+      vec3 ba = pt - prevPt; // Segment direction
       vec3 pa = pos - prevPt; // Vector to query point
       float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); // Projection parameter
       float d = length(pa - ba * h); // Distance to closest point on segment
@@ -166,7 +166,7 @@ float sdTorusKnot(vec3 p, vec3 center) {
     }
     prevPt = pt;
   }
-  return minDist - tube;  // Offset by tube radius for solid shape
+  return minDist - tube; // Offset by tube radius for solid shape
 }
 
 /**
@@ -175,7 +175,7 @@ float sdTorusKnot(vec3 p, vec3 center) {
 float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
   float t_bound = intersectSphereBounds(origin, ray, center, 0.31);
   if (t_bound > 1.0e5) return 1.0e6;
-  
+
   float t = t_bound;
   for (int i = 0; i < 30; i++) {
     vec3 p = origin + ray * t;
@@ -205,7 +205,7 @@ float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
  * @return Normalized outward-facing surface normal
  */
 vec3 getTorusKnotNormal(vec3 p, vec3 center) {
-  const float eps = 0.001;  // Small offset for finite difference
+  const float eps = 0.001; // Small offset for finite difference
 
   // Central differences: f'(x) ≈ (f(x+h) - f(x-h)) / 2h
   // Note: The 2h factor cancels out after normalization
@@ -226,23 +226,23 @@ vec3 getTorusKnotNormal(vec3 p, vec3 center) {
  * 3. Caustic light patterns when underwater
  */
 vec3 getSphereColor(vec3 point) {
-  vec3 color = vec3(0.5);  // Base gray color
+  vec3 color = vec3(0.5); // Base gray color
 
   /**
-   * PROXIMITY AMBIENT OCCLUSION
-   *
-   * Darkens the sphere near pool walls and floor to simulate soft shadows
-   * and reduced ambient light in corners. Uses an inverse power falloff:
-   *
-   *   occlusion = 1 - 0.9 / (distance/radius)³
-   *
-   * When distance ≈ radius: occlusion ≈ 1 - 0.9 = 0.1 (very dark)
-   * When distance >> radius: occlusion → 1 (full brightness)
-   *
-   * Distances measured from walls (X=±1), back wall (Z=±1), and floor (Y=-poolHeight)
-   */
-  color *= 1.0 - 0.9 / pow((1.0 + sphereRadius - abs(point.x)) / sphereRadius, 3.0);  // Side walls
-  color *= 1.0 - 0.9 / pow((1.0 + sphereRadius - abs(point.z)) / sphereRadius, 3.0);  // Front/back walls
+ * * PROXIMITY AMBIENT OCCLUSION
+ *    *
+ *    * Darkens the sphere near pool walls and floor to simulate soft shadows
+ *    * and reduced ambient light in corners. Uses an inverse power falloff:
+ *    *
+ *    *   occlusion = 1 - 0.9 / (distance/radius)³
+ *    *
+ *    * When distance ≈ radius: occlusion ≈ 1 - 0.9 = 0.1 (very dark)
+ *    * When distance >> radius: occlusion → 1 (full brightness)
+ *    *
+ *    * Distances measured from walls (X=±1), back wall (Z=±1), and floor (Y=-poolHeight)
+ */
+  color *= 1.0 - 0.9 / pow((1.0 + sphereRadius - abs(point.x)) / sphereRadius, 3.0); // Side walls
+  color *= 1.0 - 0.9 / pow((1.0 + sphereRadius - abs(point.z)) / sphereRadius, 3.0); // Front/back walls
   color *= 1.0 - 0.9 / pow((point.y + poolHeight + sphereRadius) / sphereRadius, 3.0); // Floor
 
   // Compute sphere surface normal (for a sphere, it's simply the normalized radial direction)
@@ -256,10 +256,14 @@ vec3 getSphereColor(vec3 point) {
 
   // Apply caustic lighting if the point is underwater
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
-  if (point.y < info.r) {  // Below the water surface height
+  if (point.y < info.r) {
+    // Below the water surface height
     // Sample caustics at the projected position (accounting for light slant)
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
-    diffuse *= caustic.r * 4.0;  // Amplify diffuse by caustic intensity
+    vec4 caustic = texture2D(
+      causticTex,
+      0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5
+    );
+    diffuse *= caustic.r * 4.0; // Amplify diffuse by caustic intensity
   }
 
   color += diffuse;
@@ -286,7 +290,10 @@ vec3 getCubeColor(vec3 point) {
   float diffuse = max(0.0, dot(-refractedLight, cubeNormal)) * 0.5;
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    vec4 caustic = texture2D(
+      causticTex,
+      0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5
+    );
     diffuse = (diffuse + 0.06) * caustic.r * 4.0;
   }
   return color + diffuse;
@@ -302,7 +309,10 @@ vec3 getTorusKnotColor(vec3 point) {
   float diffuse = max(0.0, dot(-refractedLight, normal)) * 0.5;
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    vec4 caustic = texture2D(
+      causticTex,
+      0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5
+    );
     diffuse = (diffuse + 0.06) * caustic.r * 4.0;
   }
   return color + diffuse;
@@ -344,11 +354,22 @@ vec3 getWallColor(vec3 point) {
   float diffuse = max(0.0, dot(refractedLight, normal));
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    vec4 caustic = texture2D(
+      causticTex,
+      0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5
+    );
     scale += diffuse * caustic.r * 2.0 * caustic.g;
   } else {
-    vec2 t = intersectCube(point, refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-    diffuse *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
+    vec2 t = intersectCube(
+      point,
+      refractedLight,
+      vec3(-1.0, -poolHeight, -1.0),
+      vec3(1.0, 2.0, 1.0)
+    );
+    diffuse *=
+      1.0 /
+      (1.0 +
+        exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
     scale += diffuse * 0.5;
   }
   return wallColor * scale;
@@ -361,11 +382,8 @@ vec4 sampleProjectedTexture(sampler2D tex, mat4 matrix, vec3 point) {
   vec4 clip = matrix * vec4(point, 1.0);
   vec3 ndc = clip.xyz / max(clip.w, 1.0e-6);
   vec2 uv = ndc.xy * 0.5 + 0.5;
-  float inBounds = step(0.0, uv.x)
-    * step(0.0, uv.y)
-    * step(uv.x, 1.0)
-    * step(uv.y, 1.0)
-    * step(0.0, clip.w);
+  float inBounds =
+    step(0.0, uv.x) * step(0.0, uv.y) * step(uv.x, 1.0) * step(uv.y, 1.0) * step(0.0, clip.w);
   return texture2D(tex, clamp(uv, 0.0, 1.0)) * inBounds;
 }
 
@@ -375,11 +393,7 @@ vec4 sampleProjectedTexture(sampler2D tex, mat4 matrix, vec3 point) {
 vec4 sampleObjectRefraction(vec3 origin, vec3 ray, vec3 center, float radius) {
   float hit = intersectSphereBounds(origin, ray, center, radius);
   if (hit >= 1.0e6) return vec4(0.0);
-  return sampleProjectedTexture(
-    objectRefractionTex,
-    viewProjectionMatrix,
-    origin + ray * hit
-  );
+  return sampleProjectedTexture(objectRefractionTex, viewProjectionMatrix, origin + ray * hit);
 }
 
 /**
@@ -416,16 +430,31 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
 
   // Test intersections with all scene objects and find the nearest hit
-  float sphereDistance = sphereEnabled ? intersectSphere(origin, ray, sphereCenter, sphereRadius) : 1.0e6;
+  float sphereDistance = sphereEnabled
+    ? intersectSphere(origin, ray, sphereCenter, sphereRadius)
+    : 1.0e6;
 
-  vec2 cubeIntersection = intersectCube(origin, ray, cubeCenter - cubeHalfSize, cubeCenter + cubeHalfSize);
-  bool cubeHit = cubeEnabled && cubeIntersection.x <= cubeIntersection.y && cubeIntersection.y > 0.0;
+  vec2 cubeIntersection = intersectCube(
+    origin,
+    ray,
+    cubeCenter - cubeHalfSize,
+    cubeCenter + cubeHalfSize
+  );
+  bool cubeHit =
+    cubeEnabled && cubeIntersection.x <= cubeIntersection.y && cubeIntersection.y > 0.0;
   float cubeDistance = cubeHit
-    ? (cubeIntersection.x > 0.0 ? cubeIntersection.x : (cubeIntersection.y > 0.0 ? cubeIntersection.y : 1.0e6))
+    ? cubeIntersection.x > 0.0
+      ? cubeIntersection.x
+      : cubeIntersection.y > 0.0
+        ? cubeIntersection.y
+        : 1.0e6
     : 1.0e6;
 
   // Only trace torus knot for upward rays (performance optimization)
-  float torusKnotDistance = (torusKnotEnabled && ray.y > 0.0) ? intersectTorusKnot(origin, ray, torusKnotCenter) : 1.0e6;
+  float torusKnotDistance =
+    torusKnotEnabled && ray.y > 0.0
+      ? intersectTorusKnot(origin, ray, torusKnotCenter)
+      : 1.0e6;
 
   // Find nearest object intersection
   float objectDistance = min(min(sphereDistance, cubeDistance), torusKnotDistance);
@@ -459,27 +488,27 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
       color = textureCube(sky, ray).rgb;
 
       /**
-       * SUN SPOT (Specular Highlight)
-       *
-       * Add a bright spot where the ray direction aligns with the sun.
-       * Uses a high-power falloff (5000) for a small, intense highlight.
-       *
-       * Color (10, 8, 6) gives a warm yellow-white sun appearance.
-       */
+ * * SUN SPOT (Specular Highlight)
+ *        *
+ *        * Add a bright spot where the ray direction aligns with the sun.
+ *        * Uses a high-power falloff (5000) for a small, intense highlight.
+ *        *
+ *        * Color (10, 8, 6) gives a warm yellow-white sun appearance.
+ */
       color += vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);
     }
   }
 
   /**
-   * WATER COLOR ABSORPTION (Beer-Lambert Law Approximation)
-   *
-   * Light traveling through water is absorbed, with longer wavelengths
-   * (red) absorbed more than shorter ones (blue). This is why deep
-   * water appears blue-green.
-   *
-   * We simplify this by multiplying by a tint color for downward rays
-   * (longer path through water = more absorption).
-   */
+ * * WATER COLOR ABSORPTION (Beer-Lambert Law Approximation)
+ *    *
+ *    * Light traveling through water is absorbed, with longer wavelengths
+ *    * (red) absorbed more than shorter ones (blue). This is why deep
+ *    * water appears blue-green.
+ *    *
+ *    * We simplify this by multiplying by a tint color for downward rays
+ *    * (longer path through water = more absorption).
+ */
   if (ray.y < 0.0) color *= waterColor;
 
   return color;
@@ -487,80 +516,80 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
 
 void main() {
   /**
-   * STEP 1: COORDINATE MAPPING
-   * Convert world XZ position to UV texture coordinates [0,1]
-   * World space: X,Z ∈ [-1, 1] → UV: [0, 1]
-   */
+ * * STEP 1: COORDINATE MAPPING
+ *    * Convert world XZ position to UV texture coordinates [0,1]
+ *    * World space: X,Z ∈ [-1, 1] → UV: [0, 1]
+ */
   vec2 coord = vPosition.xz * 0.5 + 0.5;
   vec4 info = texture2D(water, coord);
 
   /**
-   * STEP 2: PARALLAX DISPLACEMENT (Iterative Refinement)
-   *
-   * Problem: The water surface is displaced vertically, but we're sampling
-   * from a fixed horizontal grid. A naive lookup would misalign the surface
-   * features with their actual 3D positions.
-   *
-   * Solution: Iteratively offset the UV lookup in the direction of the
-   * surface gradient (stored in BA channels). This approximates ray-heightmap
-   * intersection without expensive per-pixel raymarching.
-   *
-   * The gradient (info.ba) points toward higher water; we step along it
-   * to converge toward the correct sampling point.
-   */
+ * * STEP 2: PARALLAX DISPLACEMENT (Iterative Refinement)
+ *    *
+ *    * Problem: The water surface is displaced vertically, but we're sampling
+ *    * from a fixed horizontal grid. A naive lookup would misalign the surface
+ *    * features with their actual 3D positions.
+ *    *
+ *    * Solution: Iteratively offset the UV lookup in the direction of the
+ *    * surface gradient (stored in BA channels). This approximates ray-heightmap
+ *    * intersection without expensive per-pixel raymarching.
+ *    *
+ *    * The gradient (info.ba) points toward higher water; we step along it
+ *    * to converge toward the correct sampling point.
+ */
   for (int i = 0; i < 5; i++) {
-    coord += info.ba * 0.005;  // Small steps along gradient direction
-    info = texture2D(water, coord);  // Resample at new location
+    coord += info.ba * 0.005; // Small steps along gradient direction
+    info = texture2D(water, coord); // Resample at new location
   }
 
   /**
-   * STEP 3: NORMAL RECONSTRUCTION
-   *
-   * The water texture stores surface slope components:
-   *   info.b = ∂height/∂x (x-component of gradient)
-   *   info.a = ∂height/∂z (z-component of gradient)
-   *
-   * For a heightfield, the normal is N = normalize(-∂h/∂x, 1, -∂h/∂z)
-   * The y-component is computed from the unit normal constraint:
-   *   |N| = 1  →  Nx² + Ny² + Nz² = 1  →  Ny = sqrt(1 - Nx² - Nz²)
-   */
+ * * STEP 3: NORMAL RECONSTRUCTION
+ *    *
+ *    * The water texture stores surface slope components:
+ *    *   info.b = ∂height/∂x (x-component of gradient)
+ *    *   info.a = ∂height/∂z (z-component of gradient)
+ *    *
+ *    * For a heightfield, the normal is N = normalize(-∂h/∂x, 1, -∂h/∂z)
+ *    * The y-component is computed from the unit normal constraint:
+ *    *   |N| = 1  →  Nx² + Ny² + Nz² = 1  →  Ny = sqrt(1 - Nx² - Nz²)
+ */
   vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);
 
   // STEP 4: View ray from camera to this surface point
   vec3 incomingRay = normalize(vPosition - eye);
 
   /**
-   * STEP 5: REFLECTION AND REFRACTION RAYS
-   *
-   * reflect(I, N): R = I - 2*(I·N)*N
-   *   Mirrors the incident ray about the normal
-   *
-   * refract(I, N, eta): Snell's Law implementation
-   *   n₁ sin(θ₁) = n₂ sin(θ₂)
-   *   eta = n₁/n₂ = IOR_AIR/IOR_WATER ≈ 0.75
-   *   Returns the transmitted ray direction
-   */
+ * * STEP 5: REFLECTION AND REFRACTION RAYS
+ *    *
+ *    * reflect(I, N): R = I - 2*(I·N)*N
+ *    *   Mirrors the incident ray about the normal
+ *    *
+ *    * refract(I, N, eta): Snell's Law implementation
+ *    *   n₁ sin(θ₁) = n₂ sin(θ₂)
+ *    *   eta = n₁/n₂ = IOR_AIR/IOR_WATER ≈ 0.75
+ *    *   Returns the transmitted ray direction
+ */
   vec3 reflectedRay = reflect(incomingRay, normal);
   vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);
 
   /**
-   * STEP 6: FRESNEL REFLECTANCE (Schlick's Approximation)
-   *
-   * The Fresnel equations describe how much light reflects vs. refracts
-   * at an interface, depending on the incident angle and polarization.
-   *
-   * Schlick's approximation: F(θ) = F₀ + (1 - F₀)(1 - cos(θ))⁵
-   *
-   * Where:
-   *   F₀ = ((n₁ - n₂)/(n₁ + n₂))² ≈ 0.02 for air-water at normal incidence
-   *   θ = angle between view ray and surface normal
-   *
-   * Physical behavior:
-   *   - Looking straight down (θ ≈ 0°): mostly see refracted (underwater) image
-   *   - Looking at grazing angle (θ → 90°): mostly see reflected (sky) image
-   *
-   * We use a modified version with F₀ = 0.25 and power = 3 for artistic control.
-   */
+ * * STEP 6: FRESNEL REFLECTANCE (Schlick's Approximation)
+ *    *
+ *    * The Fresnel equations describe how much light reflects vs. refracts
+ *    * at an interface, depending on the incident angle and polarization.
+ *    *
+ *    * Schlick's approximation: F(θ) = F₀ + (1 - F₀)(1 - cos(θ))⁵
+ *    *
+ *    * Where:
+ *    *   F₀ = ((n₁ - n₂)/(n₁ + n₂))² ≈ 0.02 for air-water at normal incidence
+ *    *   θ = angle between view ray and surface normal
+ *    *
+ *    * Physical behavior:
+ *    *   - Looking straight down (θ ≈ 0°): mostly see refracted (underwater) image
+ *    *   - Looking at grazing angle (θ → 90°): mostly see reflected (sky) image
+ *    *
+ *    * We use a modified version with F₀ = 0.25 and power = 3 for artistic control.
+ */
   float fresnel = mix(0.25, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));
 
   // STEP 7: Ray trace to find colors for both reflected and refracted rays
@@ -574,7 +603,12 @@ void main() {
     vec4 reflectedObject = sampleObjectReflection(vPosition, reflectedRay, torusKnotCenter, 0.31);
     reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
   } else if (meshEnabled) {
-    vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, meshCenter, meshBoundingRadius);
+    vec4 refractedObject = sampleObjectRefraction(
+      vPosition,
+      refractedRay,
+      meshCenter,
+      meshBoundingRadius
+    );
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
     // Use clipped reflection texture to ensure parts below water are not rendered in reflection map
     vec4 reflectedObject = sampleProjectedTexture(

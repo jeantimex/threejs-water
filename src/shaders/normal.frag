@@ -32,56 +32,56 @@ void main() {
   vec4 info = texture2D(tInput, coord);
 
   /**
-   * TANGENT VECTOR COMPUTATION
-   *
-   * We compute tangent vectors using finite differences:
-   *
-   *   T_x ≈ S(x + Δx) - S(x) = (Δx, h(x+Δx) - h(x), 0)
-   *   T_z ≈ S(z + Δz) - S(z) = (0, h(z+Δz) - h(z), Δz)
-   *
-   * These approximate the partial derivative directions on the surface.
-   */
+ * * TANGENT VECTOR COMPUTATION
+ *    *
+ *    * We compute tangent vectors using finite differences:
+ *    *
+ *    *   T_x ≈ S(x + Δx) - S(x) = (Δx, h(x+Δx) - h(x), 0)
+ *    *   T_z ≈ S(z + Δz) - S(z) = (0, h(z+Δz) - h(z), Δz)
+ *    *
+ *    * These approximate the partial derivative directions on the surface.
+ */
 
   // Tangent in X direction: (Δx, Δheight_x, 0)
   // Points from current cell toward the right neighbor
   vec3 dx = vec3(
-    delta.x,                                                      // X component: grid spacing
+    delta.x, // X component: grid spacing
     texture2D(tInput, vec2(coord.x + delta.x, coord.y)).r - info.r, // Y component: height difference
-    0.0                                                           // Z component: no change in Z
+    0.0 // Z component: no change in Z
   );
 
   // Tangent in Z direction: (0, Δheight_z, Δz)
   // Points from current cell toward the top neighbor (Z mapped to texture Y)
   vec3 dy = vec3(
-    0.0,                                                          // X component: no change in X
+    0.0, // X component: no change in X
     texture2D(tInput, vec2(coord.x, coord.y + delta.y)).r - info.r, // Y component: height difference
-    delta.y                                                       // Z component: grid spacing
+    delta.y // Z component: grid spacing
   );
 
   /**
-   * CROSS PRODUCT FOR NORMAL
-   *
-   * N = T_z × T_x = dy × dx
-   *
-   * Cross product formula:
-   *   (a × b).x = a.y * b.z - a.z * b.y
-   *   (a × b).y = a.z * b.x - a.x * b.z
-   *   (a × b).z = a.x * b.y - a.y * b.x
-   *
-   * With our vectors:
-   *   dy = (0, Δh_z, Δz)
-   *   dx = (Δx, Δh_x, 0)
-   *
-   *   N.x = Δh_z * 0 - Δz * Δh_x = -Δz * Δh_x
-   *   N.y = Δz * Δx - 0 * 0 = Δz * Δx  (positive, pointing up)
-   *   N.z = 0 * Δh_x - Δh_z * Δx = -Δh_z * Δx
-   *
-   * The result points upward (N.y > 0) for a surface viewed from above.
-   *
-   * STORAGE OPTIMIZATION:
-   * We only store N.x and N.z in the BA channels. N.y can be reconstructed:
-   *   |N| = 1  →  N.y = sqrt(1 - N.x² - N.z²)
-   */
+ * * CROSS PRODUCT FOR NORMAL
+ *    *
+ *    * N = T_z × T_x = dy × dx
+ *    *
+ *    * Cross product formula:
+ *    *   (a × b).x = a.y * b.z - a.z * b.y
+ *    *   (a × b).y = a.z * b.x - a.x * b.z
+ *    *   (a × b).z = a.x * b.y - a.y * b.x
+ *    *
+ *    * With our vectors:
+ *    *   dy = (0, Δh_z, Δz)
+ *    *   dx = (Δx, Δh_x, 0)
+ *    *
+ *    *   N.x = Δh_z * 0 - Δz * Δh_x = -Δz * Δh_x
+ *    *   N.y = Δz * Δx - 0 * 0 = Δz * Δx  (positive, pointing up)
+ *    *   N.z = 0 * Δh_x - Δh_z * Δx = -Δh_z * Δx
+ *    *
+ *    * The result points upward (N.y > 0) for a surface viewed from above.
+ *    *
+ *    * STORAGE OPTIMIZATION:
+ *    * We only store N.x and N.z in the BA channels. N.y can be reconstructed:
+ *    *   |N| = 1  →  N.y = sqrt(1 - N.x² - N.z²)
+ */
   info.ba = normalize(cross(dy, dx)).xz;
 
   gl_FragColor = info;

@@ -47,7 +47,7 @@ export class WaterOpticsState {
   /**
    * Applies a WaterOpticsDescriptor to transition this state to represent the selected shape.
    * Disables all other shapes and updates the geometric variables for the active shape.
-   * 
+   *
    * @param optics The shape descriptor to apply.
    */
   apply(optics: WaterOpticsDescriptor) {
@@ -78,7 +78,7 @@ export class WaterOpticsState {
   /**
    * Creates an initial uniforms object structure with cloned values
    * to be passed during shader initialization.
-   * 
+   *
    * @returns An object containing WebGL-compatible uniform formats.
    */
   createUniforms() {
@@ -101,7 +101,7 @@ export class WaterOpticsState {
   /**
    * Synchronizes the current properties directly to an active ShaderMaterial's uniform values.
    * Only attempts to write fields if they exist in the target material.
-   * 
+   *
    * @param material The ShaderMaterial to sync state to.
    */
   syncUniforms(material: THREE.ShaderMaterial) {
@@ -131,4 +131,3 @@ export class WaterOpticsState {
     }
   }
 }
-

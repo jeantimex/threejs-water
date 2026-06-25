@@ -43,7 +43,7 @@ export class SimulationControls {
     poolHeight: 1.0,
     poolLength: 1.0,
   }
-  
+
   private readonly gravityController: Controller
   private readonly densityEnabledController: Controller
   private readonly densityController: Controller
@@ -68,19 +68,22 @@ export class SimulationControls {
     objectFolder.open()
 
     // Selector for different obstacles (None, Sphere, Cube, Duck, TorusKnot)
-    objectFolder.add(this.state, 'object', objectOptions)
+    objectFolder
+      .add(this.state, 'object', objectOptions)
       .name('Object')
       .onChange((name: string) => callbacks.onObjectChange(name))
 
     // Toggle gravity updates
-    this.gravityController = objectFolder.add(this.state, 'gravity')
+    this.gravityController = objectFolder
+      .add(this.state, 'gravity')
       .name('Toggle Gravity')
       .onChange((enabled: boolean) => {
         this.physicsEnabled = enabled
       })
 
     // Toggle custom density calculations
-    this.densityEnabledController = objectFolder.add(this.state, 'densityEnabled')
+    this.densityEnabledController = objectFolder
+      .add(this.state, 'densityEnabled')
       .name('Enable Density')
       .onChange((enabled: boolean) => {
         this.densityEnabled = enabled
@@ -88,7 +91,8 @@ export class SimulationControls {
       })
 
     // Slider for liquid density adjustments (buoyancy multiplier)
-    this.densityController = objectFolder.add(this.state, 'density', 0.2, 2.0, 0.01)
+    this.densityController = objectFolder
+      .add(this.state, 'density', 0.2, 2.0, 0.01)
       .name('Density')
       .onChange((density: number) => {
         this.density = density
@@ -98,7 +102,8 @@ export class SimulationControls {
     const sceneFolder = gui.addFolder('Scene')
     sceneFolder.open()
 
-    this.pausedController = sceneFolder.add(this.state, 'paused')
+    this.pausedController = sceneFolder
+      .add(this.state, 'paused')
       .name('Paused')
       .onChange((paused: boolean) => {
         this.paused = paused
@@ -110,7 +115,8 @@ export class SimulationControls {
     lightsFolder.open()
 
     // Toggle whether the sunlight direction tracks camera movement
-    lightsFolder.add(this.state, 'lightFollowsCamera')
+    lightsFolder
+      .add(this.state, 'lightFollowsCamera')
       .name('Follow Camera')
       .onChange((enabled: boolean) => {
         this.lightFollowsCamera = enabled
@@ -122,7 +128,8 @@ export class SimulationControls {
     poolFolder.open()
 
     // Pool Shape dropdown selector ('Box' or 'Rounded Box')
-    poolFolder.add(this.state, 'poolShape', ['Box', 'Rounded Box'])
+    poolFolder
+      .add(this.state, 'poolShape', ['Box', 'Rounded Box'])
       .name('Pool Shape')
       .onChange((shape: string) => {
         this.poolShape = shape
@@ -131,7 +138,8 @@ export class SimulationControls {
       })
 
     // Corner Radius slider (only used for Rounded Box)
-    this.cornerRadiusController = poolFolder.add(this.state, 'cornerRadius', 0.0, 1.0, 0.01)
+    this.cornerRadiusController = poolFolder
+      .add(this.state, 'cornerRadius', 0.0, 1.0, 0.01)
       .name('Corner Radius')
       .onChange((radius: number) => {
         this.cornerRadius = radius
@@ -139,7 +147,8 @@ export class SimulationControls {
       })
 
     // Pool Width slider
-    this.poolWidthController = poolFolder.add(this.state, 'poolWidth', 0.5, 3.0, 0.05)
+    this.poolWidthController = poolFolder
+      .add(this.state, 'poolWidth', 0.5, 3.0, 0.05)
       .name('Pool Width')
       .onChange((width: number) => {
         this.poolWidth = width
@@ -147,7 +156,8 @@ export class SimulationControls {
       })
 
     // Pool Depth slider
-    this.poolHeightController = poolFolder.add(this.state, 'poolHeight', 0.3, 2.0, 0.05)
+    this.poolHeightController = poolFolder
+      .add(this.state, 'poolHeight', 0.3, 2.0, 0.05)
       .name('Pool Depth')
       .onChange((height: number) => {
         this.poolHeight = height
@@ -155,7 +165,8 @@ export class SimulationControls {
       })
 
     // Pool Length slider
-    this.poolLengthController = poolFolder.add(this.state, 'poolLength', 0.5, 3.0, 0.05)
+    this.poolLengthController = poolFolder
+      .add(this.state, 'poolLength', 0.5, 3.0, 0.05)
       .name('Pool Length')
       .onChange((length: number) => {
         this.poolLength = length

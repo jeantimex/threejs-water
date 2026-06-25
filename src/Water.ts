@@ -19,12 +19,12 @@ import moveCubeFrag from './shaders/moveCube.frag'
  *    Calculates propagation of ripples over time. The GPU executes:
  *      height(t+1) = (2 * height(t) - height(t-1)) * damping + speed * Laplacian(height(t))
  *    Where Laplacian is the average of the 4 neighbors minus the current height.
- * 
+ *
  * 2. updateNormals (Sobel/Height Derivative):
  *    Computes the X and Z partial derivatives of the water height.
  *    Stores normal components in the Blue and Alpha channels to be read by pool
  *    and water surface shaders for refracting/reflecting light rays.
- * 
+ *
  * 3. addDrop / moveSphere / moveCube (Water Displacements):
  *    Executes local height adjustments when obstacles enter or translate.
  */
@@ -160,19 +160,26 @@ export class Water {
    * Displaces water height when a sphere moves.
    * Calculates volume differences between the old and new coordinates and adjusts height values.
    */
-  moveSphere(oldCenter: THREE.Vector3, newCenter: THREE.Vector3, radius: number, displacementScale = 1.0, poolWidth = 1.0, poolLength = 1.0) {
+  moveSphere(
+    oldCenter: THREE.Vector3,
+    newCenter: THREE.Vector3,
+    radius: number,
+    displacementScale = 1.0,
+    poolWidth = 1.0,
+    poolLength = 1.0
+  ) {
     this.plane.material = this.sphereMaterial
     this.sphereMaterial.uniforms.tInput.value = this.textureA.texture
-    
+
     // Scale coordinate vectors relative to the dynamic width/length bounds of the pool
     this.sphereMaterial.uniforms.oldCenter.value.copy(oldCenter)
     this.sphereMaterial.uniforms.oldCenter.value.x /= poolWidth
     this.sphereMaterial.uniforms.oldCenter.value.z /= poolLength
-    
+
     this.sphereMaterial.uniforms.newCenter.value.copy(newCenter)
     this.sphereMaterial.uniforms.newCenter.value.x /= poolWidth
     this.sphereMaterial.uniforms.newCenter.value.z /= poolLength
-    
+
     this.sphereMaterial.uniforms.radius.value = radius / poolLength
     this.sphereMaterial.uniforms.displacementScale.value = displacementScale
 
@@ -186,19 +193,25 @@ export class Water {
   /**
    * Displaces water height when a cube/box moves.
    */
-  moveCube(oldCenter: THREE.Vector3, newCenter: THREE.Vector3, halfSize: THREE.Vector3, poolWidth = 1.0, poolLength = 1.0) {
+  moveCube(
+    oldCenter: THREE.Vector3,
+    newCenter: THREE.Vector3,
+    halfSize: THREE.Vector3,
+    poolWidth = 1.0,
+    poolLength = 1.0
+  ) {
     this.plane.material = this.moveCubeMaterial
     this.moveCubeMaterial.uniforms.tInput.value = this.textureA.texture
-    
+
     // Scale coordinate vectors relative to the dynamic width/length bounds of the pool
     this.moveCubeMaterial.uniforms.oldCenter.value.copy(oldCenter)
     this.moveCubeMaterial.uniforms.oldCenter.value.x /= poolWidth
     this.moveCubeMaterial.uniforms.oldCenter.value.z /= poolLength
-    
+
     this.moveCubeMaterial.uniforms.newCenter.value.copy(newCenter)
     this.moveCubeMaterial.uniforms.newCenter.value.x /= poolWidth
     this.moveCubeMaterial.uniforms.newCenter.value.z /= poolLength
-    
+
     this.moveCubeMaterial.uniforms.halfSize.value.copy(halfSize)
     this.moveCubeMaterial.uniforms.halfSize.value.x /= poolWidth
     this.moveCubeMaterial.uniforms.halfSize.value.z /= poolLength

@@ -37,7 +37,7 @@ export class CausticsPass {
 
   /**
    * Constructs the CausticsPass.
-   * 
+   *
    * @param renderer The active WebGLRenderer instance.
    * @param state The state tracking objects inside the water.
    * @param objectShadowTexture Pre-rendered shadow texture of objects in the pool.
@@ -76,14 +76,20 @@ export class CausticsPass {
 
   /**
    * Configures the pass camera dimensions and shader uniforms based on the pool's geometry shape.
-   * 
+   *
    * @param shape The shape description (e.g., 'Box' or otherwise).
    * @param cornerRadius The radius of the pool's rounded corners.
    * @param poolWidth The half-width of the pool.
    * @param poolHeight The depth of the pool.
    * @param poolLength The half-length of the pool.
    */
-  setPoolShape(shape: string, cornerRadius: number, poolWidth: number, poolHeight: number, poolLength: number) {
+  setPoolShape(
+    shape: string,
+    cornerRadius: number,
+    poolWidth: number,
+    poolHeight: number,
+    poolLength: number
+  ) {
     if (shape === 'Box') {
       this.camera.left = -1
       this.camera.right = 1
@@ -129,7 +135,7 @@ export class CausticsPass {
 
   /**
    * Renders the caustics texture by executing the shaders with the current water mesh state and light direction.
-   * 
+   *
    * @param water The Water simulation instance containing the heightmap/normal textures.
    */
   update(water: Water) {
@@ -146,5 +152,3 @@ export class CausticsPass {
     this.renderer.setRenderTarget(null)
   }
 }
-
-

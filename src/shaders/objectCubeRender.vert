@@ -8,11 +8,11 @@
  * Output: Scaled and positioned cube in world space
  */
 
-uniform vec3 cubeCenter;    // World-space center position
-uniform vec3 cubeHalfSize;  // Half-extents (width/2, height/2, depth/2)
+uniform vec3 cubeCenter; // World-space center position
+uniform vec3 cubeHalfSize; // Half-extents (width/2, height/2, depth/2)
 
-varying vec3 vPosition;     // World position for fragment shader
-varying vec3 vNormal;       // Surface normal for lighting
+varying vec3 vPosition; // World position for fragment shader
+varying vec3 vNormal; // Surface normal for lighting
 
 void main() {
   // Transform unit box to world space:

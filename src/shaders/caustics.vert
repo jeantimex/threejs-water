@@ -12,16 +12,16 @@
 
 // Index of Refraction values for Snell's Law calculation
 // Snell's Law: n₁ sin(θ₁) = n₂ sin(θ₂)
-const float IOR_AIR = 1.0;    // Air IOR (vacuum = 1.0, air ≈ 1.0003)
+const float IOR_AIR = 1.0; // Air IOR (vacuum = 1.0, air ≈ 1.0003)
 const float IOR_WATER = 1.333; // Water IOR (varies slightly with temperature and wavelength)
-const float poolHeight = 1.0;  // Depth of pool below water surface
+const float poolHeight = 1.0; // Depth of pool below water surface
 
-uniform vec3 light;            // Normalized direction vector pointing TOWARD the light source
-uniform sampler2D water;       // Water simulation texture (R: height, G: velocity, BA: normal.xz)
+uniform vec3 light; // Normalized direction vector pointing TOWARD the light source
+uniform sampler2D water; // Water simulation texture (R: height, G: velocity, BA: normal.xz)
 
-varying vec3 oldPos;           // Pool floor hit position assuming flat water surface
-varying vec3 newPos;           // Pool floor hit position with actual wavy surface
-varying vec3 ray;              // Direction of refracted light ray through wavy surface
+varying vec3 oldPos; // Pool floor hit position assuming flat water surface
+varying vec3 newPos; // Pool floor hit position with actual wavy surface
+varying vec3 ray; // Direction of refracted light ray through wavy surface
 
 /**
  * Computes ray intersection with a bounding cube (representing the pool bounds)
@@ -70,62 +70,62 @@ vec3 project(vec3 origin, vec3 r, vec3 refractedLight) {
 
 void main() {
   /**
-   * CAUSTICS VERTEX TRANSFORMATION
-   *
-   * Each vertex in the water grid represents one "column" of light entering the water.
-   * We compute where this light column hits the pool floor, both for flat water
-   * (reference) and for the actual wavy surface (distorted).
-   */
+ * * CAUSTICS VERTEX TRANSFORMATION
+ *    *
+ *    * Each vertex in the water grid represents one "column" of light entering the water.
+ *    * We compute where this light column hits the pool floor, both for flat water
+ *    * (reference) and for the actual wavy surface (distorted).
+ */
 
   // Step 1: Sample water simulation state at this grid point
   // UV mapping: position.xy ∈ [-1, 1] → UV ∈ [0, 1]
   vec4 info = texture2D(water, position.xy * 0.5 + 0.5);
-  info.ba *= 0.5;  // Scale normal derivatives for smoother caustics
+  info.ba *= 0.5; // Scale normal derivatives for smoother caustics
 
   /**
-   * Step 2: Reconstruct surface normal from stored derivatives.
-   *
-   * The water texture stores ∂h/∂x in B and ∂h/∂z in A (height partial derivatives).
-   * The normal vector N = normalize(-∂h/∂x, 1, -∂h/∂z)
-   *
-   * We use the identity: for unit normal, Ny = sqrt(1 - Nx² - Nz²)
-   * where Nx and Nz are the (scaled) stored derivatives.
-   */
+ * * Step 2: Reconstruct surface normal from stored derivatives.
+ *    *
+ *    * The water texture stores ∂h/∂x in B and ∂h/∂z in A (height partial derivatives).
+ *    * The normal vector N = normalize(-∂h/∂x, 1, -∂h/∂z)
+ *    *
+ *    * We use the identity: for unit normal, Ny = sqrt(1 - Nx² - Nz²)
+ *    * where Nx and Nz are the (scaled) stored derivatives.
+ */
   vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);
 
   /**
-   * Step 3: Compute refracted light directions using Snell's Law.
-   *
-   * refractedLight: Direction if water were perfectly flat (uniform refraction)
-   * ray: Direction through the actual wavy surface (varies per vertex)
-   *
-   * GLSL refract(I, N, eta) computes the refracted direction where:
-   *   I = incident direction (normalized)
-   *   N = surface normal (normalized)
-   *   eta = n1/n2 (ratio of indices of refraction)
-   */
+ * * Step 3: Compute refracted light directions using Snell's Law.
+ *    *
+ *    * refractedLight: Direction if water were perfectly flat (uniform refraction)
+ *    * ray: Direction through the actual wavy surface (varies per vertex)
+ *    *
+ *    * GLSL refract(I, N, eta) computes the refracted direction where:
+ *    *   I = incident direction (normalized)
+ *    *   N = surface normal (normalized)
+ *    *   eta = n1/n2 (ratio of indices of refraction)
+ */
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   ray = refract(-light, normal, IOR_AIR / IOR_WATER);
 
   /**
-   * Step 4: Project light rays to pool floor.
-   *
-   * oldPos: Where light would hit if water were flat (reference grid)
-   * newPos: Where light actually hits through wavy surface (distorted grid)
-   *
-   * Note: position.xzy swizzle converts from XY grid to XZ world (Y is up in world space)
-   */
+ * * Step 4: Project light rays to pool floor.
+ *    *
+ *    * oldPos: Where light would hit if water were flat (reference grid)
+ *    * newPos: Where light actually hits through wavy surface (distorted grid)
+ *    *
+ *    * Note: position.xzy swizzle converts from XY grid to XZ world (Y is up in world space)
+ */
   oldPos = project(position.xzy, refractedLight, refractedLight);
   newPos = project(position.xzy + vec3(0.0, info.r, 0.0), ray, refractedLight);
 
   /**
-   * Step 5: Position vertex for rasterization.
-   *
-   * We render directly to the caustics texture, so gl_Position maps to texture UV.
-   * The 0.75 scale factor matches the pool floor's coverage in the texture.
-   *
-   * The offset (refractedLight.xz / refractedLight.y) accounts for the slant of
-   * the light - without this, caustics would be misaligned with the pool floor rendering.
-   */
+ * * Step 5: Position vertex for rasterization.
+ *    *
+ *    * We render directly to the caustics texture, so gl_Position maps to texture UV.
+ *    * The 0.75 scale factor matches the pool floor's coverage in the texture.
+ *    *
+ *    * The offset (refractedLight.xz / refractedLight.y) accounts for the slant of
+ *    * the light - without this, caustics would be misaligned with the pool floor rendering.
+ */
   gl_Position = vec4(0.75 * (newPos.xz + refractedLight.xz / refractedLight.y), 0.0, 1.0);
 }

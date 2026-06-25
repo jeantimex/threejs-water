@@ -4,7 +4,10 @@ import type { SimulationObjectRenderResources } from '../rendering/SimulationObj
 import duckRenderVert from '../shaders/duckRender.vert'
 import duckRenderFrag from '../shaders/duckRender.frag'
 import type { Water } from '../Water'
-import { CompoundSphereWaterDisplacement, type DisplacementSphere } from '../water/WaterDisplacement'
+import {
+  CompoundSphereWaterDisplacement,
+  type DisplacementSphere,
+} from '../water/WaterDisplacement'
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 import { clampAndMoveObject, updatePhysics } from './SimulationObjectUtils'
 
@@ -39,7 +42,7 @@ export class DuckObject implements SimulationObject {
     center: this.position,
     boundingRadius: this.boundingRadius,
   }
-  
+
   readonly mesh: THREE.Group
   enabled = false
 
@@ -185,7 +188,13 @@ export class DuckObject implements SimulationObject {
       this.floorClearance
     )
 
-    this.displacement.move(water, this.previousPosition, this.position, context.poolWidth, context.poolLength)
+    this.displacement.move(
+      water,
+      this.previousPosition,
+      this.position,
+      context.poolWidth,
+      context.poolLength
+    )
     this.previousPosition.copy(this.position)
     this.mesh.position.copy(this.position)
   }
@@ -204,9 +213,7 @@ export class DuckObject implements SimulationObject {
 
     if (discriminant <= 0) return null
     const distance = (-b - Math.sqrt(discriminant)) / (2 * a)
-    return distance > 0
-      ? origin.clone().addScaledVector(direction, distance)
-      : null
+    return distance > 0 ? origin.clone().addScaledVector(direction, distance) : null
   }
 
   /**

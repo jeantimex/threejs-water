@@ -46,12 +46,12 @@ export class WaterApp {
 
     // Load repeating tiles and sky cubemaps asynchronously
     const { tileTexture, cubemap } = await loadSceneAssets()
-    
+
     // Instantiate core water simulation grid
     this.water = new Water(this.webglRenderer)
     // Instantiate graphics render passes manager
     this.renderer = new Renderer(this.webglRenderer, tileTexture, cubemap)
-    
+
     // Add rendering meshes to the main ThreeJS scene
     this.scene.add(
       this.renderer.getPoolMesh(),
@@ -63,7 +63,7 @@ export class WaterApp {
     // Instantiate simulation obstacles (Cube, Sphere, Duck, TorusKnot)
     this.objects = createSimulationObjects(this.scene, this.renderer.objectRenderResources)
     this.renderer.setWaterOptics(this.objects.optics)
-    
+
     // Setup dat.GUI/lil-gui controller callbacks
     this.controls = new SimulationControls(this.objects.options, {
       onObjectChange: this.selectSimulationObject,
@@ -77,7 +77,13 @@ export class WaterApp {
         const poolWidth = shape === 'Box' ? 1.0 : this.controls.poolWidth
         const poolHeight = shape === 'Box' ? 1.0 : this.controls.poolHeight
         const poolLength = shape === 'Box' ? 1.0 : this.controls.poolLength
-        this.renderer.setPoolShape(shape, this.controls.cornerRadius, poolWidth, poolHeight, poolLength)
+        this.renderer.setPoolShape(
+          shape,
+          this.controls.cornerRadius,
+          poolWidth,
+          poolHeight,
+          poolLength
+        )
         if (this.objects.active) {
           const floor = this.objects.active.floorY(poolHeight)
           if (this.objects.active.position.y < floor) {
@@ -90,13 +96,25 @@ export class WaterApp {
         if (this.controls.paused) this.draw()
       },
       onCornerRadiusChange: (radius) => {
-        this.renderer.setPoolShape(this.controls.poolShape, radius, this.controls.poolWidth, this.controls.poolHeight, this.controls.poolLength)
+        this.renderer.setPoolShape(
+          this.controls.poolShape,
+          radius,
+          this.controls.poolWidth,
+          this.controls.poolHeight,
+          this.controls.poolLength
+        )
         if (this.controls.paused) this.draw()
       },
       onPoolWidthChange: (width) => {
         const poolHeight = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolHeight
         const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
-        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, width, poolHeight, poolLength)
+        this.renderer.setPoolShape(
+          this.controls.poolShape,
+          this.controls.cornerRadius,
+          width,
+          poolHeight,
+          poolLength
+        )
         if (this.objects.active) {
           this.objects.active.moveBy(new THREE.Vector3(0, 0, 0), width, poolHeight, poolLength)
           this.objects.active.syncPreviousPosition()
@@ -106,7 +124,13 @@ export class WaterApp {
       onPoolHeightChange: (height) => {
         const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
         const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
-        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, poolWidth, height, poolLength)
+        this.renderer.setPoolShape(
+          this.controls.poolShape,
+          this.controls.cornerRadius,
+          poolWidth,
+          height,
+          poolLength
+        )
         if (this.objects.active) {
           const floor = this.objects.active.floorY(height)
           if (this.objects.active.position.y < floor) {
@@ -121,7 +145,13 @@ export class WaterApp {
       onPoolLengthChange: (length) => {
         const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
         const poolHeight = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolHeight
-        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, poolWidth, poolHeight, length)
+        this.renderer.setPoolShape(
+          this.controls.poolShape,
+          this.controls.cornerRadius,
+          poolWidth,
+          poolHeight,
+          length
+        )
         if (this.objects.active) {
           this.objects.active.moveBy(new THREE.Vector3(0, 0, 0), poolWidth, poolHeight, length)
           this.objects.active.syncPreviousPosition()
@@ -129,7 +159,7 @@ export class WaterApp {
         if (this.controls.paused) this.draw()
       },
     })
-    
+
     // Connect user mouse/touch controllers for orbiting, zooming, and dragging objects
     this.interaction = new InteractionController({
       canvas: this.webglRenderer.domElement,
@@ -148,7 +178,7 @@ export class WaterApp {
     loading.innerHTML = ''
     this.resize()
     window.addEventListener('resize', this.resize)
-    
+
     this.previousTime = performance.now()
     requestAnimationFrame(this.animate)
   }
@@ -192,26 +222,30 @@ export class WaterApp {
     const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
     const poolHeight = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolHeight
     const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
-    
+
     // 1. Update obstacle physics (buoyancy, bounds-clamping) and write displacements
-    this.objects.update(seconds, {
-      dragging: this.interaction.draggingObject,
-      physicsEnabled: this.controls.physicsEnabled,
-      densityEnabled: this.controls.densityEnabled,
-      density: this.controls.density,
-      gravity: this.gravity,
-      poolWidth,
-      poolHeight,
-      poolLength,
-    }, this.water)
+    this.objects.update(
+      seconds,
+      {
+        dragging: this.interaction.draggingObject,
+        physicsEnabled: this.controls.physicsEnabled,
+        densityEnabled: this.controls.densityEnabled,
+        density: this.controls.density,
+        gravity: this.gravity,
+        poolWidth,
+        poolHeight,
+        poolLength,
+      },
+      this.water
+    )
 
     // 2. Solve wave equations (we run it twice per tick to speed up wave propagation velocities)
     this.water.stepSimulation()
     this.water.stepSimulation()
-    
+
     // 3. Recompute wave normals from height derivatives
     this.water.updateNormals()
-    
+
     // 4. Update optics settings (refraction indices / positions)
     this.renderer.setWaterOptics(this.objects.optics)
   }
@@ -226,7 +260,7 @@ export class WaterApp {
     const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
     const poolHeight = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolHeight
     const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
-    
+
     // Bind object heightmap uniforms
     this.objects.prepareRender(this.water, poolWidth, poolHeight, poolLength)
     // 1. Render object shadow & reflection/refraction maps
@@ -262,11 +296,11 @@ export class WaterApp {
     const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
     const poolHeight = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolHeight
     const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
-    
+
     // Switch object in registry and clamp its position
     this.objects.select(name, this.water, poolWidth, poolHeight, poolLength)
     this.renderer.setWaterOptics(this.objects.optics)
-    
+
     this.interaction.cancelDrag()
     this.controls.setPhysicsAvailable(name !== NO_OBJECT)
     this.water.updateNormals()

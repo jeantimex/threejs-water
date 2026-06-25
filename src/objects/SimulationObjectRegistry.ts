@@ -1,8 +1,5 @@
 import * as THREE from 'three'
-import {
-  NO_WATER_OPTICS,
-  type WaterOpticsDescriptor,
-} from '../water/WaterOptics'
+import { NO_WATER_OPTICS, type WaterOpticsDescriptor } from '../water/WaterOptics'
 import type { Water } from '../Water'
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 
@@ -35,10 +32,10 @@ export class SimulationObjectRegistry {
       throw new Error(`Simulation object "${object.name}" is already registered`)
     }
     this.objects.set(object.name, object)
-    
+
     // Add the 3D mesh of the object to the scene so it can be rendered
     this.scene.add(object.mesh)
-    
+
     if (active) {
       this.activeObject = object
       this.sharedPosition.copy(object.position)
@@ -86,14 +83,17 @@ export class SimulationObjectRegistry {
       this.sharedPosition.copy(this.activeObject.position)
       this.activeObject.setEnabled(false, water)
     }
-    
+
     // 2. Activate new object
     this.activeObject = nextObject ?? null
     if (this.activeObject) {
       // Restore coordinates
       this.activeObject.position.copy(this.sharedPosition)
       // Clamping: Ensure the new object is not below the pool base
-      this.activeObject.position.y = Math.max(this.activeObject.position.y, this.activeObject.floorY(poolHeight))
+      this.activeObject.position.y = Math.max(
+        this.activeObject.position.y,
+        this.activeObject.floorY(poolHeight)
+      )
       // Clamp within current pool dimensions
       this.activeObject.moveBy(new THREE.Vector3(0, 0, 0), poolWidth, poolHeight, poolLength)
       // Enable object, triggering splash displacement

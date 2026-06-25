@@ -8,9 +8,9 @@ import type { SimulationControls } from './SimulationControls'
 // Modes of user mouse or touch screen interaction
 enum InteractionMode {
   None,
-  AddDrops,      // Clicking/Dragging water surface to create ripples
-  MoveObject,    // Dragging the active 3D obstacle
-  OrbitCamera,   // Dragging sky/background to rotate camera view
+  AddDrops, // Clicking/Dragging water surface to create ripples
+  MoveObject, // Dragging the active 3D obstacle
+  OrbitCamera, // Dragging sky/background to rotate camera view
 }
 
 export interface InteractionDependencies {
@@ -122,7 +122,7 @@ export class InteractionController {
     const { cameraController, camera, objects, controls } = this.dependencies
     cameraController.stopInertia()
     const { origin, direction } = this.getRay(x, y)
-    
+
     // Project ray onto water plane level (y=0)
     const pointOnPlane = origin.clone().addScaledVector(direction, -origin.y / direction.y)
     // Perform hit testing against active obstacle
@@ -134,9 +134,7 @@ export class InteractionController {
       this.mode = InteractionMode.MoveObject
       this.previousHit = objectHit
       // Construct a drag plane facing the camera, anchored at the hit position
-      this.dragPlaneNormal = new THREE.Vector3(0, 0, -1)
-        .applyQuaternion(camera.quaternion)
-        .negate()
+      this.dragPlaneNormal = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).negate()
     } else if (Math.abs(pointOnPlane.x) < poolWidth && Math.abs(pointOnPlane.z) < poolLength) {
       this.mode = InteractionMode.AddDrops
       this.duringDrag(x, y, time)
@@ -168,15 +166,21 @@ export class InteractionController {
       // Raycast coordinate translation onto virtual drag plane
       if (!this.previousHit || !this.dragPlaneNormal || !objects.active) return
       const { origin, direction } = this.getRay(x, y)
-      const distance = -this.dragPlaneNormal.dot(origin.clone().sub(this.previousHit))
-        / this.dragPlaneNormal.dot(direction)
+      const distance =
+        -this.dragPlaneNormal.dot(origin.clone().sub(this.previousHit)) /
+        this.dragPlaneNormal.dot(direction)
       const nextHit = origin.clone().addScaledVector(direction, distance)
-      
+
       // Translate the object by ray displacement, clamped by pool bounds
-      objects.active.moveBy(nextHit.clone().sub(this.previousHit), poolWidth, poolHeight, poolLength)
+      objects.active.moveBy(
+        nextHit.clone().sub(this.previousHit),
+        poolWidth,
+        poolHeight,
+        poolLength
+      )
       renderer.setWaterOptics(objects.optics)
       this.previousHit = nextHit
-      
+
       if (controls.paused) renderer.updateCaustics(water)
     } else if (this.mode === InteractionMode.OrbitCamera) {
       // Orbit camera rotation

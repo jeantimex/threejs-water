@@ -39,7 +39,7 @@ export class TorusKnotObject implements SimulationObject {
     boundingRadius: this.boundingRadius,
     shadowRadius: 0.13,
   }
-  
+
   readonly mesh: THREE.Mesh
   enabled = false
 
@@ -143,7 +143,13 @@ export class TorusKnotObject implements SimulationObject {
       this.floorClearance
     )
 
-    this.displacement.move(water, this.previousPosition, this.position, context.poolWidth, context.poolLength)
+    this.displacement.move(
+      water,
+      this.previousPosition,
+      this.position,
+      context.poolWidth,
+      context.poolLength
+    )
     this.previousPosition.copy(this.position)
     this.mesh.position.copy(this.position)
   }

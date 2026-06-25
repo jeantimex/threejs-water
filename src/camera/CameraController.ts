@@ -1,12 +1,12 @@
 import * as THREE from 'three'
 
 // Constants controlling the orbital camera limits and dynamics
-const MIN_DISTANCE = 2      // Minimum zoom distance from the target
-const MAX_DISTANCE = 10     // Maximum zoom distance from the target
+const MIN_DISTANCE = 2 // Minimum zoom distance from the target
+const MAX_DISTANCE = 10 // Maximum zoom distance from the target
 const MAX_ORBIT_SPEED = 1080 // Cap on rotation speed (degrees per second) to prevent extreme spinning
-const ORBIT_DAMPING = 6      // Friction coefficient for camera momentum decay
-const MIN_ANGLE_X = -89.999  // Maximum downward vertical look angle (degrees)
-const MAX_ANGLE_X = 89.999   // Maximum upward vertical look angle (degrees)
+const ORBIT_DAMPING = 6 // Friction coefficient for camera momentum decay
+const MIN_ANGLE_X = -89.999 // Maximum downward vertical look angle (degrees)
+const MAX_ANGLE_X = 89.999 // Maximum upward vertical look angle (degrees)
 
 /**
  * Handles orbiting, rotating, inertia, and zooming of the camera around a focal point.
@@ -16,15 +16,15 @@ export class CameraController {
   // The center target point the camera orbits around
   readonly target = new THREE.Vector3(0, -0.5, 0)
 
-  private angleX = -25      // Vertical pitch angle in degrees (altitude)
-  private angleY = -200.5   // Horizontal yaw angle in degrees (azimuth)
-  private distance = 4      // Current distance from the target point
-  private velocityX = 0     // Pitch angular velocity (degrees/sec)
-  private velocityY = 0     // Yaw angular velocity (degrees/sec)
-  private lastX = 0         // Last pointer X coordinate
-  private lastY = 0         // Last pointer Y coordinate
-  private lastTime = 0      // Timestamp of the last move event (ms)
-  private orbiting = false  // Flag indicating if the user is actively dragging to orbit
+  private angleX = -25 // Vertical pitch angle in degrees (altitude)
+  private angleY = -200.5 // Horizontal yaw angle in degrees (azimuth)
+  private distance = 4 // Current distance from the target point
+  private velocityX = 0 // Pitch angular velocity (degrees/sec)
+  private velocityY = 0 // Yaw angular velocity (degrees/sec)
+  private lastX = 0 // Last pointer X coordinate
+  private lastY = 0 // Last pointer Y coordinate
+  private lastTime = 0 // Timestamp of the last move event (ms)
+  private orbiting = false // Flag indicating if the user is actively dragging to orbit
 
   /**
    * Initializes the drag-to-orbit state with the current cursor position and time.
@@ -54,7 +54,7 @@ export class CameraController {
     // Adjust azimuth and pitch angles based on mouse delta
     this.angleY -= deltaX
     this.angleX = THREE.MathUtils.clamp(this.angleX - deltaY, MIN_ANGLE_X, MAX_ANGLE_X)
-    
+
     // Calculate and clamp velocity (degrees per second) for inertial calculations
     this.velocityY = THREE.MathUtils.clamp(-deltaX / seconds, -MAX_ORBIT_SPEED, MAX_ORBIT_SPEED)
     this.velocityX = THREE.MathUtils.clamp(-deltaY / seconds, -MAX_ORBIT_SPEED, MAX_ORBIT_SPEED)
@@ -153,10 +153,8 @@ export class CameraController {
   getLightDirection(target: THREE.Vector3): THREE.Vector3 {
     const yRad = THREE.MathUtils.degToRad(90 - this.angleY)
     const xRad = THREE.MathUtils.degToRad(-this.angleX)
-    return target.set(
-      Math.cos(yRad) * Math.cos(xRad),
-      Math.sin(xRad),
-      Math.sin(yRad) * Math.cos(xRad)
-    ).normalize()
+    return target
+      .set(Math.cos(yRad) * Math.cos(xRad), Math.sin(xRad), Math.sin(yRad) * Math.cos(xRad))
+      .normalize()
   }
 }

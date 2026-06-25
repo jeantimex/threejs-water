@@ -6,10 +6,10 @@
  * and creates water displacement waves.
  */
 
-uniform vec3 sphereCenter;   // World-space center position of the sphere
-uniform float sphereRadius;  // Radius of the sphere
+uniform vec3 sphereCenter; // World-space center position of the sphere
+uniform float sphereRadius; // Radius of the sphere
 
-varying vec3 vPosition;      // World position passed to fragment shader
+varying vec3 vPosition; // World position passed to fragment shader
 
 void main() {
   // Transform unit sphere (radius=1, center=origin) to world space:

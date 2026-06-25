@@ -15,14 +15,20 @@ import type { Water } from '../Water'
 export interface WaterDisplacementStrategy {
   /**
    * Displaces the water surface based on the movement of the object.
-   * 
+   *
    * @param water The water simulation instance to apply the displacement to.
    * @param previousPosition The position of the object in the previous frame.
    * @param position The position of the object in the current frame.
    * @param poolWidth The half-width of the pool.
    * @param poolLength The half-length of the pool.
    */
-  move(water: Water, previousPosition: THREE.Vector3, position: THREE.Vector3, poolWidth?: number, poolLength?: number): void
+  move(
+    water: Water,
+    previousPosition: THREE.Vector3,
+    position: THREE.Vector3,
+    poolWidth?: number,
+    poolLength?: number
+  ): void
 }
 
 /**
@@ -38,7 +44,13 @@ export class SphereWaterDisplacement implements WaterDisplacementStrategy {
   /**
    * Displaces water using a sphere.
    */
-  move(water: Water, previousPosition: THREE.Vector3, position: THREE.Vector3, poolWidth = 1.0, poolLength = 1.0) {
+  move(
+    water: Water,
+    previousPosition: THREE.Vector3,
+    position: THREE.Vector3,
+    poolWidth = 1.0,
+    poolLength = 1.0
+  ) {
     water.moveSphere(previousPosition, position, this.radius, 1.0, poolWidth, poolLength)
   }
 }
@@ -56,7 +68,13 @@ export class BoxWaterDisplacement implements WaterDisplacementStrategy {
   /**
    * Displaces water using a box.
    */
-  move(water: Water, previousPosition: THREE.Vector3, position: THREE.Vector3, poolWidth = 1.0, poolLength = 1.0) {
+  move(
+    water: Water,
+    previousPosition: THREE.Vector3,
+    position: THREE.Vector3,
+    poolWidth = 1.0,
+    poolLength = 1.0
+  ) {
     water.moveCube(previousPosition, position, this.halfSize, poolWidth, poolLength)
   }
 }
@@ -92,12 +110,24 @@ export class CompoundSphereWaterDisplacement implements WaterDisplacementStrateg
   /**
    * Displaces water by iterating over all child spheres and accumulating their displacements.
    */
-  move(water: Water, previousPosition: THREE.Vector3, position: THREE.Vector3, poolWidth = 1.0, poolLength = 1.0) {
+  move(
+    water: Water,
+    previousPosition: THREE.Vector3,
+    position: THREE.Vector3,
+    poolWidth = 1.0,
+    poolLength = 1.0
+  ) {
     for (const sphere of this.spheres) {
       this.previousCenter.copy(previousPosition).add(sphere.offset)
       this.center.copy(position).add(sphere.offset)
-      water.moveSphere(this.previousCenter, this.center, sphere.radius, this.displacementScale, poolWidth, poolLength)
+      water.moveSphere(
+        this.previousCenter,
+        this.center,
+        sphere.radius,
+        this.displacementScale,
+        poolWidth,
+        poolLength
+      )
     }
   }
 }
-

@@ -29,9 +29,9 @@ uniform float poolHeight;
 uniform float poolLength;
 
 // Passed to fragment shader for area comparison
-varying vec3 oldPos;   // Where light hits with flat water
-varying vec3 newPos;   // Where light hits with wavy water
-varying vec3 ray;      // Refracted ray direction
+varying vec3 oldPos; // Where light hits with flat water
+varying vec3 newPos; // Where light hits with wavy water
+varying vec3 ray; // Refracted ray direction
 
 /**
  * Solves 2D intersections of a ray with a rounded rectangle layout on the horizontal XZ plane.
@@ -41,7 +41,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   float tNear = 1e6;
   float tFar = -1e6;
   bool found = false;
-  
+
   float r_sub_x = poolWidth - R;
   float r_sub_z = poolLength - R;
   float eps = 1.0e-3;
@@ -106,27 +106,27 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
         float sqrtDisc = sqrt(disc);
         float tA = (-b - sqrtDisc) / (2.0 * a);
         float tB = (-b + sqrtDisc) / (2.0 * a);
-        
+
         // Validate intersection A falls in the correct corner quadrant
         vec2 ptA = origin + tA * ray;
         bool validA = false;
-        if (i == 0) validA = (ptA.x >= r_sub_x - eps && ptA.y >= r_sub_z - eps);
-        else if (i == 1) validA = (ptA.x <= -r_sub_x + eps && ptA.y >= r_sub_z - eps);
-        else if (i == 2) validA = (ptA.x <= -r_sub_x + eps && ptA.y <= -r_sub_z + eps);
-        else if (i == 3) validA = (ptA.x >= r_sub_x - eps && ptA.y <= -r_sub_z + eps);
+        if (i == 0) validA = ptA.x >= r_sub_x - eps && ptA.y >= r_sub_z - eps;
+        else if (i == 1) validA = ptA.x <= -r_sub_x + eps && ptA.y >= r_sub_z - eps;
+        else if (i == 2) validA = ptA.x <= -r_sub_x + eps && ptA.y <= -r_sub_z + eps;
+        else if (i == 3) validA = ptA.x >= r_sub_x - eps && ptA.y <= -r_sub_z + eps;
         if (validA) {
           tNear = min(tNear, tA);
           tFar = max(tFar, tA);
           found = true;
         }
-        
+
         // Validate intersection B falls in the correct corner quadrant
         vec2 ptB = origin + tB * ray;
         bool validB = false;
-        if (i == 0) validB = (ptB.x >= r_sub_x - eps && ptB.y >= r_sub_z - eps);
-        else if (i == 1) validB = (ptB.x <= -r_sub_x + eps && ptB.y >= r_sub_z - eps);
-        else if (i == 2) validB = (ptB.x <= -r_sub_x + eps && ptB.y <= -r_sub_z + eps);
-        else if (i == 3) validB = (ptB.x >= r_sub_x - eps && ptB.y <= -r_sub_z + eps);
+        if (i == 0) validB = ptB.x >= r_sub_x - eps && ptB.y >= r_sub_z - eps;
+        else if (i == 1) validB = ptB.x <= -r_sub_x + eps && ptB.y >= r_sub_z - eps;
+        else if (i == 2) validB = ptB.x <= -r_sub_x + eps && ptB.y <= -r_sub_z + eps;
+        else if (i == 3) validB = ptB.x >= r_sub_x - eps && ptB.y <= -r_sub_z + eps;
         if (validB) {
           tNear = min(tNear, tB);
           tFar = max(tFar, tB);
@@ -139,7 +139,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   if (!found) {
     return vec2(-1e6, 1e6);
   }
-  
+
   return vec2(tNear, tFar);
 }
 
@@ -168,7 +168,7 @@ vec3 project(vec3 origin, vec3 r, vec3 refractedLight) {
   // Find boundary intersection point
   vec2 tcube = intersectRoundedBox(origin, r, cornerRadius);
   origin += r * tcube.y;
-  
+
   // Project to plane bottom
   float tplane = (-origin.y - poolHeight) / refractedLight.y;
   return origin + refractedLight * tplane;
@@ -178,7 +178,7 @@ void main() {
   // 1. Sample the water height displacement and normal gradients
   vec4 info = texture2D(water, position.xy * 0.5 + 0.5);
   info.ba *= 0.5;
-  
+
   // 2. Reconstruct the 3D surface normal vector: Ny = sqrt(1.0 - (Nx^2 + Nz^2))
   vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);
 
@@ -187,10 +187,18 @@ void main() {
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   // Sunlight entering through the active curved water surface (based on normal):
   ray = refract(-light, normal, IOR_AIR / IOR_WATER);
-  
+
   // 4. Project both paths (flat vs active wave) onto the pool walls/floor
-  oldPos = project(vec3(position.x * poolWidth, 0.0, position.y * poolLength), refractedLight, refractedLight);
-  newPos = project(vec3(position.x * poolWidth, info.r, position.y * poolLength), ray, refractedLight);
+  oldPos = project(
+    vec3(position.x * poolWidth, 0.0, position.y * poolLength),
+    refractedLight,
+    refractedLight
+  );
+  newPos = project(
+    vec3(position.x * poolWidth, info.r, position.y * poolLength),
+    ray,
+    refractedLight
+  );
 
   // 5. Project coordinates onto the horizontal caustic texture grid for focusing
   gl_Position.x = 0.75 * (newPos.x - newPos.y * refractedLight.x / refractedLight.y) / poolWidth;

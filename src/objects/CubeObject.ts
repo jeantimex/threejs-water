@@ -100,16 +100,15 @@ export class CubeObject implements SimulationObject {
   update(seconds: number, context: ObjectUpdateContext, water: Water) {
     if (!this.enabled) return
 
-    updatePhysics(
-      seconds,
-      this.position,
-      this.velocity,
-      context,
-      this.halfSize.y,
-      this.halfSize.y
-    )
+    updatePhysics(seconds, this.position, this.velocity, context, this.halfSize.y, this.halfSize.y)
 
-    this.displacement.move(water, this.previousPosition, this.position, context.poolWidth, context.poolLength)
+    this.displacement.move(
+      water,
+      this.previousPosition,
+      this.position,
+      context.poolWidth,
+      context.poolLength
+    )
     this.previousPosition.copy(this.position)
   }
 

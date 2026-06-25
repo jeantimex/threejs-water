@@ -6,7 +6,7 @@
  * using ray-tracing against the implicit rounded rectangle shape.
  */
 
-varying vec3 vPosition;  // Position for fragment shader ray calculations
+varying vec3 vPosition; // Position for fragment shader ray calculations
 
 void main() {
   // Pass position directly - fragment shader handles rounded corner math

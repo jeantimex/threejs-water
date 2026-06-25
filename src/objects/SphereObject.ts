@@ -35,7 +35,7 @@ export class SphereObject implements SimulationObject {
     center: this.position,
     radius: this.interactionRadius,
   }
-  
+
   readonly mesh: THREE.Mesh
   enabled = true
 
@@ -60,7 +60,7 @@ export class SphereObject implements SimulationObject {
       depthTest: true,
       depthWrite: true,
     })
-    
+
     // Create unit sphere (radius 1). Scaling/Translation are done dynamically in the vertex shader.
     this.mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), this.material)
     this.mesh.frustumCulled = false
@@ -111,7 +111,13 @@ export class SphereObject implements SimulationObject {
     )
 
     // Displace water based on positional delta between ticks
-    this.displacement.move(water, this.previousPosition, this.position, context.poolWidth, context.poolLength)
+    this.displacement.move(
+      water,
+      this.previousPosition,
+      this.position,
+      context.poolWidth,
+      context.poolLength
+    )
     this.previousPosition.copy(this.position)
   }
 
@@ -130,9 +136,7 @@ export class SphereObject implements SimulationObject {
 
     if (discriminant <= 0) return null
     const distance = (-b - Math.sqrt(discriminant)) / (2 * a)
-    return distance > 0
-      ? origin.clone().addScaledVector(direction, distance)
-      : null
+    return distance > 0 ? origin.clone().addScaledVector(direction, distance) : null
   }
 
   /**

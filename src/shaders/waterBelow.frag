@@ -53,7 +53,7 @@ float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
   float a = dot(ray, ray);
   float b = 2.0 * dot(toSphere, ray);
   float c = dot(toSphere, toSphere) - radius * radius;
-  float discriminant = b*b - 4.0*a*c;
+  float discriminant = b * b - 4.0 * a * c;
   if (discriminant > 0.0) {
     float t = (-b - sqrt(discriminant)) / (2.0 * a);
     if (t > 0.0) return t;
@@ -69,7 +69,7 @@ float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
   float a = dot(ray, ray);
   float b = 2.0 * dot(toSphere, ray);
   float c = dot(toSphere, toSphere) - radius * radius;
-  float discriminant = b*b - 4.0*a*c;
+  float discriminant = b * b - 4.0 * a * c;
   if (discriminant > 0.0) {
     float root = sqrt(discriminant);
     float near = (-b - root) / (2.0 * a);
@@ -95,10 +95,10 @@ float sdTorusKnot(vec3 p, vec3 center) {
   const float tube = 0.045;
   const float p_knot = 2.0;
   const float q_knot = 3.0;
-  
+
   vec3 prevPt = vec3(0.0);
   for (int i = 0; i <= segments; i++) {
-    float theta = (float(i) / float(segments)) * 6.283185307179586;
+    float theta = float(i) / float(segments) * 6.283185307179586;
     float rad = radius * (2.0 + cos(q_knot * theta)) * 0.5;
     vec3 pt = vec3(
       rad * cos(p_knot * theta),
@@ -123,7 +123,7 @@ float sdTorusKnot(vec3 p, vec3 center) {
 float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
   float t_bound = intersectSphereBounds(origin, ray, center, 0.31);
   if (t_bound > 1.0e5) return 1.0e6;
-  
+
   float t = t_bound;
   for (int i = 0; i < 30; i++) {
     vec3 p = origin + ray * t;
@@ -164,7 +164,10 @@ vec3 getSphereColor(vec3 point) {
   float diffuse = max(0.0, dot(-refractedLight, sphereNormal)) * 0.5;
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    vec4 caustic = texture2D(
+      causticTex,
+      0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5
+    );
     diffuse *= caustic.r * 4.0;
   }
   color += diffuse;
@@ -191,7 +194,10 @@ vec3 getCubeColor(vec3 point) {
   float diffuse = max(0.0, dot(-refractedLight, cubeNormal)) * 0.5;
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    vec4 caustic = texture2D(
+      causticTex,
+      0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5
+    );
     diffuse = (diffuse + 0.06) * caustic.r * 4.0;
   }
   return color + diffuse;
@@ -207,7 +213,10 @@ vec3 getTorusKnotColor(vec3 point) {
   float diffuse = max(0.0, dot(-refractedLight, normal)) * 0.5;
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    vec4 caustic = texture2D(
+      causticTex,
+      0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5
+    );
     diffuse = (diffuse + 0.06) * caustic.r * 4.0;
   }
   return color + diffuse;
@@ -249,11 +258,22 @@ vec3 getWallColor(vec3 point) {
   float diffuse = max(0.0, dot(refractedLight, normal));
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    vec4 caustic = texture2D(
+      causticTex,
+      0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5
+    );
     scale += diffuse * caustic.r * 2.0 * caustic.g;
   } else {
-    vec2 t = intersectCube(point, refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-    diffuse *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
+    vec2 t = intersectCube(
+      point,
+      refractedLight,
+      vec3(-1.0, -poolHeight, -1.0),
+      vec3(1.0, 2.0, 1.0)
+    );
+    diffuse *=
+      1.0 /
+      (1.0 +
+        exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
     scale += diffuse * 0.5;
   }
   return wallColor * scale;
@@ -266,11 +286,8 @@ vec4 sampleProjectedTexture(sampler2D tex, mat4 matrix, vec3 point) {
   vec4 clip = matrix * vec4(point, 1.0);
   vec3 ndc = clip.xyz / max(clip.w, 1.0e-6);
   vec2 uv = ndc.xy * 0.5 + 0.5;
-  float inBounds = step(0.0, uv.x)
-    * step(0.0, uv.y)
-    * step(uv.x, 1.0)
-    * step(uv.y, 1.0)
-    * step(0.0, clip.w);
+  float inBounds =
+    step(0.0, uv.x) * step(0.0, uv.y) * step(uv.x, 1.0) * step(uv.y, 1.0) * step(0.0, clip.w);
   return texture2D(tex, clamp(uv, 0.0, 1.0)) * inBounds;
 }
 
@@ -280,11 +297,7 @@ vec4 sampleProjectedTexture(sampler2D tex, mat4 matrix, vec3 point) {
 vec4 sampleObjectRefraction(vec3 origin, vec3 ray, vec3 center, float radius) {
   float hit = intersectSphereBounds(origin, ray, center, radius);
   if (hit >= 1.0e6) return vec4(0.0);
-  return sampleProjectedTexture(
-    objectRefractionTex,
-    viewProjectionMatrix,
-    origin + ray * hit
-  );
+  return sampleProjectedTexture(objectRefractionTex, viewProjectionMatrix, origin + ray * hit);
 }
 
 /**
@@ -306,14 +319,29 @@ vec4 sampleObjectReflection(vec3 origin, vec3 ray, vec3 center, float radius) {
  */
 vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
-  float sphereDistance = sphereEnabled ? intersectSphere(origin, ray, sphereCenter, sphereRadius) : 1.0e6;
-  vec2 cubeIntersection = intersectCube(origin, ray, cubeCenter - cubeHalfSize, cubeCenter + cubeHalfSize);
-  bool cubeHit = cubeEnabled && cubeIntersection.x <= cubeIntersection.y && cubeIntersection.y > 0.0;
-  float cubeDistance = cubeHit
-    ? (cubeIntersection.x > 0.0 ? cubeIntersection.x : (cubeIntersection.y > 0.0 ? cubeIntersection.y : 1.0e6))
+  float sphereDistance = sphereEnabled
+    ? intersectSphere(origin, ray, sphereCenter, sphereRadius)
     : 1.0e6;
-  float torusKnotDistance = (torusKnotEnabled && ray.y > 0.0) ? intersectTorusKnot(origin, ray, torusKnotCenter) : 1.0e6;
-  
+  vec2 cubeIntersection = intersectCube(
+    origin,
+    ray,
+    cubeCenter - cubeHalfSize,
+    cubeCenter + cubeHalfSize
+  );
+  bool cubeHit =
+    cubeEnabled && cubeIntersection.x <= cubeIntersection.y && cubeIntersection.y > 0.0;
+  float cubeDistance = cubeHit
+    ? cubeIntersection.x > 0.0
+      ? cubeIntersection.x
+      : cubeIntersection.y > 0.0
+        ? cubeIntersection.y
+        : 1.0e6
+    : 1.0e6;
+  float torusKnotDistance =
+    torusKnotEnabled && ray.y > 0.0
+      ? intersectTorusKnot(origin, ray, torusKnotCenter)
+      : 1.0e6;
+
   float objectDistance = min(min(sphereDistance, cubeDistance), torusKnotDistance);
   if (objectDistance < 1.0e6) {
     vec3 hit = origin + ray * objectDistance;
@@ -340,7 +368,7 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
       color += vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);
     }
   }
-  
+
   // Modulate light color by water tinting if traveling inside water (ray.y < 0)
   if (ray.y < 0.0) color *= waterColor;
   return color;
@@ -361,20 +389,21 @@ void main() {
   // 3. Reconstruct surface normal vector (pointing downwards as viewed from below the water surface)
   vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);
   normal = -normal;
-  
+
   // 4. Calculate incoming eye view vector
   vec3 incomingRay = normalize(vPosition - eye);
 
   // 5. Reflect and Refract vectors using inverted index ratios (water -> air: IOR_WATER / IOR_AIR)
   vec3 reflectedRay = reflect(incomingRay, normal);
   vec3 refractedRay = refract(incomingRay, normal, IOR_WATER / IOR_AIR);
-  
+
   // 6. Fresnel reflection coefficient mixing using Schlick's approximation
   float fresnel = mix(0.5, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));
 
   // 7. Raytrace reflected and refracted directions
   vec3 reflectedColor = getSurfaceRayColor(vPosition, reflectedRay, underwaterColor);
-  vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, vec3(1.0)) * vec3(0.8, 1.0, 1.1);
+  vec3 refractedColor =
+    getSurfaceRayColor(vPosition, refractedRay, vec3(1.0)) * vec3(0.8, 1.0, 1.1);
 
   // 8. Overlay pre-rendered reflection/refraction textures for interactive objects (Torus Knot, Duck)
   if (torusKnotEnabled) {
@@ -388,16 +417,32 @@ void main() {
       viewProjectionMatrix,
       vPosition
     );
-    refractedObject = max(refractedObject, sampleObjectRefraction(vPosition, refractedRay, torusKnotCenter, 0.31));
+    refractedObject = max(
+      refractedObject,
+      sampleObjectRefraction(vPosition, refractedRay, torusKnotCenter, 0.31)
+    );
     reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
   } else if (meshEnabled) {
-    vec4 reflectedObject = sampleObjectReflection(vPosition, reflectedRay, meshCenter, meshBoundingRadius);
-    vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, meshCenter, meshBoundingRadius);
+    vec4 reflectedObject = sampleObjectReflection(
+      vPosition,
+      reflectedRay,
+      meshCenter,
+      meshBoundingRadius
+    );
+    vec4 refractedObject = sampleObjectRefraction(
+      vPosition,
+      refractedRay,
+      meshCenter,
+      meshBoundingRadius
+    );
     reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
   }
 
   // 9. Mix reflection and refraction based on fresnel and refracted ray thickness
-  gl_FragColor = vec4(mix(reflectedColor, refractedColor, (1.0 - fresnel) * length(refractedRay)), 1.0);
+  gl_FragColor = vec4(
+    mix(reflectedColor, refractedColor, (1.0 - fresnel) * length(refractedRay)),
+    1.0
+  );
 }

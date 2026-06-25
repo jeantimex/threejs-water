@@ -19,23 +19,23 @@ const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
 const float poolHeight = 1.0;
 
-uniform vec3 light;                   // Normalized direction TO the light source (sun)
-uniform vec3 sphereCenter;            // World-space center of the sphere object
-uniform float sphereRadius;           // Radius of the sphere object
-uniform bool sphereEnabled;           // Whether sphere is active in the scene
-uniform vec3 cubeCenter;              // World-space center of the cube object
-uniform vec3 cubeHalfSize;            // Half-extents (width/2, height/2, depth/2) of the cube
-uniform bool cubeEnabled;             // Whether cube is active in the scene
-uniform vec3 torusKnotCenter;         // World-space center of the torus knot
-uniform bool torusKnotEnabled;        // Whether torus knot is active in the scene
-uniform vec3 meshCenter;              // World-space center of custom mesh bounding sphere
-uniform float meshBoundingRadius;     // Radius of custom mesh bounding sphere
-uniform bool meshEnabled;             // Whether custom mesh is active in the scene
-uniform sampler2D objectShadowTex;    // Shadow map texture for complex geometry occlusion
+uniform vec3 light; // Normalized direction TO the light source (sun)
+uniform vec3 sphereCenter; // World-space center of the sphere object
+uniform float sphereRadius; // Radius of the sphere object
+uniform bool sphereEnabled; // Whether sphere is active in the scene
+uniform vec3 cubeCenter; // World-space center of the cube object
+uniform vec3 cubeHalfSize; // Half-extents (width/2, height/2, depth/2) of the cube
+uniform bool cubeEnabled; // Whether cube is active in the scene
+uniform vec3 torusKnotCenter; // World-space center of the torus knot
+uniform bool torusKnotEnabled; // Whether torus knot is active in the scene
+uniform vec3 meshCenter; // World-space center of custom mesh bounding sphere
+uniform float meshBoundingRadius; // Radius of custom mesh bounding sphere
+uniform bool meshEnabled; // Whether custom mesh is active in the scene
+uniform sampler2D objectShadowTex; // Shadow map texture for complex geometry occlusion
 
-varying vec3 oldPos;                  // Pool floor position if water were flat (no refraction)
-varying vec3 newPos;                  // Pool floor position with actual wave refraction
-varying vec3 ray;                     // Refracted light ray direction through wavy surface
+varying vec3 oldPos; // Pool floor position if water were flat (no refraction)
+varying vec3 newPos; // Pool floor position with actual wave refraction
+varying vec3 ray; // Refracted light ray direction through wavy surface
 
 /**
  * Ray-AABB (Axis-Aligned Bounding Box) intersection using the slab method.
@@ -60,8 +60,8 @@ vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
   vec3 tMax = (cubeMax - origin) / r;
 
   // Handle negative ray directions: swap min/max if ray points backwards
-  vec3 t1 = min(tMin, tMax);  // Entry t for each axis
-  vec3 t2 = max(tMin, tMax);  // Exit t for each axis
+  vec3 t1 = min(tMin, tMax); // Entry t for each axis
+  vec3 t2 = max(tMin, tMax); // Exit t for each axis
 
   // The ray enters the box when it has entered ALL slabs (max of entries)
   float tNear = max(max(t1.x, t1.y), t1.z);
@@ -75,12 +75,7 @@ vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
  * Returns 1.0 if the ray intersects the cube object, otherwise 0.0.
  */
 float cubeOcclusion(vec3 origin, vec3 direction) {
-  vec2 hit = intersectCube(
-    origin,
-    direction,
-    cubeCenter - cubeHalfSize,
-    cubeCenter + cubeHalfSize
-  );
+  vec2 hit = intersectCube(origin, direction, cubeCenter - cubeHalfSize, cubeCenter + cubeHalfSize);
   return step(0.0, hit.y) * step(hit.x, hit.y);
 }
 
@@ -112,18 +107,18 @@ float cubeOcclusion(vec3 origin, vec3 direction) {
  * @return Parametric t of nearest intersection, or 1.0e6 if no hit
  */
 float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
-  vec3 toSphere = origin - center;            // L = O - C
-  float a = dot(ray, ray);                    // D·D
-  float b = 2.0 * dot(toSphere, ray);         // 2 * L·D
-  float c = dot(toSphere, toSphere) - radius * radius;  // L·L - r²
-  float discriminant = b*b - 4.0*a*c;
+  vec3 toSphere = origin - center; // L = O - C
+  float a = dot(ray, ray); // D·D
+  float b = 2.0 * dot(toSphere, ray); // 2 * L·D
+  float c = dot(toSphere, toSphere) - radius * radius; // L·L - r²
+  float discriminant = b * b - 4.0 * a * c;
 
   if (discriminant > 0.0) {
     // Use the smaller root (-b - sqrt) for the nearest intersection
     float t = (-b - sqrt(discriminant)) / (2.0 * a);
-    if (t > 0.0) return t;  // Only return if intersection is in front of ray
+    if (t > 0.0) return t; // Only return if intersection is in front of ray
   }
-  return 1.0e6;  // No valid intersection
+  return 1.0e6; // No valid intersection
 }
 
 /**
@@ -134,7 +129,7 @@ float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
   float a = dot(ray, ray);
   float b = 2.0 * dot(toSphere, ray);
   float c = dot(toSphere, toSphere) - radius * radius;
-  float discriminant = b*b - 4.0*a*c;
+  float discriminant = b * b - 4.0 * a * c;
   if (discriminant > 0.0) {
     float root = sqrt(discriminant);
     float near = (-b - root) / (2.0 * a);
@@ -183,31 +178,31 @@ float sdTorusKnot(vec3 p, vec3 center) {
   }
 
   float minDist = 1.0e6;
-  const int segments = 64;       // Number of line segments approximating the curve
-  const float radius = 0.17;     // Major radius R of the torus
-  const float tube = 0.045;      // Tube thickness (Minkowski sum radius)
-  const float p_knot = 2.0;      // Number of times curve goes through the hole
-  const float q_knot = 3.0;      // Number of times curve winds around the torus
+  const int segments = 64; // Number of line segments approximating the curve
+  const float radius = 0.17; // Major radius R of the torus
+  const float tube = 0.045; // Tube thickness (Minkowski sum radius)
+  const float p_knot = 2.0; // Number of times curve goes through the hole
+  const float q_knot = 3.0; // Number of times curve winds around the torus
 
   vec3 prevPt = vec3(0.0);
   for (int i = 0; i <= segments; i++) {
     // θ ranges from 0 to 2π as i goes from 0 to segments
-    float theta = (float(i) / float(segments)) * 6.283185307179586; // 2π
+    float theta = float(i) / float(segments) * 6.283185307179586; // 2π
 
     // Compute point on the knot curve at parameter θ
-    float rad = radius * (2.0 + cos(q_knot * theta)) * 0.5;  // Varying radius
+    float rad = radius * (2.0 + cos(q_knot * theta)) * 0.5; // Varying radius
     vec3 pt = vec3(
-      rad * cos(p_knot * theta),             // x
-      -radius * sin(q_knot * theta) * 0.5,   // y (inverted for visual orientation)
-      rad * sin(p_knot * theta)              // z
+      rad * cos(p_knot * theta), // x
+      -radius * sin(q_knot * theta) * 0.5, // y (inverted for visual orientation)
+      rad * sin(p_knot * theta) // z
     );
 
     if (i > 0) {
       // Point-to-line-segment distance calculation
-      vec3 ba = pt - prevPt;                           // Segment vector (B - A)
-      vec3 pa = pos - prevPt;                          // Vector from A to query point
-      float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);  // Projection parameter [0,1]
-      float d = length(pa - ba * h);                   // Distance to closest point on segment
+      vec3 ba = pt - prevPt; // Segment vector (B - A)
+      vec3 pa = pos - prevPt; // Vector from A to query point
+      float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); // Projection parameter [0,1]
+      float d = length(pa - ba * h); // Distance to closest point on segment
       minDist = min(minDist, d);
     }
     prevPt = pt;
@@ -244,23 +239,23 @@ float sdTorusKnot(vec3 p, vec3 center) {
 float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
   // First, find where ray enters the bounding sphere
   float t_bound = intersectSphereBounds(origin, ray, center, 0.31);
-  if (t_bound > 1.0e5) return 1.0e6;  // Ray misses bounding sphere entirely
+  if (t_bound > 1.0e5) return 1.0e6; // Ray misses bounding sphere entirely
 
-  float t = t_bound;  // Start marching from bounding sphere entry
+  float t = t_bound; // Start marching from bounding sphere entry
   for (int i = 0; i < 30; i++) {
     vec3 p = origin + ray * t;
     float d = sdTorusKnot(p, center);
 
     if (d < 0.001) {
-      return t;  // Close enough to surface - we've hit it
+      return t; // Close enough to surface - we've hit it
     }
 
-    t += d;  // Safe step: advance by SDF distance
+    t += d; // Safe step: advance by SDF distance
 
     // Stop if we've marched too far (exited bounding region)
     if (t > t_bound + 0.5) break;
   }
-  return 1.0e6;  // No intersection found
+  return 1.0e6; // No intersection found
 }
 
 /**
@@ -268,39 +263,41 @@ float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
  */
 float torusKnotOcclusion(vec3 origin, vec3 direction) {
   float hit = intersectTorusKnot(origin, direction, torusKnotCenter);
-  return hit < 1.0e5 ? 1.0 : 0.0;
+  return hit < 1.0e5
+    ? 1.0
+    : 0.0;
 }
 
 void main() {
   /**
-   * CAUSTICS INTENSITY CALCULATION via Differential Area Comparison
-   *
-   * The physical basis: energy conservation. Light energy in a beam is constant,
-   * but when the beam's cross-sectional area changes (due to refraction), the
-   * intensity (energy per unit area) must change inversely.
-   *
-   * MATHEMATICAL APPROACH:
-   * We use GPU screen-space derivatives (dFdx, dFdy) to measure how positions
-   * change across neighboring pixels. For a grid of parallel rays:
-   *
-   *   oldPos: Where rays hit if water were flat (regular grid)
-   *   newPos: Where rays hit after refracting through waves (distorted grid)
-   *
-   * The derivative gives us the Jacobian of this mapping:
-   *   J = | ∂newPos/∂x  ∂newPos/∂y |
-   *       | ∂newPos/∂x  ∂newPos/∂y |
-   *
-   * Area ratio ≈ |det(J_old)| / |det(J_new)|
-   * For simplicity, we approximate this as (length of sides).
-   *
-   * When waves FOCUS light (convex lens effect):
-   *   - newArea shrinks as rays converge
-   *   - oldArea / newArea becomes large → bright caustic
-   *
-   * When waves SPREAD light (concave lens effect):
-   *   - newArea expands as rays diverge
-   *   - oldArea / newArea becomes small → dim area
-   */
+ * * CAUSTICS INTENSITY CALCULATION via Differential Area Comparison
+ *    *
+ *    * The physical basis: energy conservation. Light energy in a beam is constant,
+ *    * but when the beam's cross-sectional area changes (due to refraction), the
+ *    * intensity (energy per unit area) must change inversely.
+ *    *
+ *    * MATHEMATICAL APPROACH:
+ *    * We use GPU screen-space derivatives (dFdx, dFdy) to measure how positions
+ *    * change across neighboring pixels. For a grid of parallel rays:
+ *    *
+ *    *   oldPos: Where rays hit if water were flat (regular grid)
+ *    *   newPos: Where rays hit after refracting through waves (distorted grid)
+ *    *
+ *    * The derivative gives us the Jacobian of this mapping:
+ *    *   J = | ∂newPos/∂x  ∂newPos/∂y |
+ *    *       | ∂newPos/∂x  ∂newPos/∂y |
+ *    *
+ *    * Area ratio ≈ |det(J_old)| / |det(J_new)|
+ *    * For simplicity, we approximate this as (length of sides).
+ *    *
+ *    * When waves FOCUS light (convex lens effect):
+ *    *   - newArea shrinks as rays converge
+ *    *   - oldArea / newArea becomes large → bright caustic
+ *    *
+ *    * When waves SPREAD light (concave lens effect):
+ *    *   - newArea expands as rays diverge
+ *    *   - oldArea / newArea becomes small → dim area
+ */
   float oldArea = length(dFdx(oldPos)) * length(dFdy(oldPos));
   float newArea = length(dFdx(newPos)) * length(dFdy(newPos));
 
@@ -312,32 +309,32 @@ void main() {
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
 
   /**
-   * SHADOW/OCCLUSION CALCULATION
-   *
-   * Objects in the water block light rays, creating shadows on the pool floor.
-   * We store the shadow factor in the Green channel (1.0 = fully lit, 0.0 = full shadow).
-   *
-   * Different techniques are used based on object type:
-   * - Sphere: Analytical soft shadow using cross-product area calculation
-   * - Cube: Multi-sample ray-box intersection tests
-   * - Complex meshes: Pre-rendered shadow map with PCF filtering
-   */
+ * * SHADOW/OCCLUSION CALCULATION
+ *    *
+ *    * Objects in the water block light rays, creating shadows on the pool floor.
+ *    * We store the shadow factor in the Green channel (1.0 = fully lit, 0.0 = full shadow).
+ *    *
+ *    * Different techniques are used based on object type:
+ *    * - Sphere: Analytical soft shadow using cross-product area calculation
+ *    * - Cube: Multi-sample ray-box intersection tests
+ *    * - Complex meshes: Pre-rendered shadow map with PCF filtering
+ */
   if (sphereEnabled) {
     /**
-     * ANALYTICAL SPHERE SOFT SHADOW
-     *
-     * This technique computes a soft shadow penumbra analytically, avoiding
-     * multi-sample noise while still producing smooth shadow edges.
-     *
-     * Method:
-     * 1. Compute vector from surface point to sphere center (normalized by radius)
-     * 2. Cross product with light direction gives "perpendicular area"
-     * 3. This area metric indicates how much of the sphere subtends the light
-     * 4. Sigmoid smoothstep creates smooth penumbra transition
-     */
-    vec3 dir = (sphereCenter - newPos) / sphereRadius;  // Vector to sphere, in radius units
-    vec3 area = cross(dir, refractedLight);              // Perpendicular to both
-    float shadow = dot(area, area);                      // Squared area metric
+ * * ANALYTICAL SPHERE SOFT SHADOW
+ *      *
+ *      * This technique computes a soft shadow penumbra analytically, avoiding
+ *      * multi-sample noise while still producing smooth shadow edges.
+ *      *
+ *      * Method:
+ *      * 1. Compute vector from surface point to sphere center (normalized by radius)
+ *      * 2. Cross product with light direction gives "perpendicular area"
+ *      * 3. This area metric indicates how much of the sphere subtends the light
+ *      * 4. Sigmoid smoothstep creates smooth penumbra transition
+ */
+    vec3 dir = (sphereCenter - newPos) / sphereRadius; // Vector to sphere, in radius units
+    vec3 area = cross(dir, refractedLight); // Perpendicular to both
+    float shadow = dot(area, area); // Squared area metric
 
     // Distance along light direction (positive = sphere is "above" in light direction)
     float dist = dot(dir, -refractedLight);
@@ -354,53 +351,52 @@ void main() {
 
   } else if (cubeEnabled) {
     /**
-     * MULTI-SAMPLE CUBE SOFT SHADOW (3x3 = 9 samples)
-     *
-     * For boxes, we can't easily compute analytical soft shadows due to the
-     * sharp corners. Instead, we use stochastic sampling:
-     *
-     * 1. Create an orthonormal basis perpendicular to the light direction
-     * 2. Sample 9 points in a grid pattern around the surface point
-     * 3. Test each sample ray against the cube
-     * 4. Average results for soft shadow approximation
-     *
-     * This is essentially a simple form of Percentage Closer Soft Shadows (PCSS).
-     */
-    vec3 shadowRay = -refractedLight;  // Direction toward light
+ * * MULTI-SAMPLE CUBE SOFT SHADOW (3x3 = 9 samples)
+ *      *
+ *      * For boxes, we can't easily compute analytical soft shadows due to the
+ *      * sharp corners. Instead, we use stochastic sampling:
+ *      *
+ *      * 1. Create an orthonormal basis perpendicular to the light direction
+ *      * 2. Sample 9 points in a grid pattern around the surface point
+ *      * 3. Test each sample ray against the cube
+ *      * 4. Average results for soft shadow approximation
+ *      *
+ *      * This is essentially a simple form of Percentage Closer Soft Shadows (PCSS).
+ */
+    vec3 shadowRay = -refractedLight; // Direction toward light
 
     // Build orthonormal basis for sampling plane perpendicular to light
     vec3 right = normalize(cross(shadowRay, vec3(0.0, 1.0, 0.0)));
     vec3 up = normalize(cross(right, shadowRay));
 
     float occlusion = 0.0;
-    const float spread = 0.025;  // Sampling spread (controls penumbra width)
+    const float spread = 0.025; // Sampling spread (controls penumbra width)
 
     // 3x3 grid of samples
     for (int x = -1; x <= 1; x++) {
       for (int y = -1; y <= 1; y++) {
-        vec3 sampleOrigin = newPos
-          + right * float(x) * spread
-          + up * float(y) * spread;
+        vec3 sampleOrigin = newPos + right * float(x) * spread + up * float(y) * spread;
         occlusion += cubeOcclusion(sampleOrigin, shadowRay);
       }
     }
-    gl_FragColor.g = 1.0 - occlusion / 9.0;  // Average: 0/9=fully lit, 9/9=fully shadowed
+    gl_FragColor.g = 1.0 - occlusion / 9.0; // Average: 0/9=fully lit, 9/9=fully shadowed
 
   } else if (torusKnotEnabled || meshEnabled) {
     /**
-     * SHADOW MAP LOOKUP WITH PCF (Percentage-Closer Filtering)
-     *
-     * Complex geometry uses a pre-rendered shadow map. PCF samples the
-     * shadow map at multiple offsets and averages, creating soft edges.
-     *
-     * Shadow UV calculation:
-     *   Project the 3D point onto the shadow map plane using the light direction.
-     *   UV = (point.xz - point.y * light.xz/light.y) -- projection formula
-     *
-     * The 0.75 scaling and 0.5+0.5 offset map world [-1,1] to texture [0,1].
-     */
-    vec2 shadowUV = 0.75 * (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5;
-    const float d = 4.0 / 1024.0;  // Texel offset for 1024x1024 shadow map
+ * * SHADOW MAP LOOKUP WITH PCF (Percentage-Closer Filtering)
+ *      *
+ *      * Complex geometry uses a pre-rendered shadow map. PCF samples the
+ *      * shadow map at multiple offsets and averages, creating soft edges.
+ *      *
+ *      * Shadow UV calculation:
+ *      *   Project the 3D point onto the shadow map plane using the light direction.
+ *      *   UV = (point.xz - point.y * light.xz/light.y) -- projection formula
+ *      *
+ *      * The 0.75 scaling and 0.5+0.5 offset map world [-1,1] to texture [0,1].
+ */
+    vec2 shadowUV =
+      0.75 * (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5;
+    const float d = 4.0 / 1024.0; // Texel offset for 1024x1024 shadow map
 
     // 9-tap PCF kernel (center + 8 neighbors)
     float occlusion = texture2D(objectShadowTex, shadowUV).r;
@@ -412,27 +408,35 @@ void main() {
     occlusion += texture2D(objectShadowTex, shadowUV + vec2(-d, d)).r;
     occlusion += texture2D(objectShadowTex, shadowUV + vec2(d, -d)).r;
     occlusion += texture2D(objectShadowTex, shadowUV + vec2(-d, -d)).r;
-    gl_FragColor.g = 1.0 - 0.8 * occlusion / 9.0;  // 0.8 factor softens shadow intensity
+    gl_FragColor.g = 1.0 - 0.8 * occlusion / 9.0; // 0.8 factor softens shadow intensity
 
   } else {
-    gl_FragColor.g = 1.0;  // No objects - fully lit
+    gl_FragColor.g = 1.0; // No objects - fully lit
   }
 
   /**
-   * EDGE FADEOUT (Anti-Aliasing at Pool Boundaries)
-   *
-   * Caustics should fade smoothly near the water surface line to avoid
-   * hard seams where the underwater tiles meet the air. This uses a
-   * sigmoid function to create a smooth transition zone.
-   *
-   * The calculation:
-   * 1. Trace a ray from the surface point toward the light
-   * 2. Find where this ray exits the pool bounds
-   * 3. If the exit point is near the water surface (Y ≈ 0), fade out
-   *
-   * The sigmoid 1/(1 + e^(-x)) maps the distance to a smooth [0,1] range.
-   * The constants (200.0, 10.0, 2.0/12.0) are tuned for visual appearance.
-   */
-  vec2 t = intersectCube(newPos, -refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-  gl_FragColor.r *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (newPos.y - refractedLight.y * t.y - 2.0 / 12.0)));
+ * * EDGE FADEOUT (Anti-Aliasing at Pool Boundaries)
+ *    *
+ *    * Caustics should fade smoothly near the water surface line to avoid
+ *    * hard seams where the underwater tiles meet the air. This uses a
+ *    * sigmoid function to create a smooth transition zone.
+ *    *
+ *    * The calculation:
+ *    * 1. Trace a ray from the surface point toward the light
+ *    * 2. Find where this ray exits the pool bounds
+ *    * 3. If the exit point is near the water surface (Y ≈ 0), fade out
+ *    *
+ *    * The sigmoid 1/(1 + e^(-x)) maps the distance to a smooth [0,1] range.
+ *    * The constants (200.0, 10.0, 2.0/12.0) are tuned for visual appearance.
+ */
+  vec2 t = intersectCube(
+    newPos,
+    -refractedLight,
+    vec3(-1.0, -poolHeight, -1.0),
+    vec3(1.0, 2.0, 1.0)
+  );
+  gl_FragColor.r *=
+    1.0 /
+    (1.0 +
+      exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (newPos.y - refractedLight.y * t.y - 2.0 / 12.0)));
 }
