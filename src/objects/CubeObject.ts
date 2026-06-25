@@ -11,7 +11,9 @@ export class CubeObject implements SimulationObject {
   readonly halfSize = new THREE.Vector3(0.25, 0.25, 0.25)
   readonly position = new THREE.Vector3(-0.4, this.halfSize.y - 1, 0.2)
   readonly velocity = new THREE.Vector3()
-  readonly floorY = this.halfSize.y - 1
+  floorY(poolHeight: number) {
+    return this.halfSize.y - poolHeight
+  }
   readonly displacement = new BoxWaterDisplacement(this.halfSize)
   readonly optics = {
     kind: 'box' as const,
@@ -34,6 +36,7 @@ export class CubeObject implements SimulationObject {
         cubeCenter: { value: this.position.clone() },
         cubeHalfSize: { value: this.halfSize.clone() },
         poolWidth: { value: 1.0 },
+        poolHeight: { value: 1.0 },
         poolLength: { value: 1.0 },
         water: { value: null },
         causticTex: { value: resources.causticTexture },
@@ -87,7 +90,7 @@ export class CubeObject implements SimulationObject {
       }
       this.position.addScaledVector(this.velocity, seconds)
 
-      const floor = this.halfSize.y - 1
+      const floor = this.halfSize.y - context.poolHeight
       if (this.position.y < floor) {
         this.position.y = floor
         this.velocity.y = Math.abs(this.velocity.y) * 0.7
@@ -108,7 +111,7 @@ export class CubeObject implements SimulationObject {
     return new THREE.Ray(origin, direction).intersectBox(this.bounds, new THREE.Vector3())
   }
 
-  moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolLength = 1.0) {
+  moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
     const limitX = poolWidth - this.halfSize.x
     const limitZ = poolLength - this.halfSize.z
     this.position.add(delta)
@@ -117,7 +120,7 @@ export class CubeObject implements SimulationObject {
       -limitX,
       limitX
     )
-    this.position.y = THREE.MathUtils.clamp(this.position.y, this.halfSize.y - 1, 10)
+    this.position.y = THREE.MathUtils.clamp(this.position.y, this.halfSize.y - poolHeight, 10)
     this.position.z = THREE.MathUtils.clamp(
       this.position.z,
       -limitZ,
@@ -125,12 +128,13 @@ export class CubeObject implements SimulationObject {
     )
   }
 
-  prepareRender(water: Water, poolWidth = 1.0, poolLength = 1.0) {
+  prepareRender(water: Water, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
     this.material.uniforms.water.value = water.textureA.texture
     this.material.uniforms.light.value.copy(this.resources.lightDirection)
     this.material.uniforms.cubeCenter.value.copy(this.position)
     this.material.uniforms.cubeHalfSize.value.copy(this.halfSize)
     this.material.uniforms.poolWidth.value = poolWidth
+    this.material.uniforms.poolHeight.value = poolHeight
     this.material.uniforms.poolLength.value = poolLength
     this.material.uniformsNeedUpdate = true
   }

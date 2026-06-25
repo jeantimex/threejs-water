@@ -7,6 +7,7 @@ export interface SimulationControlCallbacks {
   onPoolShapeChange?(shape: string): void
   onCornerRadiusChange?(radius: number): void
   onPoolWidthChange?(width: number): void
+  onPoolHeightChange?(height: number): void
   onPoolLengthChange?(length: number): void
 }
 
@@ -19,6 +20,7 @@ export class SimulationControls {
   poolShape = 'Box'
   cornerRadius = 0.1
   poolWidth = 1.0
+  poolHeight = 1.0
   poolLength = 1.0
 
   private readonly state = {
@@ -31,6 +33,7 @@ export class SimulationControls {
     poolShape: 'Box',
     cornerRadius: 0.1,
     poolWidth: 1.0,
+    poolHeight: 1.0,
     poolLength: 1.0,
   }
   private readonly gravityController: Controller
@@ -39,6 +42,7 @@ export class SimulationControls {
   private readonly pausedController: Controller
   private readonly cornerRadiusController: Controller
   private readonly poolWidthController: Controller
+  private readonly poolHeightController: Controller
   private readonly poolLengthController: Controller
   private physicsAvailable = true
 
@@ -121,6 +125,13 @@ export class SimulationControls {
         callbacks.onPoolWidthChange?.(width)
       })
 
+    this.poolHeightController = poolFolder.add(this.state, 'poolHeight', 0.3, 2.0, 0.05)
+      .name('Pool Depth')
+      .onChange((height: number) => {
+        this.poolHeight = height
+        callbacks.onPoolHeightChange?.(height)
+      })
+
     this.poolLengthController = poolFolder.add(this.state, 'poolLength', 0.5, 3.0, 0.05)
       .name('Pool Length')
       .onChange((length: number) => {
@@ -160,10 +171,12 @@ export class SimulationControls {
     if (this.state.poolShape === 'Rounded Box') {
       this.cornerRadiusController.show()
       this.poolWidthController.show()
+      this.poolHeightController.show()
       this.poolLengthController.show()
     } else {
       this.cornerRadiusController.hide()
       this.poolWidthController.hide()
+      this.poolHeightController.hide()
       this.poolLengthController.hide()
     }
   }

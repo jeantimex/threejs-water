@@ -2,7 +2,6 @@ precision highp float;
 
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
-const float poolHeight = 1.0;
 
 uniform vec3 light;
 uniform vec3 sphereCenter;
@@ -20,6 +19,7 @@ uniform sampler2D objectShadowTex;
 
 uniform float cornerRadius;
 uniform float poolWidth;
+uniform float poolHeight;
 uniform float poolLength;
 
 varying vec3 oldPos;
@@ -136,7 +136,7 @@ vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
   float tYNear = -1.0e6;
   float tYFar = 1.0e6;
   if (abs(ray.y) > 1.0e-7) {
-    float tYMin = (-1.0 - origin.y) / ray.y;
+    float tYMin = (-poolHeight - origin.y) / ray.y;
     float tYMax = (2.0 - origin.y) / ray.y;
     tYNear = min(tYMin, tYMax);
     tYFar = max(tYMin, tYMax);

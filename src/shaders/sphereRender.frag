@@ -8,6 +8,7 @@ uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
 uniform float poolWidth;
+uniform float poolHeight;
 uniform float poolLength;
 uniform sampler2D water;
 uniform sampler2D causticTex;
@@ -18,7 +19,7 @@ vec3 getSphereColor(vec3 point) {
   vec3 color = vec3(0.5);
   color *= 1.0 - 0.9 / pow((poolWidth + sphereRadius - abs(point.x)) / sphereRadius, 3.0);
   color *= 1.0 - 0.9 / pow((poolLength + sphereRadius - abs(point.z)) / sphereRadius, 3.0);
-  color *= 1.0 - 0.9 / pow((point.y + 1.0 + sphereRadius) / sphereRadius, 3.0);
+  color *= 1.0 - 0.9 / pow((point.y + poolHeight + sphereRadius) / sphereRadius, 3.0);
 
   vec3 sphereNormal = (point - sphereCenter) / sphereRadius;
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);

@@ -2,13 +2,12 @@ precision highp float;
 
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
-const float poolHeight = 1.0;
-
 uniform vec3 light;
 uniform sampler2D water;
 
 uniform float cornerRadius;
 uniform float poolWidth;
+uniform float poolHeight;
 uniform float poolLength;
 
 varying vec3 oldPos;
@@ -125,7 +124,7 @@ vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
   float tYNear = -1.0e6;
   float tYFar = 1.0e6;
   if (abs(ray.y) > 1.0e-7) {
-    float tYMin = (-1.0 - origin.y) / ray.y;
+    float tYMin = (-poolHeight - origin.y) / ray.y;
     float tYMax = (2.0 - origin.y) / ray.y;
     tYNear = min(tYMin, tYMax);
     tYFar = max(tYMin, tYMax);
@@ -139,7 +138,7 @@ vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
 vec3 project(vec3 origin, vec3 r, vec3 refractedLight) {
   vec2 tcube = intersectRoundedBox(origin, r, cornerRadius);
   origin += r * tcube.y;
-  float tplane = (-origin.y - 1.0) / refractedLight.y;
+  float tplane = (-origin.y - poolHeight) / refractedLight.y;
   return origin + refractedLight * tplane;
 }
 

@@ -11,7 +11,9 @@ export class SphereObject implements SimulationObject {
   readonly position = new THREE.Vector3(-0.4, -0.75, 0.2)
   readonly velocity = new THREE.Vector3()
   readonly interactionRadius = 0.25
-  readonly floorY = this.interactionRadius - 1
+  floorY(poolHeight: number) {
+    return this.interactionRadius - poolHeight
+  }
   readonly displacement = new SphereWaterDisplacement(this.interactionRadius)
   readonly optics = {
     kind: 'sphere' as const,
@@ -33,6 +35,7 @@ export class SphereObject implements SimulationObject {
         sphereCenter: { value: this.position.clone() },
         sphereRadius: { value: this.interactionRadius },
         poolWidth: { value: 1.0 },
+        poolHeight: { value: 1.0 },
         poolLength: { value: 1.0 },
         water: { value: null },
         causticTex: { value: resources.causticTexture },
@@ -81,8 +84,8 @@ export class SphereObject implements SimulationObject {
       }
       this.position.addScaledVector(this.velocity, seconds)
 
-      if (this.position.y < radius - 1) {
-        this.position.y = radius - 1
+      if (this.position.y < radius - context.poolHeight) {
+        this.position.y = radius - context.poolHeight
         this.velocity.y = Math.abs(this.velocity.y) * 0.7
       }
     }
@@ -107,22 +110,23 @@ export class SphereObject implements SimulationObject {
       : null
   }
 
-  moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolLength = 1.0) {
+  moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
     const radius = this.interactionRadius
     const limitX = poolWidth - radius
     const limitZ = poolLength - radius
     this.position.add(delta)
     this.position.x = THREE.MathUtils.clamp(this.position.x, -limitX, limitX)
-    this.position.y = THREE.MathUtils.clamp(this.position.y, radius - 1, 10)
+    this.position.y = THREE.MathUtils.clamp(this.position.y, radius - poolHeight, 10)
     this.position.z = THREE.MathUtils.clamp(this.position.z, -limitZ, limitZ)
   }
 
-  prepareRender(water: Water, poolWidth = 1.0, poolLength = 1.0) {
+  prepareRender(water: Water, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
     this.material.uniforms.water.value = water.textureA.texture
     this.material.uniforms.light.value.copy(this.resources.lightDirection)
     this.material.uniforms.sphereCenter.value.copy(this.position)
     this.material.uniforms.sphereRadius.value = this.interactionRadius
     this.material.uniforms.poolWidth.value = poolWidth
+    this.material.uniforms.poolHeight.value = poolHeight
     this.material.uniforms.poolLength.value = poolLength
     this.material.uniformsNeedUpdate = true
   }

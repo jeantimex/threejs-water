@@ -1,13 +1,13 @@
 import * as THREE from 'three'
 
-export function createRoundedBoxPoolGeometry(R: number, poolWidth: number, poolLength: number): THREE.BufferGeometry {
+export function createRoundedBoxPoolGeometry(R: number, poolWidth: number, poolHeight: number, poolLength: number): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry()
 
   const positions: number[] = []
   const normals: number[] = []
   const indices: number[] = []
 
-  const yFloor = -1.0
+  const yFloor = -poolHeight
   const yRim = 2.0 / 12.0
   const rSubX = poolWidth - R
   const rSubZ = poolLength - R

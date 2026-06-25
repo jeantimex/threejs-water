@@ -4,7 +4,6 @@ const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
 const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);
 const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
-const float poolHeight = 1.0;
 const float torusKnotShadowRadius = 0.13;
 
 uniform vec3 light;
@@ -33,6 +32,7 @@ uniform mat4 reflectionViewProjectionMatrix;
 
 uniform float cornerRadius;
 uniform float poolWidth;
+uniform float poolHeight;
 uniform float poolLength;
 
 varying vec3 vPosition;
@@ -147,7 +147,7 @@ vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
   float tYNear = -1.0e6;
   float tYFar = 1.0e6;
   if (abs(ray.y) > 1.0e-7) {
-    float tYMin = (-1.0 - origin.y) / ray.y;
+    float tYMin = (-poolHeight - origin.y) / ray.y;
     float tYMax = (2.0 - origin.y) / ray.y;
     tYNear = min(tYMin, tYMax);
     tYFar = max(tYMin, tYMax);
@@ -162,7 +162,7 @@ void getRoundedBoxNormalAndUV(vec3 point, float R, out vec3 normal, out vec2 uv)
   float r_sub_x = poolWidth - R;
   float r_sub_z = poolLength - R;
   
-  if (point.y < -0.999) {
+  if (point.y < -poolHeight + 0.001) {
     normal = vec3(0.0, 1.0, 0.0);
     uv = point.xz * 0.5 + 0.5;
     return;

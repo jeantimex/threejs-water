@@ -39,7 +39,7 @@ export class PoolPass {
     this.mesh.frustumCulled = false
   }
 
-  setPoolShape(shape: string, cornerRadius: number, poolWidth: number, poolLength: number) {
+  setPoolShape(shape: string, cornerRadius: number, poolWidth: number, poolHeight: number, poolLength: number) {
     if (shape === 'Box') {
       this.mesh.geometry = this.boxGeometry
       this.mesh.material = this.boxMaterial
@@ -47,7 +47,7 @@ export class PoolPass {
       if (this.roundedBoxGeometry) {
         this.roundedBoxGeometry.dispose()
       }
-      this.roundedBoxGeometry = createRoundedBoxPoolGeometry(cornerRadius, poolWidth, poolLength)
+      this.roundedBoxGeometry = createRoundedBoxPoolGeometry(cornerRadius, poolWidth, poolHeight, poolLength)
       
       if (!this.roundedBoxMaterial) {
         this.roundedBoxMaterial = new THREE.ShaderMaterial({
@@ -61,6 +61,7 @@ export class PoolPass {
             water: { value: null },
             cornerRadius: { value: cornerRadius },
             poolWidth: { value: poolWidth },
+            poolHeight: { value: poolHeight },
             poolLength: { value: poolLength },
           },
           side: THREE.FrontSide,
@@ -70,6 +71,7 @@ export class PoolPass {
       } else {
         this.roundedBoxMaterial.uniforms.cornerRadius.value = cornerRadius
         this.roundedBoxMaterial.uniforms.poolWidth.value = poolWidth
+        this.roundedBoxMaterial.uniforms.poolHeight.value = poolHeight
         this.roundedBoxMaterial.uniforms.poolLength.value = poolLength
       }
 

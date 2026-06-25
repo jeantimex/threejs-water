@@ -52,19 +52,23 @@ export class WaterApp {
         if (this.controls.paused) this.draw()
       },
       onPoolShapeChange: (shape) => {
-        this.renderer.setPoolShape(shape, this.controls.cornerRadius, this.controls.poolWidth, this.controls.poolLength)
+        this.renderer.setPoolShape(shape, this.controls.cornerRadius, this.controls.poolWidth, this.controls.poolHeight, this.controls.poolLength)
         if (this.controls.paused) this.draw()
       },
       onCornerRadiusChange: (radius) => {
-        this.renderer.setPoolShape(this.controls.poolShape, radius, this.controls.poolWidth, this.controls.poolLength)
+        this.renderer.setPoolShape(this.controls.poolShape, radius, this.controls.poolWidth, this.controls.poolHeight, this.controls.poolLength)
         if (this.controls.paused) this.draw()
       },
       onPoolWidthChange: (width) => {
-        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, width, this.controls.poolLength)
+        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, width, this.controls.poolHeight, this.controls.poolLength)
+        if (this.controls.paused) this.draw()
+      },
+      onPoolHeightChange: (height) => {
+        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, this.controls.poolWidth, height, this.controls.poolLength)
         if (this.controls.paused) this.draw()
       },
       onPoolLengthChange: (length) => {
-        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, this.controls.poolWidth, length)
+        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, this.controls.poolWidth, this.controls.poolHeight, length)
         if (this.controls.paused) this.draw()
       },
     })
@@ -113,6 +117,7 @@ export class WaterApp {
 
     this.interaction.update(seconds)
     const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
+    const poolHeight = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolHeight
     const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
     this.objects.update(seconds, {
       dragging: this.interaction.draggingObject,
@@ -121,6 +126,7 @@ export class WaterApp {
       density: this.controls.density,
       gravity: this.gravity,
       poolWidth,
+      poolHeight,
       poolLength,
     }, this.water)
 
@@ -134,8 +140,9 @@ export class WaterApp {
     this.interaction.preparePausedDraw()
     this.cameraController.apply(this.camera)
     const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
+    const poolHeight = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolHeight
     const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
-    this.objects.prepareRender(this.water, poolWidth, poolLength)
+    this.objects.prepareRender(this.water, poolWidth, poolHeight, poolLength)
     this.renderer.updateObjectTextures(this.scene, this.camera, this.objects.active?.mesh ?? null)
     this.renderer.updateCaustics(this.water)
     this.renderer.renderPool(this.water)
@@ -155,7 +162,8 @@ export class WaterApp {
   }
 
   private selectSimulationObject = (name: string) => {
-    this.objects.select(name, this.water)
+    const poolHeight = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolHeight
+    this.objects.select(name, this.water, poolHeight)
     this.renderer.setWaterOptics(this.objects.optics)
     this.interaction.cancelDrag()
     this.controls.setPhysicsAvailable(name !== NO_OBJECT)

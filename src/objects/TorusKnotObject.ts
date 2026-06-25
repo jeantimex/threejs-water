@@ -12,7 +12,9 @@ export class TorusKnotObject implements SimulationObject {
   readonly floorClearance = 0.13
   readonly position = new THREE.Vector3(-0.4, this.floorClearance - 1, 0.2)
   readonly velocity = new THREE.Vector3()
-  readonly floorY = this.floorClearance - 1
+  floorY(poolHeight: number) {
+    return this.floorClearance - poolHeight
+  }
   readonly displacement: CompoundSphereWaterDisplacement
   readonly optics = {
     kind: 'mesh' as const,
@@ -35,6 +37,7 @@ export class TorusKnotObject implements SimulationObject {
         light: { value: resources.lightDirection.clone() },
         torusKnotCenter: { value: this.position.clone() },
         poolWidth: { value: 1.0 },
+        poolHeight: { value: 1.0 },
         poolLength: { value: 1.0 },
         water: { value: null },
         causticTex: { value: resources.causticTexture },
@@ -114,7 +117,7 @@ export class TorusKnotObject implements SimulationObject {
       }
       this.position.addScaledVector(this.velocity, seconds)
 
-      const floor = this.floorClearance - 1
+      const floor = this.floorClearance - context.poolHeight
       if (this.position.y < floor) {
         this.position.y = floor
         this.velocity.y = Math.abs(this.velocity.y) * 0.7
@@ -138,22 +141,23 @@ export class TorusKnotObject implements SimulationObject {
     return null
   }
 
-  moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolLength = 1.0) {
+  moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
     const radius = this.boundingRadius
     const limitX = poolWidth - radius
     const limitZ = poolLength - radius
     this.position.add(delta)
     this.position.x = THREE.MathUtils.clamp(this.position.x, -limitX, limitX)
-    this.position.y = THREE.MathUtils.clamp(this.position.y, this.floorClearance - 1, 10)
+    this.position.y = THREE.MathUtils.clamp(this.position.y, this.floorClearance - poolHeight, 10)
     this.position.z = THREE.MathUtils.clamp(this.position.z, -limitZ, limitZ)
     this.mesh.position.copy(this.position)
   }
 
-  prepareRender(water: Water, poolWidth = 1.0, poolLength = 1.0) {
+  prepareRender(water: Water, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
     this.material.uniforms.water.value = water.textureA.texture
     this.material.uniforms.light.value.copy(this.resources.lightDirection)
     this.material.uniforms.torusKnotCenter.value.copy(this.position)
     this.material.uniforms.poolWidth.value = poolWidth
+    this.material.uniforms.poolHeight.value = poolHeight
     this.material.uniforms.poolLength.value = poolLength
     this.material.uniformsNeedUpdate = true
   }

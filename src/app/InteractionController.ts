@@ -109,6 +109,7 @@ export class InteractionController {
   private duringDrag(x: number, y: number, time: number) {
     const { water, renderer, objects, cameraController, controls, draw } = this.dependencies
     const poolWidth = controls.poolShape === 'Box' ? 1.0 : controls.poolWidth
+    const poolHeight = controls.poolShape === 'Box' ? 1.0 : controls.poolHeight
     const poolLength = controls.poolShape === 'Box' ? 1.0 : controls.poolLength
 
     if (this.mode === InteractionMode.AddDrops) {
@@ -125,7 +126,7 @@ export class InteractionController {
       const distance = -this.dragPlaneNormal.dot(origin.clone().sub(this.previousHit))
         / this.dragPlaneNormal.dot(direction)
       const nextHit = origin.clone().addScaledVector(direction, distance)
-      objects.active.moveBy(nextHit.clone().sub(this.previousHit), poolWidth, poolLength)
+      objects.active.moveBy(nextHit.clone().sub(this.previousHit), poolWidth, poolHeight, poolLength)
       renderer.setWaterOptics(objects.optics)
       this.previousHit = nextHit
       if (controls.paused) renderer.updateCaustics(water)
