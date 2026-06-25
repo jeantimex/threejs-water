@@ -40,7 +40,7 @@ export class SimulationObjectRegistry {
     return this.activeObject?.optics ?? NO_WATER_OPTICS
   }
 
-  select(name: string, water: Water, poolHeight = 1.0) {
+  select(name: string, water: Water, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
     const nextObject = name === NO_OBJECT ? null : this.objects.get(name)
     if (name !== NO_OBJECT && !nextObject) {
       throw new Error(`Unknown simulation object "${name}"`)
@@ -55,6 +55,7 @@ export class SimulationObjectRegistry {
     if (this.activeObject) {
       this.activeObject.position.copy(this.sharedPosition)
       this.activeObject.position.y = Math.max(this.activeObject.position.y, this.activeObject.floorY(poolHeight))
+      this.activeObject.moveBy(new THREE.Vector3(0, 0, 0), poolWidth, poolHeight, poolLength)
       this.activeObject.setEnabled(true, water)
     }
   }

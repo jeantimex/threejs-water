@@ -52,7 +52,19 @@ export class WaterApp {
         if (this.controls.paused) this.draw()
       },
       onPoolShapeChange: (shape) => {
-        this.renderer.setPoolShape(shape, this.controls.cornerRadius, this.controls.poolWidth, this.controls.poolHeight, this.controls.poolLength)
+        const poolWidth = shape === 'Box' ? 1.0 : this.controls.poolWidth
+        const poolHeight = shape === 'Box' ? 1.0 : this.controls.poolHeight
+        const poolLength = shape === 'Box' ? 1.0 : this.controls.poolLength
+        this.renderer.setPoolShape(shape, this.controls.cornerRadius, poolWidth, poolHeight, poolLength)
+        if (this.objects.active) {
+          const floor = this.objects.active.floorY(poolHeight)
+          if (this.objects.active.position.y < floor) {
+            this.objects.active.position.y = floor
+            this.objects.active.velocity.y = 0
+          }
+          this.objects.active.moveBy(new THREE.Vector3(0, 0, 0), poolWidth, poolHeight, poolLength)
+          this.objects.active.syncPreviousPosition()
+        }
         if (this.controls.paused) this.draw()
       },
       onCornerRadiusChange: (radius) => {
@@ -185,8 +197,10 @@ export class WaterApp {
   }
 
   private selectSimulationObject = (name: string) => {
+    const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
     const poolHeight = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolHeight
-    this.objects.select(name, this.water, poolHeight)
+    const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
+    this.objects.select(name, this.water, poolWidth, poolHeight, poolLength)
     this.renderer.setWaterOptics(this.objects.optics)
     this.interaction.cancelDrag()
     this.controls.setPhysicsAvailable(name !== NO_OBJECT)
