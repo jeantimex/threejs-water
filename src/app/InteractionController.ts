@@ -88,6 +88,7 @@ export class InteractionController {
     const { origin, direction } = this.getRay(x, y)
     const pointOnPlane = origin.clone().addScaledVector(direction, -origin.y / direction.y)
     const objectHit = objects.active?.hitTest(origin, direction) ?? null
+    const poolWidth = controls.poolShape === 'Box' ? 1.0 : controls.poolWidth
     const poolLength = controls.poolShape === 'Box' ? 1.0 : controls.poolLength
 
     if (objectHit) {
@@ -96,7 +97,7 @@ export class InteractionController {
       this.dragPlaneNormal = new THREE.Vector3(0, 0, -1)
         .applyQuaternion(camera.quaternion)
         .negate()
-    } else if (Math.abs(pointOnPlane.x) < 1 && Math.abs(pointOnPlane.z) < poolLength) {
+    } else if (Math.abs(pointOnPlane.x) < poolWidth && Math.abs(pointOnPlane.z) < poolLength) {
       this.mode = InteractionMode.AddDrops
       this.duringDrag(x, y, time)
     } else {
@@ -107,12 +108,13 @@ export class InteractionController {
 
   private duringDrag(x: number, y: number, time: number) {
     const { water, renderer, objects, cameraController, controls, draw } = this.dependencies
+    const poolWidth = controls.poolShape === 'Box' ? 1.0 : controls.poolWidth
     const poolLength = controls.poolShape === 'Box' ? 1.0 : controls.poolLength
 
     if (this.mode === InteractionMode.AddDrops) {
       const { origin, direction } = this.getRay(x, y)
       const point = origin.clone().addScaledVector(direction, -origin.y / direction.y)
-      water.addDrop(point.x, point.z / poolLength, 0.03, 0.01)
+      water.addDrop(point.x / poolWidth, point.z / poolLength, 0.03, 0.01)
       if (controls.paused) {
         water.updateNormals()
         renderer.updateCaustics(water)
@@ -123,7 +125,7 @@ export class InteractionController {
       const distance = -this.dragPlaneNormal.dot(origin.clone().sub(this.previousHit))
         / this.dragPlaneNormal.dot(direction)
       const nextHit = origin.clone().addScaledVector(direction, distance)
-      objects.active.moveBy(nextHit.clone().sub(this.previousHit), poolLength)
+      objects.active.moveBy(nextHit.clone().sub(this.previousHit), poolWidth, poolLength)
       renderer.setWaterOptics(objects.optics)
       this.previousHit = nextHit
       if (controls.paused) renderer.updateCaustics(water)

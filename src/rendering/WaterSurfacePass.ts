@@ -61,7 +61,7 @@ export class WaterSurfacePass {
     this.belowMesh.frustumCulled = false
   }
 
-  setPoolShape(shape: string, cornerRadius: number, poolLength: number) {
+  setPoolShape(shape: string, cornerRadius: number, poolWidth: number, poolLength: number) {
     if (shape === 'Box') {
       this.aboveMesh.material = this.aboveMaterial
       this.belowMesh.material = this.belowMaterial
@@ -79,6 +79,7 @@ export class WaterSurfacePass {
           this.objectRefractionTexture
         )
         this.roundedBoxAboveMaterial.uniforms.cornerRadius = { value: cornerRadius }
+        this.roundedBoxAboveMaterial.uniforms.poolWidth = { value: poolWidth }
         this.roundedBoxAboveMaterial.uniforms.poolLength = { value: poolLength }
 
         this.roundedBoxBelowMaterial = this.createMaterial(
@@ -93,11 +94,14 @@ export class WaterSurfacePass {
           this.objectRefractionTexture
         )
         this.roundedBoxBelowMaterial.uniforms.cornerRadius = { value: cornerRadius }
+        this.roundedBoxBelowMaterial.uniforms.poolWidth = { value: poolWidth }
         this.roundedBoxBelowMaterial.uniforms.poolLength = { value: poolLength }
       } else {
         this.roundedBoxAboveMaterial.uniforms.cornerRadius.value = cornerRadius
+        this.roundedBoxAboveMaterial.uniforms.poolWidth.value = poolWidth
         this.roundedBoxAboveMaterial.uniforms.poolLength.value = poolLength
         this.roundedBoxBelowMaterial!.uniforms.cornerRadius.value = cornerRadius
+        this.roundedBoxBelowMaterial!.uniforms.poolWidth.value = poolWidth
         this.roundedBoxBelowMaterial!.uniforms.poolLength.value = poolLength
       }
 

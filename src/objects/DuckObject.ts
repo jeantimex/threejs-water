@@ -63,6 +63,7 @@ export class DuckObject implements SimulationObject {
         fragmentShader: duckRenderFrag,
         uniforms: {
           light: { value: this.resources.lightDirection.clone() },
+          poolWidth: { value: 1.0 },
           poolLength: { value: 1.0 },
           water: { value: null },
           causticTex: { value: this.resources.causticTexture },
@@ -152,7 +153,7 @@ export class DuckObject implements SimulationObject {
       }
     }
 
-    this.displacement.move(water, this.previousPosition, this.position, context.poolLength)
+    this.displacement.move(water, this.previousPosition, this.position, context.poolWidth, context.poolLength)
     this.previousPosition.copy(this.position)
     this.mesh.position.copy(this.position)
   }
@@ -173,20 +174,22 @@ export class DuckObject implements SimulationObject {
       : null
   }
 
-  moveBy(delta: THREE.Vector3, poolLength = 1.0) {
+  moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolLength = 1.0) {
     const radius = this.boundingRadius
+    const limitX = poolWidth - radius
     const limitZ = poolLength - radius
     this.position.add(delta)
-    this.position.x = THREE.MathUtils.clamp(this.position.x, radius - 1, 1 - radius)
+    this.position.x = THREE.MathUtils.clamp(this.position.x, -limitX, limitX)
     this.position.y = THREE.MathUtils.clamp(this.position.y, this.floorClearance - 1, 10)
     this.position.z = THREE.MathUtils.clamp(this.position.z, -limitZ, limitZ)
     this.mesh.position.copy(this.position)
   }
 
-  prepareRender(water: Water, poolLength = 1.0) {
+  prepareRender(water: Water, poolWidth = 1.0, poolLength = 1.0) {
     if (!this.material) return
     this.material.uniforms.water.value = water.textureA.texture
     this.material.uniforms.light.value.copy(this.resources.lightDirection)
+    this.material.uniforms.poolWidth.value = poolWidth
     this.material.uniforms.poolLength.value = poolLength
     this.material.uniformsNeedUpdate = true
   }

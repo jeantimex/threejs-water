@@ -33,6 +33,7 @@ export class CubeObject implements SimulationObject {
         light: { value: resources.lightDirection.clone() },
         cubeCenter: { value: this.position.clone() },
         cubeHalfSize: { value: this.halfSize.clone() },
+        poolWidth: { value: 1.0 },
         poolLength: { value: 1.0 },
         water: { value: null },
         causticTex: { value: resources.causticTexture },
@@ -93,7 +94,7 @@ export class CubeObject implements SimulationObject {
       }
     }
 
-    this.displacement.move(water, this.previousPosition, this.position, context.poolLength)
+    this.displacement.move(water, this.previousPosition, this.position, context.poolWidth, context.poolLength)
     this.previousPosition.copy(this.position)
   }
 
@@ -107,13 +108,14 @@ export class CubeObject implements SimulationObject {
     return new THREE.Ray(origin, direction).intersectBox(this.bounds, new THREE.Vector3())
   }
 
-  moveBy(delta: THREE.Vector3, poolLength = 1.0) {
+  moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolLength = 1.0) {
+    const limitX = poolWidth - this.halfSize.x
     const limitZ = poolLength - this.halfSize.z
     this.position.add(delta)
     this.position.x = THREE.MathUtils.clamp(
       this.position.x,
-      this.halfSize.x - 1,
-      1 - this.halfSize.x
+      -limitX,
+      limitX
     )
     this.position.y = THREE.MathUtils.clamp(this.position.y, this.halfSize.y - 1, 10)
     this.position.z = THREE.MathUtils.clamp(
@@ -123,11 +125,12 @@ export class CubeObject implements SimulationObject {
     )
   }
 
-  prepareRender(water: Water, poolLength = 1.0) {
+  prepareRender(water: Water, poolWidth = 1.0, poolLength = 1.0) {
     this.material.uniforms.water.value = water.textureA.texture
     this.material.uniforms.light.value.copy(this.resources.lightDirection)
     this.material.uniforms.cubeCenter.value.copy(this.position)
     this.material.uniforms.cubeHalfSize.value.copy(this.halfSize)
+    this.material.uniforms.poolWidth.value = poolWidth
     this.material.uniforms.poolLength.value = poolLength
     this.material.uniformsNeedUpdate = true
   }

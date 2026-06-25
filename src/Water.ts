@@ -121,12 +121,14 @@ export class Water {
     this.swapTextures()
   }
 
-  moveSphere(oldCenter: THREE.Vector3, newCenter: THREE.Vector3, radius: number, displacementScale = 1.0, poolLength = 1.0) {
+  moveSphere(oldCenter: THREE.Vector3, newCenter: THREE.Vector3, radius: number, displacementScale = 1.0, poolWidth = 1.0, poolLength = 1.0) {
     this.plane.material = this.sphereMaterial
     this.sphereMaterial.uniforms.tInput.value = this.textureA.texture
     this.sphereMaterial.uniforms.oldCenter.value.copy(oldCenter)
+    this.sphereMaterial.uniforms.oldCenter.value.x /= poolWidth
     this.sphereMaterial.uniforms.oldCenter.value.z /= poolLength
     this.sphereMaterial.uniforms.newCenter.value.copy(newCenter)
+    this.sphereMaterial.uniforms.newCenter.value.x /= poolWidth
     this.sphereMaterial.uniforms.newCenter.value.z /= poolLength
     this.sphereMaterial.uniforms.radius.value = radius / poolLength
     this.sphereMaterial.uniforms.displacementScale.value = displacementScale
@@ -138,14 +140,17 @@ export class Water {
     this.swapTextures()
   }
 
-  moveCube(oldCenter: THREE.Vector3, newCenter: THREE.Vector3, halfSize: THREE.Vector3, poolLength = 1.0) {
+  moveCube(oldCenter: THREE.Vector3, newCenter: THREE.Vector3, halfSize: THREE.Vector3, poolWidth = 1.0, poolLength = 1.0) {
     this.plane.material = this.moveCubeMaterial
     this.moveCubeMaterial.uniforms.tInput.value = this.textureA.texture
     this.moveCubeMaterial.uniforms.oldCenter.value.copy(oldCenter)
+    this.moveCubeMaterial.uniforms.oldCenter.value.x /= poolWidth
     this.moveCubeMaterial.uniforms.oldCenter.value.z /= poolLength
     this.moveCubeMaterial.uniforms.newCenter.value.copy(newCenter)
+    this.moveCubeMaterial.uniforms.newCenter.value.x /= poolWidth
     this.moveCubeMaterial.uniforms.newCenter.value.z /= poolLength
     this.moveCubeMaterial.uniforms.halfSize.value.copy(halfSize)
+    this.moveCubeMaterial.uniforms.halfSize.value.x /= poolWidth
     this.moveCubeMaterial.uniforms.halfSize.value.z /= poolLength
 
     this.renderer.setRenderTarget(this.textureB)

@@ -52,15 +52,19 @@ export class WaterApp {
         if (this.controls.paused) this.draw()
       },
       onPoolShapeChange: (shape) => {
-        this.renderer.setPoolShape(shape, this.controls.cornerRadius, this.controls.poolLength)
+        this.renderer.setPoolShape(shape, this.controls.cornerRadius, this.controls.poolWidth, this.controls.poolLength)
         if (this.controls.paused) this.draw()
       },
       onCornerRadiusChange: (radius) => {
-        this.renderer.setPoolShape(this.controls.poolShape, radius, this.controls.poolLength)
+        this.renderer.setPoolShape(this.controls.poolShape, radius, this.controls.poolWidth, this.controls.poolLength)
+        if (this.controls.paused) this.draw()
+      },
+      onPoolWidthChange: (width) => {
+        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, width, this.controls.poolLength)
         if (this.controls.paused) this.draw()
       },
       onPoolLengthChange: (length) => {
-        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, length)
+        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, this.controls.poolWidth, length)
         if (this.controls.paused) this.draw()
       },
     })
@@ -108,6 +112,7 @@ export class WaterApp {
     if (seconds > 1) return
 
     this.interaction.update(seconds)
+    const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
     const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
     this.objects.update(seconds, {
       dragging: this.interaction.draggingObject,
@@ -115,6 +120,7 @@ export class WaterApp {
       densityEnabled: this.controls.densityEnabled,
       density: this.controls.density,
       gravity: this.gravity,
+      poolWidth,
       poolLength,
     }, this.water)
 
@@ -127,8 +133,9 @@ export class WaterApp {
   private draw = () => {
     this.interaction.preparePausedDraw()
     this.cameraController.apply(this.camera)
+    const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
     const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
-    this.objects.prepareRender(this.water, poolLength)
+    this.objects.prepareRender(this.water, poolWidth, poolLength)
     this.renderer.updateObjectTextures(this.scene, this.camera, this.objects.active?.mesh ?? null)
     this.renderer.updateCaustics(this.water)
     this.renderer.renderPool(this.water)

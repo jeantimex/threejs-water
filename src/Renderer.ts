@@ -81,11 +81,11 @@ export class Renderer {
     this.opticsState.apply(optics)
   }
 
-  setPoolShape(shape: string, cornerRadius: number, poolLength: number) {
-    this.pool.setPoolShape(shape, cornerRadius, poolLength)
-    this.caustics.setPoolShape(shape, cornerRadius, poolLength)
-    this.waterSurface.setPoolShape(shape, cornerRadius, poolLength)
-    this.objectTextures.setPoolLength(poolLength)
+  setPoolShape(shape: string, cornerRadius: number, poolWidth: number, poolLength: number) {
+    this.pool.setPoolShape(shape, cornerRadius, poolWidth, poolLength)
+    this.caustics.setPoolShape(shape, cornerRadius, poolWidth, poolLength)
+    this.waterSurface.setPoolShape(shape, cornerRadius, poolWidth, poolLength)
+    this.objectTextures.setPoolBounds(poolWidth, poolLength)
   }
 
   getPoolMesh() {

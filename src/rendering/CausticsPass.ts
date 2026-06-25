@@ -48,13 +48,17 @@ export class CausticsPass {
     this.scene.add(this.mesh)
   }
 
-  setPoolShape(shape: string, cornerRadius: number, poolLength: number) {
+  setPoolShape(shape: string, cornerRadius: number, poolWidth: number, poolLength: number) {
     if (shape === 'Box') {
+      this.camera.left = -1
+      this.camera.right = 1
       this.camera.top = 1
       this.camera.bottom = -1
       this.camera.updateProjectionMatrix()
       this.mesh.material = this.boxMaterial
     } else {
+      this.camera.left = -poolWidth
+      this.camera.right = poolWidth
       this.camera.top = poolLength
       this.camera.bottom = -poolLength
       this.camera.updateProjectionMatrix()
@@ -69,6 +73,7 @@ export class CausticsPass {
             objectShadowTex: { value: this.objectShadowTexture },
             ...this.state.createUniforms(),
             cornerRadius: { value: cornerRadius },
+            poolWidth: { value: poolWidth },
             poolLength: { value: poolLength },
           },
           blending: THREE.NoBlending,
@@ -78,6 +83,7 @@ export class CausticsPass {
         })
       } else {
         this.roundedBoxMaterial.uniforms.cornerRadius.value = cornerRadius
+        this.roundedBoxMaterial.uniforms.poolWidth.value = poolWidth
         this.roundedBoxMaterial.uniforms.poolLength.value = poolLength
       }
       this.mesh.material = this.roundedBoxMaterial

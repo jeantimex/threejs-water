@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-export function createRoundedBoxPoolGeometry(R: number, poolLength: number): THREE.BufferGeometry {
+export function createRoundedBoxPoolGeometry(R: number, poolWidth: number, poolLength: number): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry()
 
   const positions: number[] = []
@@ -9,7 +9,7 @@ export function createRoundedBoxPoolGeometry(R: number, poolLength: number): THR
 
   const yFloor = -1.0
   const yRim = 2.0 / 12.0
-  const rSubX = 1.0 - R
+  const rSubX = poolWidth - R
   const rSubZ = poolLength - R
 
   const segmentsPerCorner = 16
@@ -74,7 +74,7 @@ export function createRoundedBoxPoolGeometry(R: number, poolLength: number): THR
       const cz = Math.sign(v.z) * rSubZ
       normal.set(v.x - cx, 0, v.z - cz).normalize().negate() // points inwards
     } else {
-      if (Math.abs(v.x) >= 0.999) {
+      if (Math.abs(v.x) >= poolWidth - 0.001) {
         normal.set(-Math.sign(v.x), 0, 0)
       } else {
         normal.set(0, 0, -Math.sign(v.z))

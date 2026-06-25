@@ -24,6 +24,7 @@ uniform sampler2D causticTex;
 uniform sampler2D water;
 
 uniform float cornerRadius;
+uniform float poolWidth;
 uniform float poolLength;
 
 varying vec3 vPosition;
@@ -33,13 +34,13 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   float tFar = -1e6;
   bool found = false;
   
-  float r_sub_x = 1.0 - R;
+  float r_sub_x = poolWidth - R;
   float r_sub_z = poolLength - R;
   float eps = 1.0e-3;
 
-  // 1. Line x = 1 (z in [-r_sub_z, r_sub_z])
+  // 1. Line x = poolWidth (z in [-r_sub_z, r_sub_z])
   if (abs(ray.x) > 1.0e-7) {
-    float t = (1.0 - origin.x) / ray.x;
+    float t = (poolWidth - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
     if (z >= -r_sub_z - eps && z <= r_sub_z + eps) {
       tNear = min(tNear, t);
@@ -47,9 +48,9 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
       found = true;
     }
   }
-  // 2. Line x = -1 (z in [-r_sub_z, r_sub_z])
+  // 2. Line x = -poolWidth (z in [-r_sub_z, r_sub_z])
   if (abs(ray.x) > 1.0e-7) {
-    float t = (-1.0 - origin.x) / ray.x;
+    float t = (-poolWidth - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
     if (z >= -r_sub_z - eps && z <= r_sub_z + eps) {
       tNear = min(tNear, t);
@@ -150,7 +151,7 @@ vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
 }
 
 void getRoundedBoxNormalAndUV(vec3 point, float R, out vec3 normal, out vec2 uv) {
-  float r_sub_x = 1.0 - R;
+  float r_sub_x = poolWidth - R;
   float r_sub_z = poolLength - R;
   
   if (point.y < -0.999) {
@@ -189,7 +190,7 @@ void getRoundedBoxNormalAndUV(vec3 point, float R, out vec3 normal, out vec2 uv)
     }
     uv = vec2(point.y, s) * 0.5 + vec2(1.0, 0.5);
   } else {
-    vec2 normP = absP / vec2(1.0, poolLength);
+    vec2 normP = absP / vec2(poolWidth, poolLength);
     if (normP.x > normP.y) {
       normal = vec3(-sign(point.x), 0.0, 0.0);
       uv = point.yz * 0.5 + vec2(1.0, 0.5);
@@ -224,9 +225,9 @@ vec3 getWallColor(vec3 point) {
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(refractedLight, normal));
-  vec4 info = texture2D(water, point.xz * vec2(0.5, 0.5 / poolLength) + 0.5);
+  vec4 info = texture2D(water, point.xz * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * vec2(0.5, 0.5 / poolLength) + 0.5);
+    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5);
     scale += diffuse * caustic.r * 2.0 * caustic.g;
   } else {
     vec2 t = intersectRoundedBox(point, refractedLight, cornerRadius);
@@ -238,7 +239,7 @@ vec3 getWallColor(vec3 point) {
 
 void main() {
   gl_FragColor = vec4(getWallColor(vPosition), 1.0);
-  vec4 info = texture2D(water, vPosition.xz * vec2(0.5, 0.5 / poolLength) + 0.5);
+  vec4 info = texture2D(water, vPosition.xz * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5);
   if (vPosition.y < info.r) {
     gl_FragColor.rgb *= underwaterColor * 1.2;
   }

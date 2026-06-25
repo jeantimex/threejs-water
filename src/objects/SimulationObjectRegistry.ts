@@ -63,7 +63,7 @@ export class SimulationObjectRegistry {
     this.activeObject?.update(seconds, context, water)
   }
 
-  prepareRender(water: Water, poolLength?: number) {
-    this.activeObject?.prepareRender(water, poolLength)
+  prepareRender(water: Water, poolWidth?: number, poolLength?: number) {
+    this.activeObject?.prepareRender(water, poolWidth, poolLength)
   }
 }

@@ -19,6 +19,7 @@ uniform bool meshEnabled;
 uniform sampler2D objectShadowTex;
 
 uniform float cornerRadius;
+uniform float poolWidth;
 uniform float poolLength;
 
 varying vec3 oldPos;
@@ -30,13 +31,13 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   float tFar = -1e6;
   bool found = false;
   
-  float r_sub_x = 1.0 - R;
+  float r_sub_x = poolWidth - R;
   float r_sub_z = poolLength - R;
   float eps = 1.0e-3;
 
-  // 1. Line x = 1 (z in [-r_sub_z, r_sub_z])
+  // 1. Line x = poolWidth (z in [-r_sub_z, r_sub_z])
   if (abs(ray.x) > 1.0e-7) {
-    float t = (1.0 - origin.x) / ray.x;
+    float t = (poolWidth - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
     if (z >= -r_sub_z - eps && z <= r_sub_z + eps) {
       tNear = min(tNear, t);
@@ -44,9 +45,9 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
       found = true;
     }
   }
-  // 2. Line x = -1 (z in [-r_sub_z, r_sub_z])
+  // 2. Line x = -poolWidth (z in [-r_sub_z, r_sub_z])
   if (abs(ray.x) > 1.0e-7) {
-    float t = (-1.0 - origin.x) / ray.x;
+    float t = (-poolWidth - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
     if (z >= -r_sub_z - eps && z <= r_sub_z + eps) {
       tNear = min(tNear, t);
@@ -284,7 +285,7 @@ void main() {
     }
     gl_FragColor.g = 1.0 - occlusion / 9.0;
   } else if (torusKnotEnabled || meshEnabled) {
-    vec2 shadowUV = 0.75 * (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) * vec2(0.5, 0.5 / poolLength) + 0.5;
+    vec2 shadowUV = 0.75 * (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5;
     const float d = 4.0 / 1024.0;
     float occlusion = texture2D(objectShadowTex, shadowUV).r;
     occlusion += texture2D(objectShadowTex, shadowUV + vec2(d, 0.0)).r;
