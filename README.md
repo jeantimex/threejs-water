@@ -42,7 +42,7 @@ const geometry = new THREE.TorusKnotGeometry(0.17, 0.045, 64, 8)
 
 **Hit Testing** - Mouse interaction uses Three.js's built-in `Raycaster` against the actual mesh geometry for accurate picking.
 
-**Extending** - To add new geometries, implement `SimulationObject` interface, choose a displacement strategy, define an optics descriptor, create render shaders, and register in `createSimulationObjects.ts`.
+**Extending** - To add new geometries, implement `SimulationObject` interface, choose a displacement strategy, define an optics descriptor, create render shaders, and register in `CreateSimulationObjects.ts`.
 
 ## Customizable Pool Shapes: Rounded Box Example
 
@@ -51,9 +51,9 @@ The rounded box pool extends the original rectangular pool with configurable cor
 **Geometry** - Uses a custom `RoundedBoxGeometry` with adjustable width, depth, length, and corner radius.
 
 **Shaders** - The rounded pool requires its own shader set:
-- `roundedbox.vert/frag` - Pool wall rendering with triplanar UV mapping around curves
-- `roundedbox_caustics.vert/frag` - Caustic projection onto rounded surfaces
-- `roundedbox_waterAbove/Below.frag` - Ray-pool intersection for reflections/refractions
+- `RoundedBox.vert/frag` - Pool wall rendering with triplanar UV mapping around curves
+- `RoundedBoxCaustics.vert/frag` - Caustic projection onto rounded surfaces
+- `RoundedBoxWaterAbove/Below.frag` - Ray-pool intersection for reflections/refractions
 
 **SDF-based Intersection** - The water shaders use a Signed Distance Function (SDF) to find ray intersections with the rounded box, enabling accurate reflections off curved corners.
 
