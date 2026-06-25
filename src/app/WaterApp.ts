@@ -176,6 +176,27 @@ export class WaterApp {
     // Generate initial drops to create ambient starting waves
     this.seedWater()
     loading.innerHTML = ''
+
+    // Setup responsive help panel toggle
+    const help = document.getElementById('help')!
+    const helpToggle = document.getElementById('help-toggle')!
+    helpToggle.addEventListener('click', () => {
+      help.classList.toggle('collapsed')
+      helpToggle.textContent = help.classList.contains('collapsed') ? 'menu' : 'chevron_right'
+    })
+
+    // Collapse help panel when clicking outside of it (mobile only)
+    window.addEventListener('pointerdown', (e) => {
+      const isMobile = window.matchMedia('(max-width: 600px)').matches
+      if (isMobile && !help.classList.contains('collapsed')) {
+        const target = e.target as HTMLElement
+        if (!help.contains(target) && !helpToggle.contains(target)) {
+          help.classList.add('collapsed')
+          helpToggle.textContent = 'menu'
+        }
+      }
+    })
+
     this.resize()
     window.addEventListener('resize', this.resize)
 
@@ -277,11 +298,12 @@ export class WaterApp {
 
   /**
    * Window resize handler. Recomputes camera aspect ratio projection and resizes render targets.
+   * Canvas always takes full page, info panel overlays on top.
    */
   private resize = () => {
-    const help = document.getElementById('help')!
-    const width = window.innerWidth - help.clientWidth - 20
+    const width = window.innerWidth
     const height = window.innerHeight
+
     this.camera.aspect = width / height
     this.camera.updateProjectionMatrix()
     this.webglRenderer.setSize(width, height)

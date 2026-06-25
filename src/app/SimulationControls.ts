@@ -58,8 +58,9 @@ export class SimulationControls {
     objectOptions: string[],
     private readonly callbacks: SimulationControlCallbacks
   ) {
-    // Instantiate lil-gui container
+    // Instantiate lil-gui container (closed by default)
     const gui = new GUI({ title: 'Settings' })
+    gui.close()
     gui.domElement.style.left = '0'
     gui.domElement.style.right = 'auto'
 
