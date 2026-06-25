@@ -83,13 +83,14 @@ export class DuckObject implements SimulationObject {
    * Scales the mesh to fit the `boundingRadius` exactly and centers it.
    */
   private async loadModel() {
+    const base = import.meta.env.BASE_URL
     const loader = new GLTFLoader()
     try {
-      const gltf = await loader.loadAsync('/models/duck/Duck.gltf')
+      const gltf = await loader.loadAsync(`${base}models/duck/Duck.gltf`)
       const duckScene = gltf.scene
 
       const textureLoader = new THREE.TextureLoader()
-      const texture = await textureLoader.loadAsync('/models/duck/DuckCM.png')
+      const texture = await textureLoader.loadAsync(`${base}models/duck/DuckCM.png`)
       texture.flipY = false // Align mapping with glTF uv coordinates
 
       // Custom shader material supporting caustics and light refraction maps
