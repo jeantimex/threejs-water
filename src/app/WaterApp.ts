@@ -60,15 +60,38 @@ export class WaterApp {
         if (this.controls.paused) this.draw()
       },
       onPoolWidthChange: (width) => {
-        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, width, this.controls.poolHeight, this.controls.poolLength)
+        const poolHeight = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolHeight
+        const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
+        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, width, poolHeight, poolLength)
+        if (this.objects.active) {
+          this.objects.active.moveBy(new THREE.Vector3(0, 0, 0), width, poolHeight, poolLength)
+          this.objects.active.syncPreviousPosition()
+        }
         if (this.controls.paused) this.draw()
       },
       onPoolHeightChange: (height) => {
-        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, this.controls.poolWidth, height, this.controls.poolLength)
+        const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
+        const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
+        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, poolWidth, height, poolLength)
+        if (this.objects.active) {
+          const floor = this.objects.active.floorY(height)
+          if (this.objects.active.position.y < floor) {
+            this.objects.active.position.y = floor
+            this.objects.active.velocity.y = 0
+          }
+          this.objects.active.moveBy(new THREE.Vector3(0, 0, 0), poolWidth, height, poolLength)
+          this.objects.active.syncPreviousPosition()
+        }
         if (this.controls.paused) this.draw()
       },
       onPoolLengthChange: (length) => {
-        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, this.controls.poolWidth, this.controls.poolHeight, length)
+        const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth
+        const poolHeight = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolHeight
+        this.renderer.setPoolShape(this.controls.poolShape, this.controls.cornerRadius, poolWidth, poolHeight, length)
+        if (this.objects.active) {
+          this.objects.active.moveBy(new THREE.Vector3(0, 0, 0), poolWidth, poolHeight, length)
+          this.objects.active.syncPreviousPosition()
+        }
         if (this.controls.paused) this.draw()
       },
     })

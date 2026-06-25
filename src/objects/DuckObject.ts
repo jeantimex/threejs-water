@@ -124,6 +124,11 @@ export class DuckObject implements SimulationObject {
     this.previousPosition.copy(this.position)
   }
 
+  syncPreviousPosition() {
+    this.previousPosition.copy(this.position)
+    this.mesh.position.copy(this.position)
+  }
+
   update(seconds: number, context: ObjectUpdateContext, water: Water) {
     if (!this.enabled) return
 
