@@ -1,3 +1,10 @@
+/**
+ * @file CausticsPass.ts
+ * @description Renders a caustic map (intensity texture representing focused/refracted light)
+ * by tracing light rays through the moving water surface onto the pool walls and floor.
+ * Supports different pool shapes (box or rounded box).
+ */
+
 import * as THREE from 'three'
 import type { Water } from '../Water'
 import causticsVert from '../shaders/caustics.vert'
@@ -6,16 +13,35 @@ import roundedBoxCausticsVert from '../shaders/roundedbox_caustics.vert'
 import roundedBoxCausticsFrag from '../shaders/roundedbox_caustics.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
 
+/**
+ * Handles the rendering pass for generating caustic light patterns.
+ * This runs on the GPU using custom shaders to map the refracted rays
+ * onto a 2D texture, which is later applied to the pool surfaces.
+ */
 export class CausticsPass {
+  /** The generated caustics texture that contains intensity maps of light rays. */
   readonly texture: THREE.Texture
 
+  /** WebGL Render Target where the caustics are drawn. */
   private readonly target: THREE.WebGLRenderTarget
+  /** Offscreen Scene used specifically for rendering the caustics pass. */
   private readonly scene = new THREE.Scene()
+  /** Orthographic camera configured to cover the pool space. */
   private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+  /** A full-viewport plane mesh where the caustics shaders are computed. */
   private readonly mesh: THREE.Mesh
+  /** Shader material configured for flat box-like pools. */
   private readonly boxMaterial: THREE.ShaderMaterial
+  /** Shader material configured for rounded-box pools. Lazily created if needed. */
   private roundedBoxMaterial: THREE.ShaderMaterial | null = null
 
+  /**
+   * Constructs the CausticsPass.
+   * 
+   * @param renderer The active WebGLRenderer instance.
+   * @param state The state tracking objects inside the water.
+   * @param objectShadowTexture Pre-rendered shadow texture of objects in the pool.
+   */
   constructor(
     private readonly renderer: THREE.WebGLRenderer,
     private readonly state: WaterOpticsState,
@@ -48,6 +74,15 @@ export class CausticsPass {
     this.scene.add(this.mesh)
   }
 
+  /**
+   * Configures the pass camera dimensions and shader uniforms based on the pool's geometry shape.
+   * 
+   * @param shape The shape description (e.g., 'Box' or otherwise).
+   * @param cornerRadius The radius of the pool's rounded corners.
+   * @param poolWidth The half-width of the pool.
+   * @param poolHeight The depth of the pool.
+   * @param poolLength The half-length of the pool.
+   */
   setPoolShape(shape: string, cornerRadius: number, poolWidth: number, poolHeight: number, poolLength: number) {
     if (shape === 'Box') {
       this.camera.left = -1
@@ -92,6 +127,11 @@ export class CausticsPass {
     }
   }
 
+  /**
+   * Renders the caustics texture by executing the shaders with the current water mesh state and light direction.
+   * 
+   * @param water The Water simulation instance containing the heightmap/normal textures.
+   */
   update(water: Water) {
     const activeMaterial = this.mesh.material as THREE.ShaderMaterial
     activeMaterial.uniforms.water.value = water.textureA.texture
@@ -106,4 +146,5 @@ export class CausticsPass {
     this.renderer.setRenderTarget(null)
   }
 }
+
 

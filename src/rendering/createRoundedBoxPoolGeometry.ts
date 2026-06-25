@@ -1,6 +1,25 @@
+/**
+ * @file createRoundedBoxPoolGeometry.ts
+ * @description Helper utility function to generate a THREE.BufferGeometry representing a 3D pool shape
+ * with rounded/filleted vertical corners. It constructs the pool floor and vertical walls, with inward-pointing
+ * normals for correct lighting calculations.
+ */
+
 import * as THREE from 'three'
 
+/**
+ * Creates a THREE.BufferGeometry representing a pool with rounded corners.
+ * Generates positions, normals, and indices for the pool floor and walls.
+ * The normals of the walls point inwards to facilitate rendering from the inside of the pool.
+ * 
+ * @param R The corner radius of the pool's rounded corners.
+ * @param poolWidth The half-width of the pool along the X axis.
+ * @param poolHeight The depth/height of the pool along the Y axis.
+ * @param poolLength The half-length of the pool along the Z axis.
+ * @returns A buffer geometry object configured for rendering.
+ */
 export function createRoundedBoxPoolGeometry(R: number, poolWidth: number, poolHeight: number, poolLength: number): THREE.BufferGeometry {
+
   const geometry = new THREE.BufferGeometry()
 
   const positions: number[] = []

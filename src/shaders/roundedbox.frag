@@ -29,16 +29,21 @@ uniform float poolLength;
 
 varying vec3 vPosition;
 
+/**
+ * Solves intersections of a 2D ray with a rounded rectangle (width x length, corner radius R).
+ * Finds entry/exit intersection parameters (tNear, tFar) along the ray.
+ */
 vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   float tNear = 1e6;
   float tFar = -1e6;
   bool found = false;
   
+  // Straight wall segment limits (inner width/length before curvature starts)
   float r_sub_x = poolWidth - R;
   float r_sub_z = poolLength - R;
   float eps = 1.0e-3;
 
-  // 1. Line x = poolWidth (z in [-r_sub_z, r_sub_z])
+  // 1. Check straight wall line: x = +poolWidth (z in [-r_sub_z, r_sub_z])
   if (abs(ray.x) > 1.0e-7) {
     float t = (poolWidth - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
@@ -48,7 +53,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
       found = true;
     }
   }
-  // 2. Line x = -poolWidth (z in [-r_sub_z, r_sub_z])
+  // 2. Check straight wall line: x = -poolWidth (z in [-r_sub_z, r_sub_z])
   if (abs(ray.x) > 1.0e-7) {
     float t = (-poolWidth - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
@@ -58,7 +63,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
       found = true;
     }
   }
-  // 3. Line z = L (x in [-r_sub_x, r_sub_x])
+  // 3. Check straight wall line: z = +poolLength (x in [-r_sub_x, r_sub_x])
   if (abs(ray.y) > 1.0e-7) {
     float t = (poolLength - origin.y) / ray.y;
     float x = origin.x + t * ray.x;
@@ -68,7 +73,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
       found = true;
     }
   }
-  // 4. Line z = -L (x in [-r_sub_x, r_sub_x])
+  // 4. Check straight wall line: z = -poolLength (x in [-r_sub_x, r_sub_x])
   if (abs(ray.y) > 1.0e-7) {
     float t = (-poolLength - origin.y) / ray.y;
     float x = origin.x + t * ray.x;
@@ -79,7 +84,8 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
     }
   }
 
-  // 4 corners
+  // 5. Check the 4 corner circle arcs using quadratic formula:
+  // (origin + t * ray - center)^2 = R^2
   if (R > 0.0) {
     vec2 centers[4];
     centers[0] = vec2(r_sub_x, r_sub_z);
@@ -99,7 +105,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
         float tA = (-b - sqrtDisc) / (2.0 * a);
         float tB = (-b + sqrtDisc) / (2.0 * a);
         
-        // Check tA
+        // Validate intersection A falls in the correct corner quadrant
         vec2 ptA = origin + tA * ray;
         bool validA = false;
         if (i == 0) validA = (ptA.x >= r_sub_x - eps && ptA.y >= r_sub_z - eps);
@@ -112,7 +118,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
           found = true;
         }
         
-        // Check tB
+        // Validate intersection B falls in the correct corner quadrant
         vec2 ptB = origin + tB * ray;
         bool validB = false;
         if (i == 0) validB = (ptB.x >= r_sub_x - eps && ptB.y >= r_sub_z - eps);
@@ -135,25 +141,40 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   return vec2(tNear, tFar);
 }
 
+/**
+ * Calculates 3D intersection parameters of a ray with the rounded pool box.
+ * Combines vertical height checks (Y) with horizontal 2D shape boundaries (XZ).
+ */
 vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
   float tYNear = -1.0e6;
   float tYFar = 1.0e6;
+  
+  // Calculate bounds on the vertical axis: floor Y=-poolHeight to ceiling Y=2.0
   if (abs(ray.y) > 1.0e-7) {
     float tYMin = (-poolHeight - origin.y) / ray.y;
     float tYMax = (2.0 - origin.y) / ray.y;
     tYNear = min(tYMin, tYMax);
     tYFar = max(tYMin, tYMax);
   }
+  
+  // Intersect with 2D rounded boundary layout
   vec2 tXZ = intersectRoundedRectangle2D(origin.xz, ray.xz, R);
+  
+  // Combine 1D interval intersections: [max(near), min(far)]
   float tNear = max(tYNear, tXZ.x);
   float tFar = min(tYFar, tXZ.y);
   return vec2(tNear, tFar);
 }
 
+/**
+ * Calculates surface normal and mapping UV coordinates at any surface point
+ * of the rounded box pool boundary.
+ */
 void getRoundedBoxNormalAndUV(vec3 point, float R, out vec3 normal, out vec2 uv) {
   float r_sub_x = poolWidth - R;
   float r_sub_z = poolLength - R;
   
+  // Floor check
   if (point.y < -poolHeight + 0.001) {
     normal = vec3(0.0, 1.0, 0.0);
     uv = point.xz * 0.5 + 0.5;
@@ -161,11 +182,15 @@ void getRoundedBoxNormalAndUV(vec3 point, float R, out vec3 normal, out vec2 uv)
   }
   
   vec2 absP = abs(point.xz);
+  
+  // Curved corner region check
   if (absP.x > r_sub_x && absP.y > r_sub_z && R > 0.0) {
+    // Center of the quadrant corner circle
     vec2 center = sign(point.xz) * vec2(r_sub_x, r_sub_z);
     vec2 d = point.xz - center;
     normal = vec3(-normalize(d).x, 0.0, -normalize(d).y);
     
+    // Compute wrapping perimeter coordinate 's' for tile mapping continuity
     float s = 0.0;
     if (point.x >= r_sub_x && point.z >= -r_sub_z && point.z <= r_sub_z) {
       s = point.z + r_sub_z;
@@ -190,6 +215,7 @@ void getRoundedBoxNormalAndUV(vec3 point, float R, out vec3 normal, out vec2 uv)
     }
     uv = vec2(point.y, s) * 0.5 + vec2(1.0, 0.5);
   } else {
+    // Flat side wall check
     vec2 normP = absP / vec2(poolWidth, poolLength);
     if (normP.x > normP.y) {
       normal = vec3(-sign(point.x), 0.0, 0.0);
@@ -201,14 +227,22 @@ void getRoundedBoxNormalAndUV(vec3 point, float R, out vec3 normal, out vec2 uv)
   }
 }
 
+/**
+ * Calculates shading color for pool boundary walls.
+ * Approximates ambient occlusion from obstacles, projects refracted shadows,
+ * and overlays underwater caustics.
+ */
 vec3 getWallColor(vec3 point) {
   float scale = 0.5;
   vec3 wallColor;
   vec3 normal;
   vec2 uv;
+  
+  // 1. Get physical normal and tile UV map values
   getRoundedBoxNormalAndUV(point, cornerRadius, normal, uv);
   wallColor = texture2D(tiles, uv).rgb;
 
+  // 2. Modulate intensity by distance and distance-field ambient occlusion from active simulation objects
   scale /= length(point);
   if (sphereEnabled) {
     scale *= 1.0 - 0.9 / pow(max(length(point - sphereCenter) / sphereRadius, 1.0), 4.0);
@@ -223,13 +257,19 @@ vec3 getWallColor(vec3 point) {
     scale *= 1.0 - 0.9 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
   }
 
+  // 3. Compute refracted light vector inside pool
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(refractedLight, normal));
+  
+  // Sample local water displacement height
   vec4 info = texture2D(water, point.xz * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5);
+  
   if (point.y < info.r) {
+    // Under-water: project along refracted light ray and lookup precomputed caustic texture
     vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5);
     scale += diffuse * caustic.r * 2.0 * caustic.g;
   } else {
+    // Above-water: trace soft shadow edges near the boundary surface
     vec2 t = intersectRoundedBox(point, refractedLight, cornerRadius);
     diffuse *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
     scale += diffuse * 0.5;
@@ -239,6 +279,8 @@ vec3 getWallColor(vec3 point) {
 
 void main() {
   gl_FragColor = vec4(getWallColor(vPosition), 1.0);
+  
+  // Apply underwater blue-green color absorption tinting
   vec4 info = texture2D(water, vPosition.xz * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5);
   if (vPosition.y < info.r) {
     gl_FragColor.rgb *= underwaterColor * 1.2;

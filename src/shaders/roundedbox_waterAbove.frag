@@ -431,8 +431,13 @@ vec4 sampleObjectReflection(vec3 origin, vec3 ray, vec3 center, float radius) {
   );
 }
 
+// Computes the color of a ray cast into the scene from the water surface.
+// This function traces intersections analytically for spheres, boxes, and torus knots,
+// and falls back to rounded box pool wall intersections or skybox sampling.
 vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
+  
+  // 1. Ray-Object Intersections
   float sphereDistance = sphereEnabled ? intersectSphere(origin, ray, sphereCenter, sphereRadius) : 1.0e6;
   vec2 cubeIntersection = intersectCube(origin, ray, cubeCenter - cubeHalfSize, cubeCenter + cubeHalfSize);
   bool cubeHit = cubeEnabled && cubeIntersection.x <= cubeIntersection.y && cubeIntersection.y > 0.0;
@@ -441,6 +446,7 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
     : 1.0e6;
   float torusKnotDistance = (torusKnotEnabled && ray.y > 0.0) ? intersectTorusKnot(origin, ray, torusKnotCenter) : 1.0e6;
   
+  // Find the closest intersected object
   float objectDistance = min(min(sphereDistance, cubeDistance), torusKnotDistance);
   if (objectDistance < 1.0e6) {
     vec3 hit = origin + ray * objectDistance;
@@ -451,25 +457,34 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
     } else {
       color = getTorusKnotColor(hit);
     }
-  } else if (ray.y < 0.0) {
+  } 
+  // 2. Ray-Pool Wall Intersections (when pointing downwards)
+  else if (ray.y < 0.0) {
     vec2 t = intersectRoundedBox(origin, ray, cornerRadius);
     color = getWallColor(origin + ray * t.y);
-  } else {
+  } 
+  // 3. Ray pointing upwards (either hits pool wall trim above water or skybox)
+  else {
     vec2 t = intersectRoundedBox(origin, ray, cornerRadius);
     vec3 hit = origin + ray * t.y;
+    // Lower part of the walls above the water has tile textures
     if (hit.y < 2.0 / 12.0) {
       color = getWallColor(hit);
-    } else {
+    } 
+    // Upper part gets the sky cubemap and a sun specular glow
+    else {
       color = textureCube(sky, ray).rgb;
-      color += vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);
+      color += vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0); // Specular highlight
     }
   }
+  
+  // Apply attenuation/color absorption of water for underwater rays
   if (ray.y < 0.0) color *= waterColor;
   return color;
 }
 
 void main() {
-  // Discard fragments outside the rounded box boundaries
+  // 1. Boundary clipping: Discard fragments outside the rounded box corners
   vec2 absP = abs(vPosition.xz);
   float r_sub_x = poolWidth - cornerRadius;
   float r_sub_z = poolLength - cornerRadius;
@@ -479,24 +494,32 @@ void main() {
     }
   }
 
+  // 2. Texture space coordinate scaling (mapping [-poolWidth, poolWidth] to [0, 1])
   vec2 coord = vPosition.xz * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5;
   vec4 info = texture2D(water, coord);
 
+  // 3. Advection refinement loop to compute a smooth water normal displacement
   for (int i = 0; i < 5; i++) {
     coord += info.ba * 0.005;
     info = texture2D(water, coord);
   }
 
+  // Reconstruct surface normal from heights/derivatives (normal.y = vertical component)
   vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);
   vec3 incomingRay = normalize(vPosition - eye);
 
+  // 4. Optical reflection and refraction vector computations using standard laws of optics
   vec3 reflectedRay = reflect(incomingRay, normal);
   vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);
+  
+  // Fresnel approximation: determines how reflective the surface is based on viewing angle
   float fresnel = mix(0.25, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));
 
+  // Trace the paths of reflected and refracted light rays
   vec3 reflectedColor = getSurfaceRayColor(vPosition, reflectedRay, abovewaterColor);
   vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, abovewaterColor);
 
+  // 5. Model projection blending: Blend in rasterized reflection/refraction textures for complex models (e.g. Duck)
   if (torusKnotEnabled) {
     vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, torusKnotCenter, 0.31);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
@@ -513,5 +536,6 @@ void main() {
     reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
   }
 
+  // Final composite color is a mix of refraction and reflection based on the Fresnel coefficient
   gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);
 }

@@ -1,5 +1,13 @@
+/**
+ * @file ObjectTexturePass.ts
+ * @description Manages rendering passes for specific objects placed inside/interacted with the pool.
+ * Generates reflection, clipped reflection, refraction, and shadow maps to create realistic
+ * optical effects for objects submerged or floating in the water.
+ */
+
 import * as THREE from 'three'
 
+/** Vertex shader string for rendering object shadows. */
 const shadowVertexShader = `
 precision highp float;
 
@@ -18,6 +26,7 @@ void main() {
 }
 `
 
+/** Fragment shader string for rendering object shadows. */
 const shadowFragmentShader = `
 precision highp float;
 
@@ -26,20 +35,41 @@ void main() {
 }
 `
 
+/**
+ * Handles generating textures (reflection, refraction, shadows) for objects that reside in the pool.
+ * It coordinates multiple WebGL Render Targets to produce inputs for water surface and caustic shaders.
+ */
 export class ObjectTexturePass {
+  /** Render target containing the reflected view of the object (mirrored across water level). */
   readonly reflectionTarget: THREE.WebGLRenderTarget
+  /** Render target containing the reflected view clipped above/below the water line. */
   readonly clippedReflectionTarget: THREE.WebGLRenderTarget
+  /** Render target containing the refracted view of the object (underwater lookup). */
   readonly refractionTarget: THREE.WebGLRenderTarget
+  /** Render target containing the projected shadow mask of the object. */
   readonly shadowTarget: THREE.WebGLRenderTarget
+  /** Computed matrix mapping reflected camera view-projection space. */
   readonly reflectionViewProjectionMatrix = new THREE.Matrix4()
+  /** Computed matrix mapping original camera view-projection space. */
   readonly viewProjectionMatrix = new THREE.Matrix4()
 
+  /** Internal camera used to render the object reflection pass. */
   private readonly reflectionCamera = new THREE.PerspectiveCamera()
+  /** Internal orthographic camera used to project object shadows onto the pool floor. */
   private readonly shadowCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+  /** Material used during the shadow projection pass. */
   private readonly shadowMaterial: THREE.ShaderMaterial
+  /** Transparent clear color helper. */
   private readonly clearColor = new THREE.Color()
+  /** Stores previous clear color to restore after transparent passes. */
   private readonly previousClearColor = new THREE.Color()
 
+  /**
+   * Constructs the ObjectTexturePass.
+   * 
+   * @param renderer The active WebGLRenderer.
+   * @param lightDirection Normalized direction pointing to the light source.
+   */
   constructor(
     private readonly renderer: THREE.WebGLRenderer,
     private readonly lightDirection: THREE.Vector3
@@ -77,11 +107,24 @@ export class ObjectTexturePass {
     })
   }
 
+  /**
+   * Configures the pool boundaries on the shadow shader to properly bound the projected shadows.
+   * 
+   * @param poolWidth Half-width of the pool.
+   * @param poolLength Half-length of the pool.
+   */
   setPoolBounds(poolWidth: number, poolLength: number) {
     this.shadowMaterial.uniforms.poolWidth.value = poolWidth
     this.shadowMaterial.uniforms.poolLength.value = poolLength
   }
 
+  /**
+   * Updates resolution sizes of the reflection, clipped reflection, and refraction render targets.
+   * Scales rendering size dynamically to fit within a 1024 max dimension.
+   * 
+   * @param width Screen width.
+   * @param height Screen height.
+   */
   setSize(width: number, height: number) {
     const scale = Math.min(1, 1024 / Math.max(width, height))
     this.reflectionTarget.setSize(
@@ -98,6 +141,14 @@ export class ObjectTexturePass {
     )
   }
 
+  /**
+   * Main entry point to update all targets (reflection, refraction, clipped reflection, shadow)
+   * for the given renderableObject inside the Scene.
+   * 
+   * @param scene The global scene instance.
+   * @param camera The user/rendering camera.
+   * @param renderableObject The specific object (e.g. sphere, box) to render passes for.
+   */
   update(scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderableObject: THREE.Object3D | null) {
     this.updateViewProjection(camera)
 
@@ -137,11 +188,23 @@ export class ObjectTexturePass {
     }
   }
 
+  /**
+   * Helper to recalculate viewProjectionMatrix from the current main camera.
+   * 
+   * @param camera The active rendering perspective camera.
+   */
   private updateViewProjection(camera: THREE.PerspectiveCamera) {
     camera.updateMatrixWorld()
     this.viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
   }
 
+  /**
+   * Renders the underwater refraction texture.
+   * 
+   * @param scene The global scene.
+   * @param camera The perspective camera.
+   * @param materials Collected materials of the active object.
+   */
   private renderRefraction(
     scene: THREE.Scene,
     camera: THREE.PerspectiveCamera,
@@ -153,6 +216,13 @@ export class ObjectTexturePass {
     this.renderer.render(scene, camera)
   }
 
+  /**
+   * Renders the reflection texture by mirroring the camera below the water surface level.
+   * 
+   * @param scene The global scene.
+   * @param camera The perspective camera.
+   * @param materials Collected materials of the active object.
+   */
   private renderReflection(
     scene: THREE.Scene,
     camera: THREE.PerspectiveCamera,
@@ -182,6 +252,12 @@ export class ObjectTexturePass {
     this.renderer.render(scene, this.reflectionCamera)
   }
 
+  /**
+   * Renders the reflection texture clipped at the water boundary plane.
+   * 
+   * @param scene The global scene.
+   * @param materials Collected materials of the active object.
+   */
   private renderClippedReflection(scene: THREE.Scene, materials: THREE.ShaderMaterial[]) {
     this.setTexturePassMode(materials, 2)
     this.renderer.setRenderTarget(this.clippedReflectionTarget)
@@ -189,6 +265,11 @@ export class ObjectTexturePass {
     this.renderer.render(scene, this.reflectionCamera)
   }
 
+  /**
+   * Renders the orthographic shadows of the object.
+   * 
+   * @param scene The global scene.
+   */
   private renderShadow(scene: THREE.Scene) {
     this.shadowMaterial.uniforms.light.value.copy(this.lightDirection)
     this.shadowMaterial.uniformsNeedUpdate = true
@@ -201,11 +282,22 @@ export class ObjectTexturePass {
     scene.overrideMaterial = previousOverrideMaterial
   }
 
+  /**
+   * Clears a single WebGLRenderTarget.
+   * 
+   * @param target Render target to clear.
+   */
   private clearTarget(target: THREE.WebGLRenderTarget) {
     this.renderer.setRenderTarget(target)
     this.renderer.clear()
   }
 
+  /**
+   * Helper function to execute rendering callbacks with a transparent black clear color,
+   * restoring the original clear configuration afterwards.
+   * 
+   * @param render Callback function containing rendering operations.
+   */
   private withTransparentClear(render: () => void) {
     const previousTarget = this.renderer.getRenderTarget()
     this.renderer.getClearColor(this.previousClearColor)
@@ -217,6 +309,14 @@ export class ObjectTexturePass {
     this.renderer.setClearColor(this.previousClearColor, previousClearAlpha)
   }
 
+  /**
+   * Temporarily toggles visibility of all objects in the scene off except the target object
+   * to render it in isolation.
+   * 
+   * @param scene The global scene.
+   * @param renderableObject The object to keep visible.
+   * @param render Callback function containing rendering operations.
+   */
   private withOnlyObjectVisible(
     scene: THREE.Scene,
     renderableObject: THREE.Object3D,
@@ -238,6 +338,13 @@ export class ObjectTexturePass {
     }
   }
 
+  /**
+   * Recursively checks if an object is or is a descendant of a specific root object.
+   * 
+   * @param object The object to check.
+   * @param root The root object to compare against.
+   * @returns True if object is a descendant or is the root, false otherwise.
+   */
   private isObjectOrDescendant(object: THREE.Object3D, root: THREE.Object3D) {
     for (let current: THREE.Object3D | null = object; current; current = current.parent) {
       if (current === root) return true
@@ -245,6 +352,12 @@ export class ObjectTexturePass {
     return false
   }
 
+  /**
+   * Helper to set uniform texturePassMode on all object materials to tell the shaders how to render them.
+   * 
+   * @param materials The list of materials.
+   * @param mode The texture pass mode code.
+   */
   private setTexturePassMode(materials: THREE.ShaderMaterial[], mode: number) {
     for (const mat of materials) {
       if (mat.uniforms?.texturePassMode) {
@@ -254,6 +367,12 @@ export class ObjectTexturePass {
     }
   }
 
+  /**
+   * Helper to collect all ShaderMaterial instances within a given Object3D's hierarchy.
+   * 
+   * @param object The root object to traverse.
+   * @returns Array of collected ShaderMaterials.
+   */
   private collectMaterials(object: THREE.Object3D): THREE.ShaderMaterial[] {
     const materials: THREE.ShaderMaterial[] = []
     object.traverse((child) => {
@@ -264,3 +383,4 @@ export class ObjectTexturePass {
     return materials
   }
 }
+

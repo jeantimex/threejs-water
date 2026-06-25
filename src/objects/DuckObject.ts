@@ -8,21 +8,38 @@ import { CompoundSphereWaterDisplacement, type DisplacementSphere } from '../wat
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
 import { clampAndMoveObject, updatePhysics } from './SimulationObjectUtils'
 
+/**
+ * Represents the Rubber Duck obstacle in the water simulation.
+ * Implements SimulationObject. Unlike the primitive geometric shapes, this object's 3D mesh
+ * is loaded asynchronously from an external glTF asset. Its complex physical volume is approximated
+ * by 3 overlapping displacement spheres for fluid heightmap interactions.
+ */
 export class DuckObject implements SimulationObject {
   readonly name = 'Rubber Duck'
+  // Bounding radius of the duck model
   readonly boundingRadius = 0.25
+  // Height clearance threshold to sit properly on the bottom
   readonly floorClearance = 0.265
+  // Default position
   readonly position = new THREE.Vector3(0.4, this.floorClearance - 1, -0.2)
   readonly velocity = new THREE.Vector3()
+
+  /**
+   * Returns the minimum Y center coordinate when the duck rests on the pool floor.
+   */
   floorY(poolHeight: number) {
     return this.floorClearance - poolHeight
   }
+
+  // Displacement strategy mapping multiple overlapping spheres to water heightmap adjustments
   readonly displacement: CompoundSphereWaterDisplacement
+  // Optics description for raytracing reflections/refractions in the water shader
   readonly optics = {
     kind: 'mesh' as const,
     center: this.position,
     boundingRadius: this.boundingRadius,
   }
+  
   readonly mesh: THREE.Group
   enabled = false
 
@@ -35,6 +52,7 @@ export class DuckObject implements SimulationObject {
     this.mesh.frustumCulled = false
     this.mesh.visible = false
 
+    // Approximate the duck's volume with 3 overlapping spheres (torso, head, tail)
     this.displacement = new CompoundSphereWaterDisplacement(
       this.generateDisplacementSpheres(),
       0.15
@@ -43,14 +61,24 @@ export class DuckObject implements SimulationObject {
     this.loadModel()
   }
 
+  /**
+   * Generates displacement spheres approximating the duck's volume.
+   */
   private generateDisplacementSpheres(): DisplacementSphere[] {
     const spheres: DisplacementSphere[] = []
+    // Center/Main body
     spheres.push({ offset: new THREE.Vector3(0, 0, 0), radius: 0.15 })
+    // Head offset (front and slightly up)
     spheres.push({ offset: new THREE.Vector3(0, 0.1, 0.1), radius: 0.08 })
+    // Tail offset (back and slightly down)
     spheres.push({ offset: new THREE.Vector3(0, -0.08, -0.05), radius: 0.1 })
     return spheres
   }
 
+  /**
+   * Asynchronously loads the Duck.gltf 3D asset and its diffuse map texture.
+   * Scales the mesh to fit the `boundingRadius` exactly and centers it.
+   */
   private async loadModel() {
     const loader = new GLTFLoader()
     try {
@@ -59,8 +87,9 @@ export class DuckObject implements SimulationObject {
 
       const textureLoader = new THREE.TextureLoader()
       const texture = await textureLoader.loadAsync('/models/duck/DuckCM.png')
-      texture.flipY = false
+      texture.flipY = false // Align mapping with glTF uv coordinates
 
+      // Custom shader material supporting caustics and light refraction maps
       this.material = new THREE.ShaderMaterial({
         vertexShader: duckRenderVert,
         fragmentShader: duckRenderFrag,
@@ -85,6 +114,7 @@ export class DuckObject implements SimulationObject {
         }
       })
 
+      // Normalize size and center pivot
       const box = new THREE.Box3().setFromObject(duckScene)
       const size = box.getSize(new THREE.Vector3())
       const center = box.getCenter(new THREE.Vector3())
@@ -104,6 +134,9 @@ export class DuckObject implements SimulationObject {
     }
   }
 
+  /**
+   * Toggles the active state of the duck, spawning splash displacement waves.
+   */
   setEnabled(enabled: boolean, water: Water) {
     if (enabled === this.enabled) return
 
@@ -125,11 +158,17 @@ export class DuckObject implements SimulationObject {
     this.previousPosition.copy(this.position)
   }
 
+  /**
+   * Resets position history to prevent displacement spikes.
+   */
   syncPreviousPosition() {
     this.previousPosition.copy(this.position)
     this.mesh.position.copy(this.position)
   }
 
+  /**
+   * Main update tick to execute buoyancy/gravity physics and write wave height displacements.
+   */
   update(seconds: number, context: ObjectUpdateContext, water: Water) {
     if (!this.enabled) return
 
@@ -151,6 +190,9 @@ export class DuckObject implements SimulationObject {
     this.mesh.position.copy(this.position)
   }
 
+  /**
+   * Performs bounding sphere raycasting check for mouse drags.
+   */
   hitTest(origin: THREE.Vector3, direction: THREE.Vector3): THREE.Vector3 | null {
     if (!this.enabled || !this.loaded) return null
 
@@ -167,6 +209,9 @@ export class DuckObject implements SimulationObject {
       : null
   }
 
+  /**
+   * Translates the duck position and clamps it within the pool boundaries.
+   */
   moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
     clampAndMoveObject(
       this.position,
@@ -181,6 +226,9 @@ export class DuckObject implements SimulationObject {
     this.mesh.position.copy(this.position)
   }
 
+  /**
+   * Pre-renders uniform values for light direction and dimensions.
+   */
   prepareRender(water: Water, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
     if (!this.material) return
     this.material.uniforms.water.value = water.textureA.texture
@@ -191,6 +239,9 @@ export class DuckObject implements SimulationObject {
     this.material.uniformsNeedUpdate = true
   }
 
+  /**
+   * Returns a coordinate high in the sky (Y=10.0) where the object stays when inactive.
+   */
   private getInactivePosition(): THREE.Vector3 {
     return new THREE.Vector3(this.position.x, 10, this.position.z)
   }

@@ -33,6 +33,9 @@ uniform mat4 reflectionViewProjectionMatrix;
 
 varying vec3 vPosition;
 
+/**
+ * Calculates intersections of a ray with the pool bounding box limits.
+ */
 vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {
   vec3 tMin = (cubeMin - origin) / ray;
   vec3 tMax = (cubeMax - origin) / ray;
@@ -43,6 +46,9 @@ vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {
   return vec2(tNear, tFar);
 }
 
+/**
+ * Calculates intersections of a ray with the sphere bounds.
+ */
 float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
   vec3 toSphere = origin - center;
   float a = dot(ray, ray);
@@ -56,6 +62,9 @@ float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
   return 1.0e6;
 }
 
+/**
+ * Calculates exit/entry bounds on a sphere obstacle.
+ */
 float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
   vec3 toSphere = origin - center;
   float a = dot(ray, ray);
@@ -72,6 +81,9 @@ float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
   return 1.0e6;
 }
 
+/**
+ * Torus Knot signed distance function (SDF).
+ */
 float sdTorusKnot(vec3 p, vec3 center) {
   vec3 pos = p - center;
   float d_bound = length(pos) - 0.31;
@@ -106,6 +118,9 @@ float sdTorusKnot(vec3 p, vec3 center) {
   return minDist - tube;
 }
 
+/**
+ * Traces a ray to intersect the Torus Knot SDF.
+ */
 float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
   float t_bound = intersectSphereBounds(origin, ray, center, 0.31);
   if (t_bound > 1.0e5) return 1.0e6;
@@ -123,6 +138,9 @@ float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
   return 1.0e6;
 }
 
+/**
+ * Computes normal vector of the Torus Knot.
+ */
 vec3 getTorusKnotNormal(vec3 p, vec3 center) {
   const float eps = 0.001;
   vec3 n = vec3(
@@ -133,6 +151,9 @@ vec3 getTorusKnotNormal(vec3 p, vec3 center) {
   return normalize(n);
 }
 
+/**
+ * Computes sphere shading.
+ */
 vec3 getSphereColor(vec3 point) {
   vec3 color = vec3(0.5);
   color *= 1.0 - 0.9 / pow((1.0 + sphereRadius - abs(point.x)) / sphereRadius, 3.0);
@@ -151,6 +172,9 @@ vec3 getSphereColor(vec3 point) {
   return color;
 }
 
+/**
+ * Computes cube shading.
+ */
 vec3 getCubeColor(vec3 point) {
   vec3 local = (point - cubeCenter) / cubeHalfSize;
   vec3 axis = abs(local);
@@ -174,6 +198,9 @@ vec3 getCubeColor(vec3 point) {
   return color + diffuse;
 }
 
+/**
+ * Computes Torus Knot shading.
+ */
 vec3 getTorusKnotColor(vec3 point) {
   vec3 color = vec3(0.5);
   vec3 normal = getTorusKnotNormal(point, torusKnotCenter);
@@ -187,6 +214,9 @@ vec3 getTorusKnotColor(vec3 point) {
   return color + diffuse;
 }
 
+/**
+ * Computes pool wall shading.
+ */
 vec3 getWallColor(vec3 point) {
   float scale = 0.5;
   vec3 wallColor;
@@ -216,7 +246,6 @@ vec3 getWallColor(vec3 point) {
     scale *= 1.0 - 0.9 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
   }
 
-
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(refractedLight, normal));
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
@@ -231,6 +260,9 @@ vec3 getWallColor(vec3 point) {
   return wallColor * scale;
 }
 
+/**
+ * Samples a texture projected from camera matrices.
+ */
 vec4 sampleProjectedTexture(sampler2D tex, mat4 matrix, vec3 point) {
   vec4 clip = matrix * vec4(point, 1.0);
   vec3 ndc = clip.xyz / max(clip.w, 1.0e-6);
@@ -243,6 +275,9 @@ vec4 sampleProjectedTexture(sampler2D tex, mat4 matrix, vec3 point) {
   return texture2D(tex, clamp(uv, 0.0, 1.0)) * inBounds;
 }
 
+/**
+ * Samples refracted objects inside water.
+ */
 vec4 sampleObjectRefraction(vec3 origin, vec3 ray, vec3 center, float radius) {
   float hit = intersectSphereBounds(origin, ray, center, radius);
   if (hit >= 1.0e6) return vec4(0.0);
@@ -253,6 +288,9 @@ vec4 sampleObjectRefraction(vec3 origin, vec3 ray, vec3 center, float radius) {
   );
 }
 
+/**
+ * Samples reflected objects inside water.
+ */
 vec4 sampleObjectReflection(vec3 origin, vec3 ray, vec3 center, float radius) {
   float hit = intersectSphereBounds(origin, ray, center, radius);
   if (hit >= 1.0e6) return vec4(0.0);
@@ -263,6 +301,10 @@ vec4 sampleObjectReflection(vec3 origin, vec3 ray, vec3 center, float radius) {
   );
 }
 
+/**
+ * Ray-traces primary refraction/reflection rays to find colors of background wall tiles,
+ * objects, or sky dome exits.
+ */
 vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
   float sphereDistance = sphereEnabled ? intersectSphere(origin, ray, sphereCenter, sphereRadius) : 1.0e6;
@@ -284,41 +326,56 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
       color = getTorusKnotColor(hit);
     }
   } else if (ray.y < 0.0) {
+    // Ray points down: intersect with the pool bottom/walls
     vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
     color = getWallColor(origin + ray * t.y);
   } else {
+    // Ray points up: exits water into the sky dome or hits pool edge rim above water
     vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
     vec3 hit = origin + ray * t.y;
     if (hit.y < 2.0 / 12.0) {
       color = getWallColor(hit);
     } else {
       color = textureCube(sky, ray).rgb;
+      // Add sun spot glow
       color += vec3(pow(max(0.0, dot(light, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);
     }
   }
+  
+  // Modulate light color by water color absorption (Beer's Law approximation)
   if (ray.y < 0.0) color *= waterColor;
   return color;
 }
 
 void main() {
+  // 1. Map world coordinate to UV coordinate space
   vec2 coord = vPosition.xz * 0.5 + 0.5;
   vec4 info = texture2D(water, coord);
 
+  // 2. Perform iterative parallax offset raycasting lookup steps along the normal gradients
   for (int i = 0; i < 5; i++) {
     coord += info.ba * 0.005;
     info = texture2D(water, coord);
   }
 
+  // 3. Reconstruct the normal vector of the wave surface
   vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);
+  
+  // 4. Calculate camera view direction vector
   vec3 incomingRay = normalize(vPosition - eye);
 
+  // 5. Calculate reflection and refraction rays (sunlight entering water: IOR_AIR / IOR_WATER)
   vec3 reflectedRay = reflect(incomingRay, normal);
   vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);
+  
+  // 6. Compute Fresnel coefficient using Schlick's approximation (starts at 0.25 for air-to-water)
   float fresnel = mix(0.25, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));
 
+  // 7. Raytrace reflected and refracted directions
   vec3 reflectedColor = getSurfaceRayColor(vPosition, reflectedRay, abovewaterColor);
   vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, abovewaterColor);
 
+  // 8. Blend pre-rendered refraction and reflection passes for interactive objects
   if (torusKnotEnabled) {
     vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, torusKnotCenter, 0.31);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
@@ -327,6 +384,7 @@ void main() {
   } else if (meshEnabled) {
     vec4 refractedObject = sampleObjectRefraction(vPosition, refractedRay, meshCenter, meshBoundingRadius);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
+    // Use clipped reflection texture to ensure parts below water are not rendered in reflection map
     vec4 reflectedObject = sampleProjectedTexture(
       objectClippedReflectionTex,
       reflectionViewProjectionMatrix,
@@ -335,5 +393,6 @@ void main() {
     reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
   }
 
+  // 9. Mix colors based on fresnel intensity
   gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);
 }

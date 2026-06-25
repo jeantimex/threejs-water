@@ -25,6 +25,10 @@ uniform sampler2D water;
 
 varying vec3 vPosition;
 
+/**
+ * Calculates ray-box intersection.
+ * Used to trace refracted light paths to compute soft shadows above the water level.
+ */
 vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {
   vec3 tMin = (cubeMin - origin) / ray;
   vec3 tMax = (cubeMax - origin) / ray;
@@ -35,22 +39,33 @@ vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {
   return vec2(tNear, tFar);
 }
 
+/**
+ * Computes lighting and color of the flat-walled pool sides and floor.
+ */
 vec3 getWallColor(vec3 point) {
   float scale = 0.5;
   vec3 wallColor;
   vec3 normal;
+  
+  // 1. Determine which pool wall face this fragment belongs to (X-walls, Z-walls, or floor)
+  // and sample the tile texture using aligned coordinate projections (triplanar mapping).
   if (abs(point.x) > 0.999) {
+    // Left/Right walls (X faces)
     wallColor = texture2D(tiles, point.yz * 0.5 + vec2(1.0, 0.5)).rgb;
     normal = vec3(-point.x, 0.0, 0.0);
   } else if (abs(point.z) > 0.999) {
+    // Front/Back walls (Z faces)
     wallColor = texture2D(tiles, point.yx * 0.5 + vec2(1.0, 0.5)).rgb;
     normal = vec3(0.0, 0.0, -point.z);
   } else {
+    // Pool floor (bottom Y face)
     wallColor = texture2D(tiles, point.xz * 0.5 + 0.5).rgb;
     normal = vec3(0.0, 1.0, 0.0);
   }
 
+  // 2. Modulate brightness (scale) based on distance from the light source and obstacle shadows.
   scale /= length(point);
+  
   if (sphereEnabled) {
     scale *= 1.0 - 0.9 / pow(max(length(point - sphereCenter) / sphereRadius, 1.0), 4.0);
   } else if (cubeEnabled) {
@@ -64,23 +79,31 @@ vec3 getWallColor(vec3 point) {
     scale *= 1.0 - 0.9 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
   }
 
-
+  // 3. Compute refracted light vector pointing inwards from the water surface boundary
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(refractedLight, normal));
+  
+  // Sample local water surface height to check if underwater
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
+  
   if (point.y < info.r) {
+    // Submerged wall lighting: Project along refracted light vector and sample caustics
     vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
     scale += diffuse * caustic.r * 2.0 * caustic.g;
   } else {
+    // Above water lighting: Trace ray to compute pool edge shadow gradients
     vec2 t = intersectCube(point, refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
     diffuse *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
     scale += diffuse * 0.5;
   }
+  
   return wallColor * scale;
 }
 
 void main() {
   gl_FragColor = vec4(getWallColor(vPosition), 1.0);
+  
+  // Add blue tinting modulation for underwater fragments
   vec4 info = texture2D(water, vPosition.xz * 0.5 + 0.5);
   if (vPosition.y < info.r) {
     gl_FragColor.rgb *= underwaterColor * 1.2;

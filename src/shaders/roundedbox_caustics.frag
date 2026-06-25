@@ -15,6 +15,8 @@ uniform bool torusKnotEnabled;
 uniform vec3 meshCenter;
 uniform float meshBoundingRadius;
 uniform bool meshEnabled;
+
+// Pre-rendered depth/occlusion texture of the interactive object
 uniform sampler2D objectShadowTex;
 
 uniform float cornerRadius;
@@ -26,6 +28,9 @@ varying vec3 oldPos;
 varying vec3 newPos;
 varying vec3 ray;
 
+/**
+ * Solves 2D intersections of a ray with a rounded rectangle layout on the horizontal XZ plane.
+ */
 vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   float tNear = 1e6;
   float tFar = -1e6;
@@ -55,7 +60,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
       found = true;
     }
   }
-  // 3. Line z = L (x in [-r_sub_x, r_sub_x])
+  // 3. Check line: z = +poolLength (x in [-r_sub_x, r_sub_x])
   if (abs(ray.y) > 1.0e-7) {
     float t = (poolLength - origin.y) / ray.y;
     float x = origin.x + t * ray.x;
@@ -65,7 +70,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
       found = true;
     }
   }
-  // 4. Line z = -L (x in [-r_sub_x, r_sub_x])
+  // 4. Check line: z = -poolLength (x in [-r_sub_x, r_sub_x])
   if (abs(ray.y) > 1.0e-7) {
     float t = (-poolLength - origin.y) / ray.y;
     float x = origin.x + t * ray.x;
@@ -76,7 +81,7 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
     }
   }
 
-  // 4 corners
+  // 5. Check corners
   if (R > 0.0) {
     vec2 centers[4];
     centers[0] = vec2(r_sub_x, r_sub_z);
@@ -96,7 +101,6 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
         float tA = (-b - sqrtDisc) / (2.0 * a);
         float tB = (-b + sqrtDisc) / (2.0 * a);
         
-        // Check tA
         vec2 ptA = origin + tA * ray;
         bool validA = false;
         if (i == 0) validA = (ptA.x >= r_sub_x - eps && ptA.y >= r_sub_z - eps);
@@ -109,7 +113,6 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
           found = true;
         }
         
-        // Check tB
         vec2 ptB = origin + tB * ray;
         bool validB = false;
         if (i == 0) validB = (ptB.x >= r_sub_x - eps && ptB.y >= r_sub_z - eps);
@@ -132,6 +135,9 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   return vec2(tNear, tFar);
 }
 
+/**
+ * Calculates 3D intersection parameters of a ray with the rounded pool box.
+ */
 vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
   float tYNear = -1.0e6;
   float tYFar = 1.0e6;
@@ -147,6 +153,10 @@ vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
   return vec2(tNear, tFar);
 }
 
+/**
+ * Solves standard ray-box intersection.
+ * Used for fast shadow occlusion slab tests against the active cube obstacle.
+ */
 vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
   vec3 tMin = (cubeMin - origin) / r;
   vec3 tMax = (cubeMax - origin) / r;
@@ -157,6 +167,9 @@ vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
   return vec2(tNear, tFar);
 }
 
+/**
+ * Checks if a shadow ray intersects the cube obstacle.
+ */
 float cubeOcclusion(vec3 origin, vec3 direction) {
   vec2 hit = intersectCube(
     origin,
@@ -167,6 +180,9 @@ float cubeOcclusion(vec3 origin, vec3 direction) {
   return step(0.0, hit.y) * step(hit.x, hit.y);
 }
 
+/**
+ * Checks intersection against a sphere.
+ */
 float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
   vec3 toSphere = origin - center;
   float a = dot(ray, ray);
@@ -180,6 +196,9 @@ float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
   return 1.0e6;
 }
 
+/**
+ * Checks entry/exit bounds on a sphere obstacle.
+ */
 float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
   vec3 toSphere = origin - center;
   float a = dot(ray, ray);
@@ -196,6 +215,9 @@ float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
   return 1.0e6;
 }
 
+/**
+ * Evaluates the Signed Distance Function (SDF) of the Torus Knot.
+ */
 float sdTorusKnot(vec3 p, vec3 center) {
   vec3 pos = p - center;
   float d_bound = length(pos) - 0.31;
@@ -230,6 +252,9 @@ float sdTorusKnot(vec3 p, vec3 center) {
   return minDist - tube;
 }
 
+/**
+ * Traces a ray to find intersections with the Torus Knot obstacle.
+ */
 float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
   float t_bound = intersectSphereBounds(origin, ray, center, 0.31);
   if (t_bound > 1.0e5) return 1.0e6;
@@ -247,19 +272,29 @@ float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
   return 1.0e6;
 }
 
+/**
+ * Checks if a shadow ray hits the Torus Knot.
+ */
 float torusKnotOcclusion(vec3 origin, vec3 direction) {
   float hit = intersectTorusKnot(origin, direction, torusKnotCenter);
   return hit < 1.0e5 ? 1.0 : 0.0;
 }
 
 void main() {
+  // 1. Calculate relative focusing of the light rays:
+  // oldArea / newArea represents the Jacobian determinant of the refraction mapping.
+  // When rays converge, newArea becomes smaller than oldArea, focusing light and creating caustics.
   float oldArea = length(dFdx(oldPos)) * length(dFdy(oldPos));
   float newArea = length(dFdx(newPos)) * length(dFdy(newPos));
+  
+  // Store the focusing ratio in the red channel (scaled by 0.2)
   gl_FragColor = vec4(oldArea / newArea * 0.2, 1.0, 0.0, 0.0);
 
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
 
+  // 2. Compute shadow mapping (attenuation factor) for active obstacles:
   if (sphereEnabled) {
+    // Analytical soft sphere shadows: computes shadow cone alignment
     vec3 dir = (sphereCenter - newPos) / sphereRadius;
     vec3 area = cross(dir, refractedLight);
     float shadow = dot(area, area);
@@ -269,6 +304,7 @@ void main() {
     shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
     gl_FragColor.g = shadow;
   } else if (cubeEnabled) {
+    // 3x3 shadow map kernel sampling for the cube obstacle
     vec3 shadowRay = -refractedLight;
     vec3 right = normalize(cross(shadowRay, vec3(0.0, 1.0, 0.0)));
     vec3 up = normalize(cross(right, shadowRay));
@@ -285,6 +321,7 @@ void main() {
     }
     gl_FragColor.g = 1.0 - occlusion / 9.0;
   } else if (torusKnotEnabled || meshEnabled) {
+    // PCF (Percentage Closer Filtering) 3x3 shadow sampling for the custom mesh/Torus Knot
     vec2 shadowUV = 0.75 * (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5;
     const float d = 4.0 / 1024.0;
     float occlusion = texture2D(objectShadowTex, shadowUV).r;
@@ -301,6 +338,7 @@ void main() {
     gl_FragColor.g = 1.0;
   }
 
+  // 3. Attenuate caustics near the pool edges using shadow boundaries check
   vec2 t = intersectRoundedBox(newPos, -refractedLight, cornerRadius);
   gl_FragColor.r *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (newPos.y - refractedLight.y * t.y - 2.0 / 12.0)));
 }

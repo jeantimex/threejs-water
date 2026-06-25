@@ -1,27 +1,32 @@
 precision highp float;
 
+// Constants representing indices of refraction
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
 const float poolHeight = 1.0;
 
-uniform vec3 light;
-uniform vec3 sphereCenter;
-uniform float sphereRadius;
-uniform bool sphereEnabled;
-uniform vec3 cubeCenter;
-uniform vec3 cubeHalfSize;
-uniform bool cubeEnabled;
-uniform vec3 torusKnotCenter;
-uniform bool torusKnotEnabled;
-uniform vec3 meshCenter;
-uniform float meshBoundingRadius;
-uniform bool meshEnabled;
-uniform sampler2D objectShadowTex;
+uniform vec3 light;                   // Incoming directional light direction (sunlight)
+uniform vec3 sphereCenter;            // Sphere center coordinates
+uniform float sphereRadius;           // Sphere radius
+uniform bool sphereEnabled;           // Is the sphere active?
+uniform vec3 cubeCenter;              // Cube center coordinates
+uniform vec3 cubeHalfSize;            // Cube half dimensions
+uniform bool cubeEnabled;             // Is the cube active?
+uniform vec3 torusKnotCenter;         // Torus knot center coordinates
+uniform bool torusKnotEnabled;        // Is the torus knot active?
+uniform vec3 meshCenter;              // Custom mesh bounding center
+uniform float meshBoundingRadius;     // Custom mesh bounding radius
+uniform bool meshEnabled;             // Is the custom mesh active?
+uniform sampler2D objectShadowTex;    // Texture map containing shadows cast by the 3D models
 
-varying vec3 oldPos;
-varying vec3 newPos;
-varying vec3 ray;
+varying vec3 oldPos;                  // Flat surface ray location
+varying vec3 newPos;                  // Refracted surface ray location
+varying vec3 ray;                     // Local refracted ray direction
 
+/**
+ * Computes ray intersection with a bounding cube.
+ * Used to clip light ray paths against the pool boundaries.
+ */
 vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
   vec3 tMin = (cubeMin - origin) / r;
   vec3 tMax = (cubeMax - origin) / r;
@@ -32,6 +37,9 @@ vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
   return vec2(tNear, tFar);
 }
 
+/**
+ * Returns 1.0 if the ray intersects the cube object, otherwise 0.0.
+ */
 float cubeOcclusion(vec3 origin, vec3 direction) {
   vec2 hit = intersectCube(
     origin,
@@ -42,6 +50,9 @@ float cubeOcclusion(vec3 origin, vec3 direction) {
   return step(0.0, hit.y) * step(hit.x, hit.y);
 }
 
+/**
+ * Analytical ray-sphere intersection.
+ */
 float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
   vec3 toSphere = origin - center;
   float a = dot(ray, ray);
@@ -55,6 +66,9 @@ float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
   return 1.0e6;
 }
 
+/**
+ * Returns near entry intersection distance with sphere bounds.
+ */
 float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
   vec3 toSphere = origin - center;
   float a = dot(ray, ray);
@@ -71,8 +85,12 @@ float intersectSphereBounds(vec3 origin, vec3 ray, vec3 center, float radius) {
   return 1.0e6;
 }
 
+/**
+ * Signed distance function (SDF) of a Torus Knot.
+ */
 float sdTorusKnot(vec3 p, vec3 center) {
   vec3 pos = p - center;
+  // Bounding sphere acceleration boundary check
   float d_bound = length(pos) - 0.31;
   if (d_bound > 0.08) {
     return d_bound;
@@ -105,6 +123,9 @@ float sdTorusKnot(vec3 p, vec3 center) {
   return minDist - tube;
 }
 
+/**
+ * Raymarches the torus knot SDF to locate intersections.
+ */
 float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
   float t_bound = intersectSphereBounds(origin, ray, center, 0.31);
   if (t_bound > 1.0e5) return 1.0e6;
@@ -122,19 +143,34 @@ float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
   return 1.0e6;
 }
 
+/**
+ * Returns 1.0 if the ray intersects the torus knot, otherwise 0.0.
+ */
 float torusKnotOcclusion(vec3 origin, vec3 direction) {
   float hit = intersectTorusKnot(origin, direction, torusKnotCenter);
   return hit < 1.0e5 ? 1.0 : 0.0;
 }
 
 void main() {
+  // 1. CAUSTICS INTENSITY CALCULATION:
+  // Using standard derivative screenspace functions (dFdx, dFdy), we measure
+  // the area of a differential surface patch before and after light refraction.
+  // - oldArea: Area of a pixel flat cell.
+  // - newArea: Area of the cell after the rays converge or diverge due to wave curvature.
+  // When rays converge (focusing light), newArea becomes small, causing oldArea / newArea
+  // to grow large, yielding bright focused caustic lines.
   float oldArea = length(dFdx(oldPos)) * length(dFdy(oldPos));
   float newArea = length(dFdx(newPos)) * length(dFdy(newPos));
+  
+  // Output caustic intensity in the Red channel
   gl_FragColor = vec4(oldArea / newArea * 0.2, 1.0, 0.0, 0.0);
 
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
 
+  // 2. SHADOW MAP OCCLUSION:
+  // Compute object-level light blockage for the caustic map and store it in the Green channel.
   if (sphereEnabled) {
+    // Analytical soft shadow projection for a sphere
     vec3 dir = (sphereCenter - newPos) / sphereRadius;
     vec3 area = cross(dir, refractedLight);
     float shadow = dot(area, area);
@@ -144,6 +180,7 @@ void main() {
     shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
     gl_FragColor.g = shadow;
   } else if (cubeEnabled) {
+    // 9-sample soft shadow occlusion for the cube
     vec3 shadowRay = -refractedLight;
     vec3 right = normalize(cross(shadowRay, vec3(0.0, 1.0, 0.0)));
     vec3 up = normalize(cross(right, shadowRay));
@@ -160,6 +197,7 @@ void main() {
     }
     gl_FragColor.g = 1.0 - occlusion / 9.0;
   } else if (torusKnotEnabled || meshEnabled) {
+    // 9-tap percentage-closer filtering (PCF) shadow map sampling for complex geometry
     vec2 shadowUV = 0.75 * (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5;
     const float d = 4.0 / 1024.0;
     float occlusion = texture2D(objectShadowTex, shadowUV).r;
@@ -173,9 +211,12 @@ void main() {
     occlusion += texture2D(objectShadowTex, shadowUV + vec2(-d, -d)).r;
     gl_FragColor.g = 1.0 - 0.8 * occlusion / 9.0;
   } else {
-    gl_FragColor.g = 1.0;
+    gl_FragColor.g = 1.0; // No occlusion
   }
 
+  // 3. WALL CLIPPING DAMPENING:
+  // Fade caustics out as they approach the top edge of the pool tiles to avoid
+  // sharp artifacts where the tile texture ends.
   vec2 t = intersectCube(newPos, -refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
   gl_FragColor.r *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (newPos.y - refractedLight.y * t.y - 2.0 / 12.0)));
 }

@@ -1,3 +1,10 @@
+/**
+ * @file WaterSurfacePass.ts
+ * @description Manages rendering the water surface itself. Supports viewing the surface from
+ * both above (aboveMesh, back-face culled) and below (belowMesh, front-face culled).
+ * Handles reflection, refraction, and optical distortion of the sky and submerged objects.
+ */
+
 import * as THREE from 'three'
 import type { Water } from '../Water'
 import waterAboveVert from '../shaders/waterAbove.vert'
@@ -9,19 +16,46 @@ import roundedBoxWaterBelowFrag from '../shaders/roundedbox_waterBelow.frag'
 import roundedBoxWaterVert from '../shaders/roundedbox_water.vert'
 import type { WaterOpticsState } from './WaterOpticsState'
 
+/**
+ * Interface representing computed projection matrices for scene objects,
+ * used by shaders to align reflections and refractions with the screen layout.
+ */
 export interface ObjectTextureMatrices {
+  /** Map from world space to default camera viewport coordinate space. */
   viewProjectionMatrix: THREE.Matrix4
+  /** Map from world space to reflected camera viewport coordinate space. */
   reflectionViewProjectionMatrix: THREE.Matrix4
 }
 
+/**
+ * Handles the rendering meshes, materials, and updates for the water surface.
+ * Computes different shading algorithms depending on whether the camera is above or below the surface.
+ */
 export class WaterSurfacePass {
+  /** Mesh rendered when viewing the water surface from above. */
   readonly aboveMesh: THREE.Mesh
+  /** Mesh rendered when viewing the water surface from below. */
   readonly belowMesh: THREE.Mesh
+  /** Shader material for viewing the water from above in a box pool. */
   private readonly aboveMaterial: THREE.ShaderMaterial
+  /** Shader material for viewing the water from below in a box pool. */
   private readonly belowMaterial: THREE.ShaderMaterial
+  /** Shader material for viewing the water from above in a rounded box pool. Lazily created. */
   private roundedBoxAboveMaterial: THREE.ShaderMaterial | null = null
+  /** Shader material for viewing the water from below in a rounded box pool. Lazily created. */
   private roundedBoxBelowMaterial: THREE.ShaderMaterial | null = null
 
+  /**
+   * Constructs the WaterSurfacePass.
+   * 
+   * @param tileTexture Tile texture mapping the pool walls/floor.
+   * @param cubemap Cube texture of the surrounding sky.
+   * @param causticTexture Dynamic caustic light intensity texture.
+   * @param objectReflectionTexture Reflection texture of objects inside the pool.
+   * @param objectClippedReflectionTexture Clipped reflection texture of objects.
+   * @param objectRefractionTexture Refraction texture of objects.
+   * @param state The state tracking objects inside the water.
+   */
   constructor(
     private readonly tileTexture: THREE.Texture,
     private readonly cubemap: THREE.CubeTexture,
@@ -61,6 +95,15 @@ export class WaterSurfacePass {
     this.belowMesh.frustumCulled = false
   }
 
+  /**
+   * Configures materials for the water mesh based on the selected pool shape (Box or Rounded).
+   * 
+   * @param shape The shape description ('Box' or otherwise).
+   * @param cornerRadius Corner radius of rounded pools.
+   * @param poolWidth Half-width of the pool.
+   * @param poolHeight Depth of the pool.
+   * @param poolLength Half-length of the pool.
+   */
   setPoolShape(shape: string, cornerRadius: number, poolWidth: number, poolHeight: number, poolLength: number) {
     if (shape === 'Box') {
       this.aboveMesh.material = this.aboveMaterial
@@ -114,6 +157,14 @@ export class WaterSurfacePass {
     }
   }
 
+  /**
+   * Prepares the above and below water surface materials by copying camera positions,
+   * heightmap textures, light directions, and projection matrices.
+   * 
+   * @param water The Water simulation instance.
+   * @param camera The active viewing camera.
+   * @param objectMatrices Projection matrices for reflections/refractions.
+   */
   prepare(water: Water, camera: THREE.Camera, objectMatrices: ObjectTextureMatrices) {
     const eye = new THREE.Vector3()
     camera.getWorldPosition(eye)
@@ -121,6 +172,9 @@ export class WaterSurfacePass {
     this.prepareMaterial(this.belowMesh.material as THREE.ShaderMaterial, water, eye, objectMatrices)
   }
 
+  /**
+   * Helper to instantiate a customized THREE.ShaderMaterial for the water surface.
+   */
   private createMaterial(
     vertexShader: string,
     fragmentShader: string,
@@ -155,6 +209,9 @@ export class WaterSurfacePass {
     })
   }
 
+  /**
+   * Helper to bind current state variables and textures to the material uniforms prior to rendering.
+   */
   private prepareMaterial(
     material: THREE.ShaderMaterial,
     water: Water,
@@ -172,4 +229,5 @@ export class WaterSurfacePass {
     material.uniformsNeedUpdate = true
   }
 }
+
 
