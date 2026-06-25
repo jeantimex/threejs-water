@@ -9,6 +9,7 @@ export interface ObjectUpdateContext {
   densityEnabled: boolean
   density: number
   gravity: THREE.Vector3
+  poolLength: number
 }
 
 export interface SimulationObject {
@@ -23,6 +24,6 @@ export interface SimulationObject {
   setEnabled(enabled: boolean, water: Water): void
   update(seconds: number, context: ObjectUpdateContext, water: Water): void
   hitTest(origin: THREE.Vector3, direction: THREE.Vector3): THREE.Vector3 | null
-  moveBy(delta: THREE.Vector3): void
-  prepareRender(water: Water): void
+  moveBy(delta: THREE.Vector3, poolLength?: number): void
+  prepareRender(water: Water, poolLength?: number): void
 }

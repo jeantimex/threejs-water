@@ -83,11 +83,12 @@ export class InteractionController {
   }
 
   private startDrag(x: number, y: number, time: number) {
-    const { cameraController, camera, objects } = this.dependencies
+    const { cameraController, camera, objects, controls } = this.dependencies
     cameraController.stopInertia()
     const { origin, direction } = this.getRay(x, y)
     const pointOnPlane = origin.clone().addScaledVector(direction, -origin.y / direction.y)
     const objectHit = objects.active?.hitTest(origin, direction) ?? null
+    const poolLength = controls.poolShape === 'Box' ? 1.0 : controls.poolLength
 
     if (objectHit) {
       this.mode = InteractionMode.MoveObject
@@ -95,7 +96,7 @@ export class InteractionController {
       this.dragPlaneNormal = new THREE.Vector3(0, 0, -1)
         .applyQuaternion(camera.quaternion)
         .negate()
-    } else if (Math.abs(pointOnPlane.x) < 1 && Math.abs(pointOnPlane.z) < 1) {
+    } else if (Math.abs(pointOnPlane.x) < 1 && Math.abs(pointOnPlane.z) < poolLength) {
       this.mode = InteractionMode.AddDrops
       this.duringDrag(x, y, time)
     } else {
@@ -106,11 +107,12 @@ export class InteractionController {
 
   private duringDrag(x: number, y: number, time: number) {
     const { water, renderer, objects, cameraController, controls, draw } = this.dependencies
+    const poolLength = controls.poolShape === 'Box' ? 1.0 : controls.poolLength
 
     if (this.mode === InteractionMode.AddDrops) {
       const { origin, direction } = this.getRay(x, y)
       const point = origin.clone().addScaledVector(direction, -origin.y / direction.y)
-      water.addDrop(point.x, point.z, 0.03, 0.01)
+      water.addDrop(point.x, point.z / poolLength, 0.03, 0.01)
       if (controls.paused) {
         water.updateNormals()
         renderer.updateCaustics(water)
@@ -121,7 +123,7 @@ export class InteractionController {
       const distance = -this.dragPlaneNormal.dot(origin.clone().sub(this.previousHit))
         / this.dragPlaneNormal.dot(direction)
       const nextHit = origin.clone().addScaledVector(direction, distance)
-      objects.active.moveBy(nextHit.clone().sub(this.previousHit))
+      objects.active.moveBy(nextHit.clone().sub(this.previousHit), poolLength)
       renderer.setWaterOptics(objects.optics)
       this.previousHit = nextHit
       if (controls.paused) renderer.updateCaustics(water)

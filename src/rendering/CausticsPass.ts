@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { Water } from '../Water'
 import causticsVert from '../shaders/caustics.vert'
 import causticsFrag from '../shaders/caustics.frag'
+import roundedBoxCausticsVert from '../shaders/roundedbox_caustics.vert'
 import roundedBoxCausticsFrag from '../shaders/roundedbox_caustics.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
 
@@ -47,13 +48,20 @@ export class CausticsPass {
     this.scene.add(this.mesh)
   }
 
-  setPoolShape(shape: string, cornerRadius: number) {
+  setPoolShape(shape: string, cornerRadius: number, poolLength: number) {
     if (shape === 'Box') {
+      this.camera.top = 1
+      this.camera.bottom = -1
+      this.camera.updateProjectionMatrix()
       this.mesh.material = this.boxMaterial
     } else {
+      this.camera.top = poolLength
+      this.camera.bottom = -poolLength
+      this.camera.updateProjectionMatrix()
+
       if (!this.roundedBoxMaterial) {
         this.roundedBoxMaterial = new THREE.ShaderMaterial({
-          vertexShader: causticsVert,
+          vertexShader: roundedBoxCausticsVert,
           fragmentShader: roundedBoxCausticsFrag,
           uniforms: {
             light: { value: this.state.lightDirection.clone() },
@@ -61,6 +69,7 @@ export class CausticsPass {
             objectShadowTex: { value: this.objectShadowTexture },
             ...this.state.createUniforms(),
             cornerRadius: { value: cornerRadius },
+            poolLength: { value: poolLength },
           },
           blending: THREE.NoBlending,
           side: THREE.DoubleSide,
@@ -69,6 +78,7 @@ export class CausticsPass {
         })
       } else {
         this.roundedBoxMaterial.uniforms.cornerRadius.value = cornerRadius
+        this.roundedBoxMaterial.uniforms.poolLength.value = poolLength
       }
       this.mesh.material = this.roundedBoxMaterial
     }

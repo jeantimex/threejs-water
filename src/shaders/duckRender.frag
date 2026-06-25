@@ -5,6 +5,7 @@ const float IOR_WATER = 1.333;
 const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 
 uniform vec3 light;
+uniform float poolLength;
 uniform sampler2D water;
 uniform sampler2D causticTex;
 uniform sampler2D modelTexture;
@@ -20,7 +21,7 @@ void main() {
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(-refractedLight, n)) * 0.6;
 
-  vec4 info = texture2D(water, vPosition.xz * 0.5 + 0.5);
+  vec4 info = texture2D(water, vPosition.xz * vec2(0.5, 0.5 / poolLength) + 0.5);
   if (texturePassMode == 2 && vPosition.y < info.r) {
     discard;
   }
@@ -28,7 +29,7 @@ void main() {
   if (vPosition.y < info.r) {
     vec4 caustic = texture2D(
       causticTex,
-      0.75 * (vPosition.xz - vPosition.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5
+      0.75 * (vPosition.xz - vPosition.y * refractedLight.xz / refractedLight.y) * vec2(0.5, 0.5 / poolLength) + 0.5
     );
     diffuse *= caustic.r * 4.0;
   }

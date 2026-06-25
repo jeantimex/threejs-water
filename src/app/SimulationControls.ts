@@ -6,6 +6,7 @@ export interface SimulationControlCallbacks {
   onLightFollowsCameraChange?(): void
   onPoolShapeChange?(shape: string): void
   onCornerRadiusChange?(radius: number): void
+  onPoolLengthChange?(length: number): void
 }
 
 export class SimulationControls {
@@ -16,6 +17,7 @@ export class SimulationControls {
   lightFollowsCamera = false
   poolShape = 'Box'
   cornerRadius = 0.1
+  poolLength = 1.0
 
   private readonly state = {
     object: 'Sphere',
@@ -26,12 +28,14 @@ export class SimulationControls {
     lightFollowsCamera: false,
     poolShape: 'Box',
     cornerRadius: 0.1,
+    poolLength: 1.0,
   }
   private readonly gravityController: Controller
   private readonly densityEnabledController: Controller
   private readonly densityController: Controller
   private readonly pausedController: Controller
   private readonly cornerRadiusController: Controller
+  private readonly poolLengthController: Controller
   private physicsAvailable = true
 
   constructor(
@@ -106,6 +110,13 @@ export class SimulationControls {
         callbacks.onCornerRadiusChange?.(radius)
       })
 
+    this.poolLengthController = poolFolder.add(this.state, 'poolLength', 0.5, 3.0, 0.05)
+      .name('Pool Length')
+      .onChange((length: number) => {
+        this.poolLength = length
+        callbacks.onPoolLengthChange?.(length)
+      })
+
     this.updateDensityController()
     this.updatePoolShapeControllers()
   }
@@ -137,8 +148,10 @@ export class SimulationControls {
   private updatePoolShapeControllers() {
     if (this.state.poolShape === 'Rounded Box') {
       this.cornerRadiusController.show()
+      this.poolLengthController.show()
     } else {
       this.cornerRadiusController.hide()
+      this.poolLengthController.hide()
     }
   }
 }

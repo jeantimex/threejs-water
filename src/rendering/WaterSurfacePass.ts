@@ -6,6 +6,7 @@ import roundedBoxWaterAboveFrag from '../shaders/roundedbox_waterAbove.frag'
 import waterBelowVert from '../shaders/waterBelow.vert'
 import waterBelowFrag from '../shaders/waterBelow.frag'
 import roundedBoxWaterBelowFrag from '../shaders/roundedbox_waterBelow.frag'
+import roundedBoxWaterVert from '../shaders/roundedbox_water.vert'
 import type { WaterOpticsState } from './WaterOpticsState'
 
 export interface ObjectTextureMatrices {
@@ -60,14 +61,14 @@ export class WaterSurfacePass {
     this.belowMesh.frustumCulled = false
   }
 
-  setPoolShape(shape: string, cornerRadius: number) {
+  setPoolShape(shape: string, cornerRadius: number, poolLength: number) {
     if (shape === 'Box') {
       this.aboveMesh.material = this.aboveMaterial
       this.belowMesh.material = this.belowMaterial
     } else {
       if (!this.roundedBoxAboveMaterial) {
         this.roundedBoxAboveMaterial = this.createMaterial(
-          waterAboveVert,
+          roundedBoxWaterVert,
           roundedBoxWaterAboveFrag,
           THREE.BackSide,
           this.tileTexture,
@@ -78,9 +79,10 @@ export class WaterSurfacePass {
           this.objectRefractionTexture
         )
         this.roundedBoxAboveMaterial.uniforms.cornerRadius = { value: cornerRadius }
+        this.roundedBoxAboveMaterial.uniforms.poolLength = { value: poolLength }
 
         this.roundedBoxBelowMaterial = this.createMaterial(
-          waterBelowVert,
+          roundedBoxWaterVert,
           roundedBoxWaterBelowFrag,
           THREE.FrontSide,
           this.tileTexture,
@@ -91,9 +93,12 @@ export class WaterSurfacePass {
           this.objectRefractionTexture
         )
         this.roundedBoxBelowMaterial.uniforms.cornerRadius = { value: cornerRadius }
+        this.roundedBoxBelowMaterial.uniforms.poolLength = { value: poolLength }
       } else {
         this.roundedBoxAboveMaterial.uniforms.cornerRadius.value = cornerRadius
+        this.roundedBoxAboveMaterial.uniforms.poolLength.value = poolLength
         this.roundedBoxBelowMaterial!.uniforms.cornerRadius.value = cornerRadius
+        this.roundedBoxBelowMaterial!.uniforms.poolLength.value = poolLength
       }
 
       this.aboveMesh.material = this.roundedBoxAboveMaterial

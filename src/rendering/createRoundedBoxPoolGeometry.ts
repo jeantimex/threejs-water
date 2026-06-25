@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-export function createRoundedBoxPoolGeometry(R: number): THREE.BufferGeometry {
+export function createRoundedBoxPoolGeometry(R: number, poolLength: number): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry()
 
   const positions: number[] = []
@@ -9,7 +9,8 @@ export function createRoundedBoxPoolGeometry(R: number): THREE.BufferGeometry {
 
   const yFloor = -1.0
   const yRim = 2.0 / 12.0
-  const rSub = 1.0 - R
+  const rSubX = 1.0 - R
+  const rSubZ = poolLength - R
 
   const segmentsPerCorner = 16
   const totalPoints = 4 * segmentsPerCorner
@@ -22,19 +23,19 @@ export function createRoundedBoxPoolGeometry(R: number): THREE.BufferGeometry {
     let startAngle = 0
     if (c === 0) {
       // North-East
-      cx = rSub; cz = rSub
+      cx = rSubX; cz = rSubZ
       startAngle = 0
     } else if (c === 1) {
       // North-West
-      cx = -rSub; cz = rSub
+      cx = -rSubX; cz = rSubZ
       startAngle = Math.PI / 2
     } else if (c === 2) {
       // South-West
-      cx = -rSub; cz = -rSub
+      cx = -rSubX; cz = -rSubZ
       startAngle = Math.PI
     } else {
       // South-East
-      cx = rSub; cz = -rSub
+      cx = rSubX; cz = -rSubZ
       startAngle = 1.5 * Math.PI
     }
 
@@ -68,9 +69,9 @@ export function createRoundedBoxPoolGeometry(R: number): THREE.BufferGeometry {
   for (let i = 0; i < totalPoints; i++) {
     const v = floorVertices[i]
     const normal = new THREE.Vector3()
-    if (Math.abs(v.x) > rSub && Math.abs(v.z) > rSub && R > 0) {
-      const cx = Math.sign(v.x) * rSub
-      const cz = Math.sign(v.z) * rSub
+    if (Math.abs(v.x) > rSubX && Math.abs(v.z) > rSubZ && R > 0) {
+      const cx = Math.sign(v.x) * rSubX
+      const cz = Math.sign(v.z) * rSubZ
       normal.set(v.x - cx, 0, v.z - cz).normalize().negate() // points inwards
     } else {
       if (Math.abs(v.x) >= 0.999) {

@@ -31,6 +31,7 @@ uniform mat4 viewProjectionMatrix;
 uniform mat4 reflectionViewProjectionMatrix;
 
 uniform float cornerRadius;
+uniform float poolLength;
 
 varying vec3 vPosition;
 
@@ -39,44 +40,45 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   float tFar = -1e6;
   bool found = false;
   
-  float r_sub = 1.0 - R;
+  float r_sub_x = 1.0 - R;
+  float r_sub_z = poolLength - R;
   float eps = 1.0e-3;
 
-  // 1. Line x = 1 (z in [-r_sub, r_sub])
+  // 1. Line x = 1 (z in [-r_sub_z, r_sub_z])
   if (abs(ray.x) > 1.0e-7) {
     float t = (1.0 - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
-    if (z >= -r_sub - eps && z <= r_sub + eps) {
+    if (z >= -r_sub_z - eps && z <= r_sub_z + eps) {
       tNear = min(tNear, t);
       tFar = max(tFar, t);
       found = true;
     }
   }
-  // 2. Line x = -1 (z in [-r_sub, r_sub])
+  // 2. Line x = -1 (z in [-r_sub_z, r_sub_z])
   if (abs(ray.x) > 1.0e-7) {
     float t = (-1.0 - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
-    if (z >= -r_sub - eps && z <= r_sub + eps) {
+    if (z >= -r_sub_z - eps && z <= r_sub_z + eps) {
       tNear = min(tNear, t);
       tFar = max(tFar, t);
       found = true;
     }
   }
-  // 3. Line z = 1 (x in [-r_sub, r_sub])
+  // 3. Line z = L (x in [-r_sub_x, r_sub_x])
   if (abs(ray.y) > 1.0e-7) {
-    float t = (1.0 - origin.y) / ray.y;
+    float t = (poolLength - origin.y) / ray.y;
     float x = origin.x + t * ray.x;
-    if (x >= -r_sub - eps && x <= r_sub + eps) {
+    if (x >= -r_sub_x - eps && x <= r_sub_x + eps) {
       tNear = min(tNear, t);
       tFar = max(tFar, t);
       found = true;
     }
   }
-  // 4. Line z = -1 (x in [-r_sub, r_sub])
+  // 4. Line z = -L (x in [-r_sub_x, r_sub_x])
   if (abs(ray.y) > 1.0e-7) {
-    float t = (-1.0 - origin.y) / ray.y;
+    float t = (-poolLength - origin.y) / ray.y;
     float x = origin.x + t * ray.x;
-    if (x >= -r_sub - eps && x <= r_sub + eps) {
+    if (x >= -r_sub_x - eps && x <= r_sub_x + eps) {
       tNear = min(tNear, t);
       tFar = max(tFar, t);
       found = true;
@@ -86,10 +88,10 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   // 4 corners
   if (R > 0.0) {
     vec2 centers[4];
-    centers[0] = vec2(r_sub, r_sub);
-    centers[1] = vec2(-r_sub, r_sub);
-    centers[2] = vec2(-r_sub, -r_sub);
-    centers[3] = vec2(r_sub, -r_sub);
+    centers[0] = vec2(r_sub_x, r_sub_z);
+    centers[1] = vec2(-r_sub_x, r_sub_z);
+    centers[2] = vec2(-r_sub_x, -r_sub_z);
+    centers[3] = vec2(r_sub_x, -r_sub_z);
 
     for (int i = 0; i < 4; i++) {
       vec2 center = centers[i];
@@ -106,10 +108,10 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
         // Check tA
         vec2 ptA = origin + tA * ray;
         bool validA = false;
-        if (i == 0) validA = (ptA.x >= r_sub - eps && ptA.y >= r_sub - eps);
-        else if (i == 1) validA = (ptA.x <= -r_sub + eps && ptA.y >= r_sub - eps);
-        else if (i == 2) validA = (ptA.x <= -r_sub + eps && ptA.y <= -r_sub + eps);
-        else if (i == 3) validA = (ptA.x >= r_sub - eps && ptA.y <= -r_sub + eps);
+        if (i == 0) validA = (ptA.x >= r_sub_x - eps && ptA.y >= r_sub_z - eps);
+        else if (i == 1) validA = (ptA.x <= -r_sub_x + eps && ptA.y >= r_sub_z - eps);
+        else if (i == 2) validA = (ptA.x <= -r_sub_x + eps && ptA.y <= -r_sub_z + eps);
+        else if (i == 3) validA = (ptA.x >= r_sub_x - eps && ptA.y <= -r_sub_z + eps);
         if (validA) {
           tNear = min(tNear, tA);
           tFar = max(tFar, tA);
@@ -119,10 +121,10 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
         // Check tB
         vec2 ptB = origin + tB * ray;
         bool validB = false;
-        if (i == 0) validB = (ptB.x >= r_sub - eps && ptB.y >= r_sub - eps);
-        else if (i == 1) validB = (ptB.x <= -r_sub + eps && ptB.y >= r_sub - eps);
-        else if (i == 2) validB = (ptB.x <= -r_sub + eps && ptB.y <= -r_sub + eps);
-        else if (i == 3) validB = (ptB.x >= r_sub - eps && ptB.y <= -r_sub + eps);
+        if (i == 0) validB = (ptB.x >= r_sub_x - eps && ptB.y >= r_sub_z - eps);
+        else if (i == 1) validB = (ptB.x <= -r_sub_x + eps && ptB.y >= r_sub_z - eps);
+        else if (i == 2) validB = (ptB.x <= -r_sub_x + eps && ptB.y <= -r_sub_z + eps);
+        else if (i == 3) validB = (ptB.x >= r_sub_x - eps && ptB.y <= -r_sub_z + eps);
         if (validB) {
           tNear = min(tNear, tB);
           tFar = max(tFar, tB);
@@ -155,7 +157,8 @@ vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
 }
 
 void getRoundedBoxNormalAndUV(vec3 point, float R, out vec3 normal, out vec2 uv) {
-  float r_sub = 1.0 - R;
+  float r_sub_x = 1.0 - R;
+  float r_sub_z = poolLength - R;
   
   if (point.y < -0.999) {
     normal = vec3(0.0, 1.0, 0.0);
@@ -164,36 +167,37 @@ void getRoundedBoxNormalAndUV(vec3 point, float R, out vec3 normal, out vec2 uv)
   }
   
   vec2 absP = abs(point.xz);
-  if (absP.x > r_sub && absP.y > r_sub && R > 0.0) {
-    vec2 center = sign(point.xz) * r_sub;
+  if (absP.x > r_sub_x && absP.y > r_sub_z && R > 0.0) {
+    vec2 center = sign(point.xz) * vec2(r_sub_x, r_sub_z);
     vec2 d = point.xz - center;
     normal = vec3(-normalize(d).x, 0.0, -normalize(d).y);
     
     float s = 0.0;
-    if (point.x >= r_sub && point.z >= -r_sub && point.z <= r_sub) {
-      s = point.z;
-    } else if (point.x >= r_sub && point.z > r_sub) {
-      vec2 cd = point.xz - vec2(r_sub, r_sub);
-      s = r_sub + R * atan(cd.y, cd.x);
-    } else if (point.z >= r_sub && point.x >= -r_sub && point.x <= r_sub) {
-      s = r_sub + R * 1.570796326 + (r_sub - point.x);
-    } else if (point.z >= r_sub && point.x < -r_sub) {
-      vec2 cd = point.xz - vec2(-r_sub, r_sub);
-      s = 3.0 * r_sub + R * 1.570796326 + R * (atan(cd.y, cd.x) - 1.570796326);
-    } else if (point.x <= -r_sub && point.z >= -r_sub && point.z <= r_sub) {
-      s = 3.0 * r_sub + R * 3.14159265 + (r_sub - point.z);
-    } else if (point.x <= -r_sub && point.z < -r_sub) {
-      vec2 cd = point.xz - vec2(-r_sub, -r_sub);
-      s = 5.0 * r_sub + R * 3.14159265 + R * (atan(cd.y, cd.x) + 3.14159265);
-    } else if (point.z <= -r_sub && point.x >= -r_sub && point.x <= r_sub) {
-      s = 5.0 * r_sub + R * 4.71238898 + (point.x + r_sub);
+    if (point.x >= r_sub_x && point.z >= -r_sub_z && point.z <= r_sub_z) {
+      s = point.z + r_sub_z;
+    } else if (point.x >= r_sub_x && point.z > r_sub_z) {
+      vec2 cd = point.xz - vec2(r_sub_x, r_sub_z);
+      s = 2.0 * r_sub_z + R * atan(cd.y, cd.x);
+    } else if (point.z >= r_sub_z && point.x >= -r_sub_x && point.x <= r_sub_x) {
+      s = 2.0 * r_sub_z + R * 1.570796326 + (r_sub_x - point.x);
+    } else if (point.z >= r_sub_z && point.x < -r_sub_x) {
+      vec2 cd = point.xz - vec2(-r_sub_x, r_sub_z);
+      s = 2.0 * r_sub_z + R * 1.570796326 + 2.0 * r_sub_x + R * (atan(cd.y, cd.x) - 1.570796326);
+    } else if (point.x <= -r_sub_x && point.z >= -r_sub_z && point.z <= r_sub_z) {
+      s = 2.0 * r_sub_z + 2.0 * r_sub_x + R * 3.14159265 + (r_sub_z - point.z);
+    } else if (point.x <= -r_sub_x && point.z < -r_sub_z) {
+      vec2 cd = point.xz - vec2(-r_sub_x, -r_sub_z);
+      s = 4.0 * r_sub_z + 2.0 * r_sub_x + R * 3.14159265 + R * (atan(cd.y, cd.x) + 3.14159265);
+    } else if (point.z <= -r_sub_z && point.x >= -r_sub_x && point.x <= r_sub_x) {
+      s = 4.0 * r_sub_z + 2.0 * r_sub_x + R * 4.71238898 + (point.x + r_sub_x);
     } else {
-      vec2 cd = point.xz - vec2(r_sub, -r_sub);
-      s = 7.0 * r_sub + R * 4.71238898 + R * (atan(cd.y, cd.x) + 1.570796326);
+      vec2 cd = point.xz - vec2(r_sub_x, -r_sub_z);
+      s = 4.0 * r_sub_z + 4.0 * r_sub_x + R * 4.71238898 + R * (atan(cd.y, cd.x) + 1.570796326);
     }
     uv = vec2(point.y, s) * 0.5 + vec2(1.0, 0.5);
   } else {
-    if (absP.x > absP.y) {
+    vec2 normP = absP / vec2(1.0, poolLength);
+    if (normP.x > normP.y) {
       normal = vec3(-sign(point.x), 0.0, 0.0);
       uv = point.yz * 0.5 + vec2(1.0, 0.5);
     } else {
@@ -306,15 +310,15 @@ vec3 getTorusKnotNormal(vec3 p, vec3 center) {
 vec3 getSphereColor(vec3 point) {
   vec3 color = vec3(0.5);
   color *= 1.0 - 0.9 / pow((1.0 + sphereRadius - abs(point.x)) / sphereRadius, 3.0);
-  color *= 1.0 - 0.9 / pow((1.0 + sphereRadius - abs(point.z)) / sphereRadius, 3.0);
+  color *= 1.0 - 0.9 / pow((poolLength + sphereRadius - abs(point.z)) / sphereRadius, 3.0);
   color *= 1.0 - 0.9 / pow((point.y + 1.0 + sphereRadius) / sphereRadius, 3.0);
 
   vec3 sphereNormal = (point - sphereCenter) / sphereRadius;
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(-refractedLight, sphereNormal)) * 0.5;
-  vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
+  vec4 info = texture2D(water, point.xz * vec2(0.5, 0.5 / poolLength) + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * vec2(0.5, 0.5 / poolLength) + 0.5);
     diffuse *= caustic.r * 4.0;
   }
   color += diffuse;
@@ -336,9 +340,9 @@ vec3 getCubeColor(vec3 point) {
   vec3 color = vec3(0.5);
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(-refractedLight, cubeNormal)) * 0.5;
-  vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
+  vec4 info = texture2D(water, point.xz * vec2(0.5, 0.5 / poolLength) + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * vec2(0.5, 0.5 / poolLength) + 0.5);
     diffuse = (diffuse + 0.06) * caustic.r * 4.0;
   }
   return color + diffuse;
@@ -349,9 +353,9 @@ vec3 getTorusKnotColor(vec3 point) {
   vec3 normal = getTorusKnotNormal(point, torusKnotCenter);
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(-refractedLight, normal)) * 0.5;
-  vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
+  vec4 info = texture2D(water, point.xz * vec2(0.5, 0.5 / poolLength) + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * vec2(0.5, 0.5 / poolLength) + 0.5);
     diffuse = (diffuse + 0.06) * caustic.r * 4.0;
   }
   return color + diffuse;
@@ -381,9 +385,9 @@ vec3 getWallColor(vec3 point) {
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(refractedLight, normal));
-  vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
+  vec4 info = texture2D(water, point.xz * vec2(0.5, 0.5 / poolLength) + 0.5);
   if (point.y < info.r) {
-    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    vec4 caustic = texture2D(causticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * vec2(0.5, 0.5 / poolLength) + 0.5);
     scale += diffuse * caustic.r * 2.0 * caustic.g;
   } else {
     vec2 t = intersectRoundedBox(point, refractedLight, cornerRadius);
@@ -465,14 +469,15 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
 void main() {
   // Discard fragments outside the rounded box boundaries
   vec2 absP = abs(vPosition.xz);
-  float r_sub = 1.0 - cornerRadius;
-  if (absP.x > r_sub && absP.y > r_sub) {
-    if (length(absP - vec2(r_sub)) > cornerRadius) {
+  float r_sub_x = 1.0 - cornerRadius;
+  float r_sub_z = poolLength - cornerRadius;
+  if (absP.x > r_sub_x && absP.y > r_sub_z) {
+    if (length(absP - vec2(r_sub_x, r_sub_z)) > cornerRadius) {
       discard;
     }
   }
 
-  vec2 coord = vPosition.xz * 0.5 + 0.5;
+  vec2 coord = vPosition.xz * vec2(0.5, 0.5 / poolLength) + 0.5;
   vec4 info = texture2D(water, coord);
 
   for (int i = 0; i < 5; i++) {

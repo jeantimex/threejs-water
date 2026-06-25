@@ -34,6 +34,7 @@ export class TorusKnotObject implements SimulationObject {
       uniforms: {
         light: { value: resources.lightDirection.clone() },
         torusKnotCenter: { value: this.position.clone() },
+        poolLength: { value: 1.0 },
         water: { value: null },
         causticTex: { value: resources.causticTexture },
         texturePassMode: { value: 0 },
@@ -119,7 +120,7 @@ export class TorusKnotObject implements SimulationObject {
       }
     }
 
-    this.displacement.move(water, this.previousPosition, this.position)
+    this.displacement.move(water, this.previousPosition, this.position, context.poolLength)
     this.previousPosition.copy(this.position)
     this.mesh.position.copy(this.position)
   }
@@ -136,19 +137,21 @@ export class TorusKnotObject implements SimulationObject {
     return null
   }
 
-  moveBy(delta: THREE.Vector3) {
+  moveBy(delta: THREE.Vector3, poolLength = 1.0) {
     const radius = this.boundingRadius
+    const limitZ = poolLength - radius
     this.position.add(delta)
     this.position.x = THREE.MathUtils.clamp(this.position.x, radius - 1, 1 - radius)
     this.position.y = THREE.MathUtils.clamp(this.position.y, this.floorClearance - 1, 10)
-    this.position.z = THREE.MathUtils.clamp(this.position.z, radius - 1, 1 - radius)
+    this.position.z = THREE.MathUtils.clamp(this.position.z, -limitZ, limitZ)
     this.mesh.position.copy(this.position)
   }
 
-  prepareRender(water: Water) {
+  prepareRender(water: Water, poolLength = 1.0) {
     this.material.uniforms.water.value = water.textureA.texture
     this.material.uniforms.light.value.copy(this.resources.lightDirection)
     this.material.uniforms.torusKnotCenter.value.copy(this.position)
+    this.material.uniforms.poolLength.value = poolLength
     this.material.uniformsNeedUpdate = true
   }
 

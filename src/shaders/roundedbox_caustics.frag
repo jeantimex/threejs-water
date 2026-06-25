@@ -19,6 +19,7 @@ uniform bool meshEnabled;
 uniform sampler2D objectShadowTex;
 
 uniform float cornerRadius;
+uniform float poolLength;
 
 varying vec3 oldPos;
 varying vec3 newPos;
@@ -29,44 +30,45 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   float tFar = -1e6;
   bool found = false;
   
-  float r_sub = 1.0 - R;
+  float r_sub_x = 1.0 - R;
+  float r_sub_z = poolLength - R;
   float eps = 1.0e-3;
 
-  // 1. Line x = 1 (z in [-r_sub, r_sub])
+  // 1. Line x = 1 (z in [-r_sub_z, r_sub_z])
   if (abs(ray.x) > 1.0e-7) {
     float t = (1.0 - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
-    if (z >= -r_sub - eps && z <= r_sub + eps) {
+    if (z >= -r_sub_z - eps && z <= r_sub_z + eps) {
       tNear = min(tNear, t);
       tFar = max(tFar, t);
       found = true;
     }
   }
-  // 2. Line x = -1 (z in [-r_sub, r_sub])
+  // 2. Line x = -1 (z in [-r_sub_z, r_sub_z])
   if (abs(ray.x) > 1.0e-7) {
     float t = (-1.0 - origin.x) / ray.x;
     float z = origin.y + t * ray.y;
-    if (z >= -r_sub - eps && z <= r_sub + eps) {
+    if (z >= -r_sub_z - eps && z <= r_sub_z + eps) {
       tNear = min(tNear, t);
       tFar = max(tFar, t);
       found = true;
     }
   }
-  // 3. Line z = 1 (x in [-r_sub, r_sub])
+  // 3. Line z = L (x in [-r_sub_x, r_sub_x])
   if (abs(ray.y) > 1.0e-7) {
-    float t = (1.0 - origin.y) / ray.y;
+    float t = (poolLength - origin.y) / ray.y;
     float x = origin.x + t * ray.x;
-    if (x >= -r_sub - eps && x <= r_sub + eps) {
+    if (x >= -r_sub_x - eps && x <= r_sub_x + eps) {
       tNear = min(tNear, t);
       tFar = max(tFar, t);
       found = true;
     }
   }
-  // 4. Line z = -1 (x in [-r_sub, r_sub])
+  // 4. Line z = -L (x in [-r_sub_x, r_sub_x])
   if (abs(ray.y) > 1.0e-7) {
-    float t = (-1.0 - origin.y) / ray.y;
+    float t = (-poolLength - origin.y) / ray.y;
     float x = origin.x + t * ray.x;
-    if (x >= -r_sub - eps && x <= r_sub + eps) {
+    if (x >= -r_sub_x - eps && x <= r_sub_x + eps) {
       tNear = min(tNear, t);
       tFar = max(tFar, t);
       found = true;
@@ -76,10 +78,10 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   // 4 corners
   if (R > 0.0) {
     vec2 centers[4];
-    centers[0] = vec2(r_sub, r_sub);
-    centers[1] = vec2(-r_sub, r_sub);
-    centers[2] = vec2(-r_sub, -r_sub);
-    centers[3] = vec2(r_sub, -r_sub);
+    centers[0] = vec2(r_sub_x, r_sub_z);
+    centers[1] = vec2(-r_sub_x, r_sub_z);
+    centers[2] = vec2(-r_sub_x, -r_sub_z);
+    centers[3] = vec2(r_sub_x, -r_sub_z);
 
     for (int i = 0; i < 4; i++) {
       vec2 center = centers[i];
@@ -96,10 +98,10 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
         // Check tA
         vec2 ptA = origin + tA * ray;
         bool validA = false;
-        if (i == 0) validA = (ptA.x >= r_sub - eps && ptA.y >= r_sub - eps);
-        else if (i == 1) validA = (ptA.x <= -r_sub + eps && ptA.y >= r_sub - eps);
-        else if (i == 2) validA = (ptA.x <= -r_sub + eps && ptA.y <= -r_sub + eps);
-        else if (i == 3) validA = (ptA.x >= r_sub - eps && ptA.y <= -r_sub + eps);
+        if (i == 0) validA = (ptA.x >= r_sub_x - eps && ptA.y >= r_sub_z - eps);
+        else if (i == 1) validA = (ptA.x <= -r_sub_x + eps && ptA.y >= r_sub_z - eps);
+        else if (i == 2) validA = (ptA.x <= -r_sub_x + eps && ptA.y <= -r_sub_z + eps);
+        else if (i == 3) validA = (ptA.x >= r_sub_x - eps && ptA.y <= -r_sub_z + eps);
         if (validA) {
           tNear = min(tNear, tA);
           tFar = max(tFar, tA);
@@ -109,10 +111,10 @@ vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
         // Check tB
         vec2 ptB = origin + tB * ray;
         bool validB = false;
-        if (i == 0) validB = (ptB.x >= r_sub - eps && ptB.y >= r_sub - eps);
-        else if (i == 1) validB = (ptB.x <= -r_sub + eps && ptB.y >= r_sub - eps);
-        else if (i == 2) validB = (ptB.x <= -r_sub + eps && ptB.y <= -r_sub + eps);
-        else if (i == 3) validB = (ptB.x >= r_sub - eps && ptB.y <= -r_sub + eps);
+        if (i == 0) validB = (ptB.x >= r_sub_x - eps && ptB.y >= r_sub_z - eps);
+        else if (i == 1) validB = (ptB.x <= -r_sub_x + eps && ptB.y >= r_sub_z - eps);
+        else if (i == 2) validB = (ptB.x <= -r_sub_x + eps && ptB.y <= -r_sub_z + eps);
+        else if (i == 3) validB = (ptB.x >= r_sub_x - eps && ptB.y <= -r_sub_z + eps);
         if (validB) {
           tNear = min(tNear, tB);
           tFar = max(tFar, tB);
@@ -282,7 +284,7 @@ void main() {
     }
     gl_FragColor.g = 1.0 - occlusion / 9.0;
   } else if (torusKnotEnabled || meshEnabled) {
-    vec2 shadowUV = 0.75 * (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5;
+    vec2 shadowUV = 0.75 * (newPos.xz - newPos.y * refractedLight.xz / refractedLight.y) * vec2(0.5, 0.5 / poolLength) + 0.5;
     const float d = 4.0 / 1024.0;
     float occlusion = texture2D(objectShadowTex, shadowUV).r;
     occlusion += texture2D(objectShadowTex, shadowUV + vec2(d, 0.0)).r;
