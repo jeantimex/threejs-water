@@ -1,24 +1,37 @@
 precision highp float;
 
+/**
+ * CUBE OBJECT FRAGMENT SHADER
+ *
+ * Renders the interactive cube/box object floating in the pool.
+ *
+ * LIGHTING MODEL:
+ * 1. Base diffuse color (gray)
+ * 2. Diffuse lighting from refracted sunlight using face normals
+ * 3. Caustic patterns when submerged (with ambient boost)
+ * 4. Underwater color tinting
+ */
+
+// Optical constants for Snell's Law refraction
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
+
+// Blue-green tint simulating underwater light absorption
 const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 
-// Global directional light vector
+// Light direction (normalized, pointing toward sun)
 uniform vec3 light;
 
-// Pool boundaries used to map coordinates into texture space
+// Pool dimensions for coordinate normalization
 uniform float poolWidth;
 uniform float poolLength;
 
-// Water simulation height texture
-uniform sampler2D water;
+// Simulation textures
+uniform sampler2D water;       // Wave heightmap (R = height)
+uniform sampler2D causticTex;  // Caustic light intensity map
 
-// Precomputed caustics texture
-uniform sampler2D causticTex;
-
-varying vec3 vPosition;
-varying vec3 vNormal;
+varying vec3 vPosition;  // World-space fragment position
+varying vec3 vNormal;    // Face normal for diffuse lighting
 
 void main() {
   // Base albedo color of the cube

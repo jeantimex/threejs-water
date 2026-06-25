@@ -1,28 +1,42 @@
 precision highp float;
 
+/**
+ * SPHERE OBJECT FRAGMENT SHADER
+ *
+ * Renders the interactive sphere object floating in the pool.
+ *
+ * LIGHTING MODEL:
+ * 1. Base diffuse color (gray)
+ * 2. Proximity-based ambient occlusion (darkens near walls/floor)
+ * 3. Diffuse lighting from refracted sunlight
+ * 4. Caustic patterns when submerged
+ * 5. Underwater color tinting
+ */
+
+// Optical constants for Snell's Law
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
+
+// Blue-green tint for underwater light absorption
 const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 
-// Global directional light vector
+// Light direction (normalized, pointing toward sun)
 uniform vec3 light;
 
-// Sphere properties
+// Sphere geometry
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
 
-// Pool boundaries (width, height, length) for bounds-clamping and ambient occlusion mapping
+// Pool dimensions for coordinate scaling and AO calculations
 uniform float poolWidth;
 uniform float poolHeight;
 uniform float poolLength;
 
-// Water simulation height texture
-uniform sampler2D water;
+// Simulation textures
+uniform sampler2D water;       // Wave heightmap (R = height)
+uniform sampler2D causticTex;  // Caustic light intensity map
 
-// Precomputed caustics texture
-uniform sampler2D causticTex;
-
-varying vec3 vPosition;
+varying vec3 vPosition;  // World-space fragment position
 
 /**
  * Calculates shading and illumination for the sphere obstacle.

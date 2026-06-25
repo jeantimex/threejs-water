@@ -1,29 +1,43 @@
 precision highp float;
 
+/**
+ * TORUS KNOT OBJECT FRAGMENT SHADER
+ *
+ * Renders the torus knot with underwater lighting effects.
+ *
+ * FEATURES:
+ * 1. Diffuse lighting from refracted sunlight
+ * 2. Caustic patterns when submerged
+ * 3. Underwater color tinting (Beer's Law approximation)
+ * 4. Support for multi-pass rendering (refraction/reflection)
+ *
+ * The reflection pass discards underwater fragments to prevent
+ * them from appearing in above-water reflections.
+ */
+
+// Optical constants
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
 const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 
-// Global light source directional vector
+// Light direction (pointing toward sun)
 uniform vec3 light;
 
-// Pool boundaries used to map coordinates into texture space
+// Pool dimensions for UV coordinate mapping
 uniform float poolWidth;
 uniform float poolLength;
 
-// Water simulation height texture
-uniform sampler2D water;
+// Simulation textures
+uniform sampler2D water;       // Wave heightmap
+uniform sampler2D causticTex;  // Caustic intensity map
 
-// Precomputed caustics texture
-uniform sampler2D causticTex;
-
-// Target render pass mode:
-// 1 = Normal rendering / refraction
-// 2 = Reflection pass (submerged fragments clipped via discard)
+// Render pass mode:
+// 1 = Standard rendering (refraction pass) - render everything
+// 2 = Reflection pass - discard underwater fragments
 uniform int texturePassMode;
 
-varying vec3 vPosition;
-varying vec3 vNormal;
+varying vec3 vPosition;  // World-space position
+varying vec3 vNormal;    // Surface normal
 
 void main() {
   // Base albedo color of the Torus Knot

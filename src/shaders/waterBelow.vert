@@ -1,18 +1,30 @@
-// The water heightmap texture containing current wave displacements (red channel)
+/**
+ * WATER SURFACE VERTEX SHADER (Below View)
+ *
+ * Identical to waterAbove.vert - displaces vertices based on wave simulation.
+ * The difference is in the fragment shader, which handles the underwater
+ * viewing case with inverted normals and different Fresnel behavior.
+ *
+ * When the camera is underwater, this mesh is rendered with backface culling
+ * disabled, showing the underside of the water surface.
+ */
+
+// Wave simulation texture: R channel contains height displacement
 uniform sampler2D water;
 
+// World position passed to fragment shader
 varying vec3 vPosition;
 
 void main() {
-  // 1. Sample the heightmap displacement value using normalized position coordinates
+  // Sample wave height at this vertex's UV position
   vec4 info = texture2D(water, position.xy * 0.5 + 0.5);
-  
-  // 2. Map coordinates from 2D plane XY to 3D horizontal plane XZ
+
+  // Convert XY mesh to XZ world plane
   vPosition = position.xzy;
-  
-  // 3. Offset the vertex height vertically by the simulated height displacement
+
+  // Apply wave displacement
   vPosition.y += info.r;
-  
-  // 4. Transform to projection coordinates
+
+  // Transform to clip space
   gl_Position = projectionMatrix * modelViewMatrix * vec4(vPosition, 1.0);
 }

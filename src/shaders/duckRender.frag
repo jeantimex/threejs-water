@@ -1,33 +1,50 @@
 precision highp float;
 
+/**
+ * DUCK MODEL FRAGMENT SHADER
+ *
+ * Renders the textured rubber duck model with underwater effects.
+ *
+ * FEATURES:
+ * 1. Albedo texture mapping (duck's painted surface)
+ * 2. Diffuse lighting from refracted sunlight
+ * 3. Caustic patterns when submerged
+ * 4. Underwater color tinting (blue-green absorption)
+ * 5. Multi-pass rendering support (refraction/reflection)
+ *
+ * Unlike the procedural objects (sphere, cube), the duck uses
+ * an actual texture map for its base color.
+ */
+
+// Optical constants for Snell's Law
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
+
+// Underwater color absorption tint
 const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 
-// Global light source directional vector
+// Light direction (toward sun)
 uniform vec3 light;
 
-// Pool dimensions to map world space positions into texture coordinates
+// Pool dimensions for coordinate normalization
 uniform float poolWidth;
 uniform float poolLength;
 
-// The heightmap and normal map simulation state texture
-uniform sampler2D water;
+// Simulation textures
+uniform sampler2D water;        // Wave heightmap (R = height)
+uniform sampler2D causticTex;   // Caustic light intensity map
 
-// The generated caustic texture mapping light intensities focused by water waves
-uniform sampler2D causticTex;
-
-// The duck albedo texture
+// Duck's albedo/diffuse texture
 uniform sampler2D modelTexture;
 
-// Defines the rendering pass state:
-// 1 = Regular rendering or refraction pass
-// 2 = Reflection pass where everything submerged below the water surface is clipped/discarded
+// Render pass mode:
+// 1 = Standard rendering - render all fragments
+// 2 = Reflection pass - discard underwater fragments
 uniform int texturePassMode;
 
-varying vec3 vPosition;
-varying vec3 vNormal;
-varying vec2 vUv;
+varying vec3 vPosition;  // World-space position
+varying vec3 vNormal;    // World-space normal
+varying vec2 vUv;        // Texture coordinates
 
 void main() {
   // Sample albedo color from the duck's texture coordinates

@@ -1,10 +1,33 @@
 precision highp float;
 
+/**
+ * ROUNDED POOL BOX FRAGMENT SHADER
+ *
+ * Renders pool walls and floor with rounded corners. Unlike the simple cube
+ * pool, this uses implicit ray-tracing against a rounded rectangle shape.
+ *
+ * GEOMETRY:
+ * The pool is a "stadium" or "rounded rectangle" in the XZ plane, extruded
+ * vertically. The corners are quarter-circle arcs of radius R, connecting
+ * straight wall segments.
+ *
+ * FEATURES:
+ * 1. Ray-rounded-rectangle intersection for accurate corner geometry
+ * 2. Seamless UV mapping around curved corners (perimeter parameterization)
+ * 3. Caustic lighting with correct corner normals
+ * 4. Soft shadows from scene objects
+ *
+ * The key mathematical challenge is computing UVs that wrap continuously
+ * around corners without visible seams in the tile texture.
+ */
+
+// Optical constants
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
 const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 const float torusKnotShadowRadius = 0.13;
 
+// Scene uniforms
 uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
@@ -22,16 +45,41 @@ uniform sampler2D tiles;
 uniform sampler2D causticTex;
 uniform sampler2D water;
 
-uniform float cornerRadius;
-uniform float poolWidth;
-uniform float poolHeight;
-uniform float poolLength;
+// Pool geometry parameters
+uniform float cornerRadius;   // Radius of rounded corners
+uniform float poolWidth;      // Half-width of pool (X direction)
+uniform float poolHeight;     // Depth of pool (Y direction)
+uniform float poolLength;     // Half-length of pool (Z direction)
 
 varying vec3 vPosition;
 
 /**
- * Solves intersections of a 2D ray with a rounded rectangle (width x length, corner radius R).
- * Finds entry/exit intersection parameters (tNear, tFar) along the ray.
+ * Ray-Rounded-Rectangle intersection in 2D (XZ plane).
+ *
+ * A rounded rectangle consists of:
+ * - 4 straight edge segments (top, bottom, left, right)
+ * - 4 quarter-circle arcs at the corners
+ *
+ * GEOMETRY:
+ *   +---( arc )---+
+ *   |             |
+ *  (arc)       (arc)
+ *   |             |
+ *   +---( arc )---+
+ *
+ * The straight edges span from -r_sub to +r_sub, where r_sub = dimension - R.
+ * The arcs connect the ends of adjacent edges.
+ *
+ * ALGORITHM:
+ * 1. Test ray against each of the 4 straight edge lines
+ * 2. Test ray against each of the 4 corner circles (quadratic formula)
+ * 3. Validate that hits fall within the correct segment/quadrant
+ * 4. Return the overall entry (tNear) and exit (tFar) parameters
+ *
+ * @param origin Ray starting point in XZ space
+ * @param ray Ray direction in XZ space
+ * @param R Corner radius
+ * @return vec2(tNear, tFar) parametric intersection distances
  */
 vec2 intersectRoundedRectangle2D(vec2 origin, vec2 ray, float R) {
   float tNear = 1e6;
@@ -167,8 +215,31 @@ vec2 intersectRoundedBox(vec3 origin, vec3 ray, float R) {
 }
 
 /**
- * Calculates surface normal and mapping UV coordinates at any surface point
- * of the rounded box pool boundary.
+ * Computes surface normal and UV coordinates for a point on the rounded pool.
+ *
+ * NORMAL CALCULATION:
+ * - Floor: Always (0, 1, 0) pointing up
+ * - Flat walls: Perpendicular to the wall (-X, 0, 0) or (0, 0, -Z)
+ * - Curved corners: Radial direction from corner center
+ *
+ * UV CALCULATION (Perimeter Parameterization):
+ * The U coordinate uses the Y position (height).
+ * The V coordinate uses the perimeter distance 's' around the pool.
+ *
+ * To achieve seamless tiling around corners, we compute 's' as the
+ * arc-length distance along the perimeter, starting from the +X, -Z corner
+ * and wrapping counterclockwise:
+ *
+ *   s = 0: Start at (+width, -length)
+ *   s increases along +Z wall, through corner arc, along +X side, etc.
+ *   s = perimeter: Back to start
+ *
+ * This ensures continuous texture coordinates even across curved sections.
+ *
+ * @param point Surface point position
+ * @param R Corner radius
+ * @param normal Output: surface normal
+ * @param uv Output: texture coordinates
  */
 void getRoundedBoxNormalAndUV(vec3 point, float R, out vec3 normal, out vec2 uv) {
   float r_sub_x = poolWidth - R;

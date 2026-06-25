@@ -1,8 +1,28 @@
 precision highp float;
 
+/**
+ * ROUNDED POOL CAUSTICS FRAGMENT SHADER
+ *
+ * Computes caustic intensity and shadow occlusion for rounded pools.
+ *
+ * CAUSTIC INTENSITY:
+ * Uses the differential area method - comparing the area of a light
+ * patch before and after refraction. When rays converge (lens effect),
+ * the ratio oldArea/newArea becomes large, creating bright caustics.
+ *
+ * SHADOW CALCULATION:
+ * Objects in the pool block light, creating shadows on the caustic map.
+ * Different techniques are used for different object types:
+ * - Sphere: Analytical soft shadow
+ * - Cube: Multi-sample ray-box intersection
+ * - Complex meshes: Pre-rendered shadow map lookup
+ */
+
+// Optical constants
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
 
+// Scene object parameters
 uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
@@ -16,17 +36,19 @@ uniform vec3 meshCenter;
 uniform float meshBoundingRadius;
 uniform bool meshEnabled;
 
-// Pre-rendered depth/occlusion texture of the interactive object
+// Shadow map for complex geometry
 uniform sampler2D objectShadowTex;
 
+// Pool geometry
 uniform float cornerRadius;
 uniform float poolWidth;
 uniform float poolHeight;
 uniform float poolLength;
 
-varying vec3 oldPos;
-varying vec3 newPos;
-varying vec3 ray;
+// From vertex shader
+varying vec3 oldPos;   // Flat water projection point
+varying vec3 newPos;   // Wavy water projection point
+varying vec3 ray;      // Refracted ray direction
 
 /**
  * Solves 2D intersections of a ray with a rounded rectangle layout on the horizontal XZ plane.

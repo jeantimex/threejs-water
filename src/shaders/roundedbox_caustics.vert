@@ -1,19 +1,37 @@
 precision highp float;
 
+/**
+ * ROUNDED POOL CAUSTICS VERTEX SHADER
+ *
+ * Computes caustic light patterns for pools with rounded corners.
+ * Extends the standard caustics shader with ray-rounded-rectangle
+ * intersection for accurate light projection onto curved walls.
+ *
+ * The caustics are computed by comparing where light rays land
+ * on the pool floor/walls with flat water vs. wavy water.
+ * Light focusing (convergence) creates bright caustic lines.
+ */
+
+// Optical constants for Snell's Law
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
 
+// Light direction (toward sun)
 uniform vec3 light;
+
+// Wave simulation texture
 uniform sampler2D water;
 
+// Pool geometry
 uniform float cornerRadius;
 uniform float poolWidth;
 uniform float poolHeight;
 uniform float poolLength;
 
-varying vec3 oldPos;
-varying vec3 newPos;
-varying vec3 ray;
+// Passed to fragment shader for area comparison
+varying vec3 oldPos;   // Where light hits with flat water
+varying vec3 newPos;   // Where light hits with wavy water
+varying vec3 ray;      // Refracted ray direction
 
 /**
  * Solves 2D intersections of a ray with a rounded rectangle layout on the horizontal XZ plane.

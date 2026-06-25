@@ -1,11 +1,34 @@
 precision highp float;
 
+/**
+ * ROUNDED POOL WATER SURFACE SHADER (Above View)
+ *
+ * Renders the water surface for pools with rounded corners.
+ * Extends the standard water surface shader with rounded pool geometry.
+ *
+ * FEATURES:
+ * 1. Fresnel-based reflection/refraction blending
+ * 2. Parallax displacement for wave alignment
+ * 3. Ray tracing against rounded pool walls
+ * 4. Caustic lighting on underwater surfaces
+ * 5. Sky cubemap reflections with sun spot
+ * 6. Pre-rendered object reflection/refraction textures
+ *
+ * The key difference from the standard water shader is that ray
+ * intersection tests use the rounded rectangle geometry instead
+ * of a simple axis-aligned box.
+ */
+
+// Optical constants for Snell's Law
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
-const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);
-const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
+
+// Water color tints for light absorption simulation
+const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);  // Looking down
+const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);    // Looking up
 const float torusKnotShadowRadius = 0.13;
 
+// Scene uniforms
 uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
@@ -19,17 +42,22 @@ uniform vec3 meshCenter;
 uniform float meshBoundingRadius;
 uniform float meshShadowRadius;
 uniform bool meshEnabled;
-uniform sampler2D tiles;
-uniform sampler2D causticTex;
-uniform sampler2D objectReflectionTex;
-uniform sampler2D objectClippedReflectionTex;
-uniform sampler2D objectRefractionTex;
-uniform sampler2D water;
-uniform samplerCube sky;
+
+// Textures
+uniform sampler2D tiles;                      // Pool tile texture
+uniform sampler2D causticTex;                 // Caustic light map
+uniform sampler2D objectReflectionTex;        // Pre-rendered object reflections
+uniform sampler2D objectClippedReflectionTex; // Reflections clipped at water line
+uniform sampler2D objectRefractionTex;        // Pre-rendered object refractions
+uniform sampler2D water;                      // Wave simulation heightmap
+uniform samplerCube sky;                      // Environment cubemap
+
+// Camera and projection
 uniform vec3 eye;
 uniform mat4 viewProjectionMatrix;
 uniform mat4 reflectionViewProjectionMatrix;
 
+// Pool geometry
 uniform float cornerRadius;
 uniform float poolWidth;
 uniform float poolHeight;

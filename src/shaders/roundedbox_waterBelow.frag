@@ -1,11 +1,32 @@
 precision highp float;
 
+/**
+ * ROUNDED POOL WATER SURFACE SHADER (Below View)
+ *
+ * Renders the water surface as seen from underwater for rounded pools.
+ * Handles the underwater viewing case with inverted normals and
+ * water-to-air refraction (IOR ratio inverted).
+ *
+ * KEY DIFFERENCES FROM ABOVE VIEW:
+ * 1. Surface normals are inverted (viewing from below)
+ * 2. IOR ratio is IOR_WATER/IOR_AIR instead of IOR_AIR/IOR_WATER
+ * 3. Total internal reflection possible at steep angles
+ * 4. Fresnel calculation adjusted for underwater perspective
+ *
+ * When viewing from underwater, rays that would exit at steep angles
+ * experience total internal reflection instead of refracting into air.
+ */
+
+// Optical constants
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
+
+// Water color tints
 const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);
 const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 const float torusKnotShadowRadius = 0.13;
 
+// Scene uniforms
 uniform vec3 light;
 uniform vec3 sphereCenter;
 uniform float sphereRadius;
@@ -19,16 +40,21 @@ uniform vec3 meshCenter;
 uniform float meshBoundingRadius;
 uniform float meshShadowRadius;
 uniform bool meshEnabled;
+
+// Textures
 uniform sampler2D tiles;
 uniform sampler2D causticTex;
 uniform sampler2D objectReflectionTex;
 uniform sampler2D objectRefractionTex;
 uniform sampler2D water;
 uniform samplerCube sky;
+
+// Camera and projection
 uniform vec3 eye;
 uniform mat4 viewProjectionMatrix;
 uniform mat4 reflectionViewProjectionMatrix;
 
+// Pool geometry
 uniform float cornerRadius;
 uniform float poolWidth;
 uniform float poolHeight;

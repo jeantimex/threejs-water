@@ -1,26 +1,37 @@
-// Water heightmap displacement texture
+/**
+ * ROUNDED POOL WATER SURFACE VERTEX SHADER
+ *
+ * Similar to the standard water surface shader, but scales the mesh
+ * to match non-uniform pool dimensions (width != length).
+ *
+ * The water simulation always runs on a unit square [-1,1] grid,
+ * so we scale the output positions to match the actual pool shape.
+ */
+
+// Wave simulation texture (R = height)
 uniform sampler2D water;
 
-// Horizontal pool size boundaries
-uniform float poolWidth;
-uniform float poolLength;
+// Pool dimensions for coordinate scaling
+uniform float poolWidth;   // Half-width (X scale)
+uniform float poolLength;  // Half-length (Z scale)
 
-varying vec3 vPosition;
+varying vec3 vPosition;  // World position for fragment shader
 
 void main() {
-  // 1. Sample current simulated wave height displacement at the UV location
+  // Sample wave height at this vertex's UV position
   vec4 info = texture2D(water, position.xy * 0.5 + 0.5);
-  
-  // 2. Map coordinates from 2D plane XY to 3D horizontal plane XZ
+
+  // Convert XY mesh to XZ world coordinates
   vPosition = position.xzy;
-  
-  // 3. Scale horizontal dimensions to match the physical pool width and length parameters
+
+  // Scale to actual pool dimensions
+  // The simulation grid is normalized [-1,1], scale to [-width,width] x [-length,length]
   vPosition.x *= poolWidth;
   vPosition.z *= poolLength;
-  
-  // 4. Displace height vertically by simulated wave height
+
+  // Apply wave height displacement
   vPosition.y += info.r;
-  
-  // 5. Transform to projection space coordinates
+
+  // Standard MVP transformation
   gl_Position = projectionMatrix * modelViewMatrix * vec4(vPosition, 1.0);
 }
