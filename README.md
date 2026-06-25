@@ -77,6 +77,7 @@ The rounded box pool extends the original rectangular pool with configurable cor
 - **Shader Uniforms** - All shaders receiving object uniforms need matching declarations.
 - **Displacement Scale** - Too strong causes instability. Tune `displacementScale`.
 - **Frustum Culling** - Set `mesh.frustumCulled = false` for off-screen render targets.
+- **iOS Safari WebGL Precision** - Mobile Safari can show striped water, opaque sky-like surface artifacts, or blown-out object refractions if the simulation relies on unsupported float render target behavior. The water heightmap is explicitly cleared, uses nearest filtering, falls back to half-float render targets when needed, and clamps shader normal reconstruction to avoid NaNs.
 
 ## License
 

@@ -180,7 +180,9 @@ void main() {
   info.ba *= 0.5;
 
   // 2. Reconstruct the 3D surface normal vector: Ny = sqrt(1.0 - (Nx^2 + Nz^2))
-  vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);
+  vec2 slope = clamp(info.ba, vec2(-0.999), vec2(0.999));
+  float slopeLengthSq = min(dot(slope, slope), 0.999);
+  vec3 normal = normalize(vec3(slope.x, sqrt(max(0.001, 1.0 - slopeLengthSq)), slope.y));
 
   // 3. Compute refracted directional light rays
   // Sunlight entering completely flat water:

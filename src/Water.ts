@@ -53,10 +53,11 @@ export class Water {
     this.renderer = renderer
 
     const size = 256 // Resolution of the wave height simulation grid
+    const textureType = this.getSimulationTextureType()
     const options: THREE.RenderTargetOptions = {
-      type: THREE.FloatType, // Requires high precision floats to simulate continuous wave heights
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
+      type: textureType,
+      minFilter: THREE.NearestFilter,
+      magFilter: THREE.NearestFilter,
       format: THREE.RGBAFormat,
       stencilBuffer: false,
       depthBuffer: false,
@@ -127,6 +128,31 @@ export class Water {
     // Create full screen quad mesh
     this.plane = new THREE.Mesh(geometry, this.dropMaterial)
     this.scene.add(this.plane)
+    this.clearTextures()
+  }
+
+  private getSimulationTextureType() {
+    const supportsFloatRenderTarget =
+      this.renderer.capabilities.isWebGL2 &&
+      this.renderer.extensions.has('EXT_color_buffer_float') &&
+      this.renderer.extensions.has('OES_texture_float_linear')
+
+    return supportsFloatRenderTarget ? THREE.FloatType : THREE.HalfFloatType
+  }
+
+  private clearTextures() {
+    const previousTarget = this.renderer.getRenderTarget()
+    const previousClearColor = new THREE.Color()
+    this.renderer.getClearColor(previousClearColor)
+    const previousClearAlpha = this.renderer.getClearAlpha()
+
+    this.renderer.setClearColor(0x000000, 0)
+    this.renderer.setRenderTarget(this.textureA)
+    this.renderer.clear()
+    this.renderer.setRenderTarget(this.textureB)
+    this.renderer.clear()
+    this.renderer.setRenderTarget(previousTarget)
+    this.renderer.setClearColor(previousClearColor, previousClearAlpha)
   }
 
   /**

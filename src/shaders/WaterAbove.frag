@@ -538,7 +538,7 @@ void main() {
  *    * to converge toward the correct sampling point.
  */
   for (int i = 0; i < 5; i++) {
-    coord += info.ba * 0.005; // Small steps along gradient direction
+    coord = clamp(coord + info.ba * 0.005, 0.0, 1.0); // Small steps along gradient direction
     info = texture2D(water, coord); // Resample at new location
   }
 
@@ -553,7 +553,9 @@ void main() {
  *    * The y-component is computed from the unit normal constraint:
  *    *   |N| = 1  →  Nx² + Ny² + Nz² = 1  →  Ny = sqrt(1 - Nx² - Nz²)
  */
-  vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);
+  vec2 slope = clamp(info.ba, vec2(-0.999), vec2(0.999));
+  float slopeLengthSq = min(dot(slope, slope), 0.999);
+  vec3 normal = normalize(vec3(slope.x, sqrt(max(0.001, 1.0 - slopeLengthSq)), slope.y));
 
   // STEP 4: View ray from camera to this surface point
   vec3 incomingRay = normalize(vPosition - eye);

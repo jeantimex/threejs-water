@@ -91,7 +91,9 @@ void main() {
  *    * We use the identity: for unit normal, Ny = sqrt(1 - Nx² - Nz²)
  *    * where Nx and Nz are the (scaled) stored derivatives.
  */
-  vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);
+  vec2 slope = clamp(info.ba, vec2(-0.999), vec2(0.999));
+  float slopeLengthSq = min(dot(slope, slope), 0.999);
+  vec3 normal = normalize(vec3(slope.x, sqrt(max(0.001, 1.0 - slopeLengthSq)), slope.y));
 
   /**
  * * Step 3: Compute refracted light directions using Snell's Law.

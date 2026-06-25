@@ -543,11 +543,13 @@ void main() {
   vec4 info = texture2D(water, coord);
 
   for (int i = 0; i < 5; i++) {
-    coord += info.ba * 0.005;
+    coord = clamp(coord + info.ba * 0.005, 0.0, 1.0);
     info = texture2D(water, coord);
   }
 
-  vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);
+  vec2 slope = clamp(info.ba, vec2(-0.999), vec2(0.999));
+  float slopeLengthSq = min(dot(slope, slope), 0.999);
+  vec3 normal = normalize(vec3(slope.x, sqrt(max(0.001, 1.0 - slopeLengthSq)), slope.y));
   normal = -normal;
   vec3 incomingRay = normalize(vPosition - eye);
 
