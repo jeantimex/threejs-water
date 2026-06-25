@@ -1,5 +1,5 @@
-import * as THREE from 'three'
-import type { ObjectUpdateContext } from './SimulationObject'
+import * as THREE from 'three';
+import type { ObjectUpdateContext } from './SimulationObject';
 
 /**
  * Updates the physics state (buoyancy, gravity, drag/friction, and pool floor collision)
@@ -47,40 +47,40 @@ export function updatePhysics(
 ) {
   // Reset velocity when manually dragging the object
   if (context.dragging) {
-    velocity.set(0, 0, 0)
-    return
+    velocity.set(0, 0, 0);
+    return;
   }
 
   // If physics is disabled, the object stays static (except for user drags)
-  if (!context.physicsEnabled) return
+  if (!context.physicsEnabled) return;
 
   // Calculate buoyancy scale factor (relative density ratio of water vs object)
-  const buoyancyScale = context.densityEnabled ? 1 / context.density : 1.1
+  const buoyancyScale = context.densityEnabled ? 1 / context.density : 1.1;
 
   // Compute submerged portion: 0 = completely above water surface (y=0), 1 = completely submerged
   const percentUnderWater = THREE.MathUtils.clamp(
     (buoyancyRadius - position.y) / (2 * buoyancyRadius),
     0,
     1
-  )
+  );
 
   // Accumulate velocity: net force = gravity (downward) - buoyancy (upward, scaled by submergence)
-  velocity.addScaledVector(context.gravity, seconds - buoyancyScale * seconds * percentUnderWater)
+  velocity.addScaledVector(context.gravity, seconds - buoyancyScale * seconds * percentUnderWater);
 
   // Apply fluid drag: resistance is proportional to velocity squared and submergence percentage
-  const speedSq = velocity.lengthSq()
+  const speedSq = velocity.lengthSq();
   if (speedSq > 0) {
-    velocity.addScaledVector(velocity.clone().normalize(), -percentUnderWater * seconds * speedSq)
+    velocity.addScaledVector(velocity.clone().normalize(), -percentUnderWater * seconds * speedSq);
   }
 
   // Integrate position: translate the object by its current velocity
-  position.addScaledVector(velocity, seconds)
+  position.addScaledVector(velocity, seconds);
 
   // Floor collision resolution: bounce the object if it hits the bottom
-  const floor = floorClearance - context.poolHeight
+  const floor = floorClearance - context.poolHeight;
   if (position.y < floor) {
-    position.y = floor
-    velocity.y = Math.abs(velocity.y) * 0.7 // Invert vertical direction with energy loss (bounciness = 0.7)
+    position.y = floor;
+    velocity.y = Math.abs(velocity.y) * 0.7; // Invert vertical direction with energy loss (bounciness = 0.7)
   }
 }
 
@@ -103,14 +103,14 @@ export function clampAndMoveObject(
   zLimitRadius: number,
   floorClearance: number
 ) {
-  const limitX = poolWidth - xLimitRadius
-  const limitZ = poolLength - zLimitRadius
+  const limitX = poolWidth - xLimitRadius;
+  const limitZ = poolLength - zLimitRadius;
 
   // Apply translation offset
-  position.add(delta)
+  position.add(delta);
 
   // Constrain coordinates within pool dimensions
-  position.x = THREE.MathUtils.clamp(position.x, -limitX, limitX)
-  position.y = THREE.MathUtils.clamp(position.y, floorClearance - poolHeight, 10)
-  position.z = THREE.MathUtils.clamp(position.z, -limitZ, limitZ)
+  position.x = THREE.MathUtils.clamp(position.x, -limitX, limitX);
+  position.y = THREE.MathUtils.clamp(position.y, floorClearance - poolHeight, 10);
+  position.z = THREE.MathUtils.clamp(position.z, -limitZ, limitZ);
 }

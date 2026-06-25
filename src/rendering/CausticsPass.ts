@@ -5,13 +5,13 @@
  * Supports different pool shapes (box or rounded box).
  */
 
-import * as THREE from 'three'
-import type { Water } from '../Water'
-import causticsVert from '../shaders/Caustics.vert'
-import causticsFrag from '../shaders/Caustics.frag'
-import roundedBoxCausticsVert from '../shaders/RoundedBoxCaustics.vert'
-import roundedBoxCausticsFrag from '../shaders/RoundedBoxCaustics.frag'
-import type { WaterOpticsState } from './WaterOpticsState'
+import * as THREE from 'three';
+import type { Water } from '../Water';
+import causticsVert from '../shaders/Caustics.vert';
+import causticsFrag from '../shaders/Caustics.frag';
+import roundedBoxCausticsVert from '../shaders/RoundedBoxCaustics.vert';
+import roundedBoxCausticsFrag from '../shaders/RoundedBoxCaustics.frag';
+import type { WaterOpticsState } from './WaterOpticsState';
 
 /**
  * Handles the rendering pass for generating caustic light patterns.
@@ -20,20 +20,20 @@ import type { WaterOpticsState } from './WaterOpticsState'
  */
 export class CausticsPass {
   /** The generated caustics texture that contains intensity maps of light rays. */
-  readonly texture: THREE.Texture
+  readonly texture: THREE.Texture;
 
   /** WebGL Render Target where the caustics are drawn. */
-  private readonly target: THREE.WebGLRenderTarget
+  private readonly target: THREE.WebGLRenderTarget;
   /** Offscreen Scene used specifically for rendering the caustics pass. */
-  private readonly scene = new THREE.Scene()
+  private readonly scene = new THREE.Scene();
   /** Orthographic camera configured to cover the pool space. */
-  private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+  private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   /** A full-viewport plane mesh where the caustics shaders are computed. */
-  private readonly mesh: THREE.Mesh
+  private readonly mesh: THREE.Mesh;
   /** Shader material configured for flat box-like pools. */
-  private readonly boxMaterial: THREE.ShaderMaterial
+  private readonly boxMaterial: THREE.ShaderMaterial;
   /** Shader material configured for rounded-box pools. Lazily created if needed. */
-  private roundedBoxMaterial: THREE.ShaderMaterial | null = null
+  private roundedBoxMaterial: THREE.ShaderMaterial | null = null;
 
   /**
    * Constructs the CausticsPass.
@@ -51,8 +51,8 @@ export class CausticsPass {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       format: THREE.RGBAFormat,
-    })
-    this.texture = this.target.texture
+    });
+    this.texture = this.target.texture;
 
     this.boxMaterial = new THREE.ShaderMaterial({
       vertexShader: causticsVert,
@@ -67,11 +67,11 @@ export class CausticsPass {
       side: THREE.DoubleSide,
       depthTest: false,
       depthWrite: false,
-    })
+    });
 
-    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2, 200, 200), this.boxMaterial)
-    this.mesh.frustumCulled = false
-    this.scene.add(this.mesh)
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2, 200, 200), this.boxMaterial);
+    this.mesh.frustumCulled = false;
+    this.scene.add(this.mesh);
   }
 
   /**
@@ -91,18 +91,18 @@ export class CausticsPass {
     poolLength: number
   ) {
     if (shape === 'Box') {
-      this.camera.left = -1
-      this.camera.right = 1
-      this.camera.top = 1
-      this.camera.bottom = -1
-      this.camera.updateProjectionMatrix()
-      this.mesh.material = this.boxMaterial
+      this.camera.left = -1;
+      this.camera.right = 1;
+      this.camera.top = 1;
+      this.camera.bottom = -1;
+      this.camera.updateProjectionMatrix();
+      this.mesh.material = this.boxMaterial;
     } else {
-      this.camera.left = -poolWidth
-      this.camera.right = poolWidth
-      this.camera.top = poolLength
-      this.camera.bottom = -poolLength
-      this.camera.updateProjectionMatrix()
+      this.camera.left = -poolWidth;
+      this.camera.right = poolWidth;
+      this.camera.top = poolLength;
+      this.camera.bottom = -poolLength;
+      this.camera.updateProjectionMatrix();
 
       if (!this.roundedBoxMaterial) {
         this.roundedBoxMaterial = new THREE.ShaderMaterial({
@@ -122,14 +122,14 @@ export class CausticsPass {
           side: THREE.DoubleSide,
           depthTest: false,
           depthWrite: false,
-        })
+        });
       } else {
-        this.roundedBoxMaterial.uniforms.cornerRadius.value = cornerRadius
-        this.roundedBoxMaterial.uniforms.poolWidth.value = poolWidth
-        this.roundedBoxMaterial.uniforms.poolHeight.value = poolHeight
-        this.roundedBoxMaterial.uniforms.poolLength.value = poolLength
+        this.roundedBoxMaterial.uniforms.cornerRadius.value = cornerRadius;
+        this.roundedBoxMaterial.uniforms.poolWidth.value = poolWidth;
+        this.roundedBoxMaterial.uniforms.poolHeight.value = poolHeight;
+        this.roundedBoxMaterial.uniforms.poolLength.value = poolLength;
       }
-      this.mesh.material = this.roundedBoxMaterial
+      this.mesh.material = this.roundedBoxMaterial;
     }
   }
 
@@ -139,16 +139,16 @@ export class CausticsPass {
    * @param water The Water simulation instance containing the heightmap/normal textures.
    */
   update(water: Water) {
-    const activeMaterial = this.mesh.material as THREE.ShaderMaterial
-    activeMaterial.uniforms.water.value = water.textureA.texture
-    activeMaterial.uniforms.light.value.copy(this.state.lightDirection)
-    this.state.syncUniforms(activeMaterial)
-    activeMaterial.uniformsNeedUpdate = true
+    const activeMaterial = this.mesh.material as THREE.ShaderMaterial;
+    activeMaterial.uniforms.water.value = water.textureA.texture;
+    activeMaterial.uniforms.light.value.copy(this.state.lightDirection);
+    this.state.syncUniforms(activeMaterial);
+    activeMaterial.uniformsNeedUpdate = true;
 
-    this.renderer.setRenderTarget(this.target)
-    this.renderer.setClearColor(0x000000, 1)
-    this.renderer.clear()
-    this.renderer.render(this.scene, this.camera)
-    this.renderer.setRenderTarget(null)
+    this.renderer.setRenderTarget(this.target);
+    this.renderer.setClearColor(0x000000, 1);
+    this.renderer.clear();
+    this.renderer.render(this.scene, this.camera);
+    this.renderer.setRenderTarget(null);
   }
 }

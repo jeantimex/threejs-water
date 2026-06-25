@@ -5,8 +5,8 @@
  * by spheres, boxes, or composite shapes.
  */
 
-import * as THREE from 'three'
-import type { Water } from '../Water'
+import * as THREE from 'three';
+import type { Water } from '../Water';
 
 /**
  * Interface representing a strategy for displacing water surface heights
@@ -28,7 +28,7 @@ export interface WaterDisplacementStrategy {
     position: THREE.Vector3,
     poolWidth?: number,
     poolLength?: number
-  ): void
+  ): void;
 }
 
 /**
@@ -51,7 +51,7 @@ export class SphereWaterDisplacement implements WaterDisplacementStrategy {
     poolWidth = 1.0,
     poolLength = 1.0
   ) {
-    water.moveSphere(previousPosition, position, this.radius, 1.0, poolWidth, poolLength)
+    water.moveSphere(previousPosition, position, this.radius, 1.0, poolWidth, poolLength);
   }
 }
 
@@ -75,7 +75,7 @@ export class BoxWaterDisplacement implements WaterDisplacementStrategy {
     poolWidth = 1.0,
     poolLength = 1.0
   ) {
-    water.moveCube(previousPosition, position, this.halfSize, poolWidth, poolLength)
+    water.moveCube(previousPosition, position, this.halfSize, poolWidth, poolLength);
   }
 }
 
@@ -84,9 +84,9 @@ export class BoxWaterDisplacement implements WaterDisplacementStrategy {
  */
 export interface DisplacementSphere {
   /** The offset of the sphere's center relative to the root object's position. */
-  offset: THREE.Vector3
+  offset: THREE.Vector3;
   /** The radius of the sphere component. */
-  radius: number
+  radius: number;
 }
 
 /**
@@ -94,8 +94,8 @@ export interface DisplacementSphere {
  * Useful for approximating complex or non-spherical shapes with multiple spheres.
  */
 export class CompoundSphereWaterDisplacement implements WaterDisplacementStrategy {
-  private readonly previousCenter = new THREE.Vector3()
-  private readonly center = new THREE.Vector3()
+  private readonly previousCenter = new THREE.Vector3();
+  private readonly center = new THREE.Vector3();
 
   /**
    * Creates a new CompoundSphereWaterDisplacement strategy.
@@ -118,8 +118,8 @@ export class CompoundSphereWaterDisplacement implements WaterDisplacementStrateg
     poolLength = 1.0
   ) {
     for (const sphere of this.spheres) {
-      this.previousCenter.copy(previousPosition).add(sphere.offset)
-      this.center.copy(position).add(sphere.offset)
+      this.previousCenter.copy(previousPosition).add(sphere.offset);
+      this.center.copy(position).add(sphere.offset);
       water.moveSphere(
         this.previousCenter,
         this.center,
@@ -127,7 +127,7 @@ export class CompoundSphereWaterDisplacement implements WaterDisplacementStrateg
         this.displacementScale,
         poolWidth,
         poolLength
-      )
+      );
     }
   }
 }

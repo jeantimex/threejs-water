@@ -147,10 +147,10 @@
  * =============================================================================
  */
 
-import './styles.css'
-import { WaterApp } from './app/WaterApp'
+import './styles.css';
+import { WaterApp } from './app/WaterApp';
 
 // Application entry point
 // Instantiates the main WaterApp and starts the initialization lifecycle.
 // The init() method loads assets, sets up the scene, and begins the render loop.
-void new WaterApp().init()
+void new WaterApp().init();

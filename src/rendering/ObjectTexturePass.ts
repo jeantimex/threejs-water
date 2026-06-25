@@ -5,7 +5,7 @@
  * optical effects for objects submerged or floating in the water.
  */
 
-import * as THREE from 'three'
+import * as THREE from 'three';
 
 /** Vertex shader string for rendering object shadows. */
 const shadowVertexShader = `
@@ -24,7 +24,7 @@ void main() {
   vec2 projected = 0.75 * (worldPosition.xz - worldPosition.y * refractedLight.xz / refractedLight.y);
   gl_Position = vec4(projected.x / poolWidth, projected.y / poolLength, 0.0, 1.0);
 }
-`
+`;
 
 /** Fragment shader string for rendering object shadows. */
 const shadowFragmentShader = `
@@ -33,7 +33,7 @@ precision highp float;
 void main() {
   gl_FragColor = vec4(1.0);
 }
-`
+`;
 
 /**
  * Handles generating textures (reflection, refraction, shadows) for objects that reside in the pool.
@@ -41,28 +41,28 @@ void main() {
  */
 export class ObjectTexturePass {
   /** Render target containing the reflected view of the object (mirrored across water level). */
-  readonly reflectionTarget: THREE.WebGLRenderTarget
+  readonly reflectionTarget: THREE.WebGLRenderTarget;
   /** Render target containing the reflected view clipped above/below the water line. */
-  readonly clippedReflectionTarget: THREE.WebGLRenderTarget
+  readonly clippedReflectionTarget: THREE.WebGLRenderTarget;
   /** Render target containing the refracted view of the object (underwater lookup). */
-  readonly refractionTarget: THREE.WebGLRenderTarget
+  readonly refractionTarget: THREE.WebGLRenderTarget;
   /** Render target containing the projected shadow mask of the object. */
-  readonly shadowTarget: THREE.WebGLRenderTarget
+  readonly shadowTarget: THREE.WebGLRenderTarget;
   /** Computed matrix mapping reflected camera view-projection space. */
-  readonly reflectionViewProjectionMatrix = new THREE.Matrix4()
+  readonly reflectionViewProjectionMatrix = new THREE.Matrix4();
   /** Computed matrix mapping original camera view-projection space. */
-  readonly viewProjectionMatrix = new THREE.Matrix4()
+  readonly viewProjectionMatrix = new THREE.Matrix4();
 
   /** Internal camera used to render the object reflection pass. */
-  private readonly reflectionCamera = new THREE.PerspectiveCamera()
+  private readonly reflectionCamera = new THREE.PerspectiveCamera();
   /** Internal orthographic camera used to project object shadows onto the pool floor. */
-  private readonly shadowCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+  private readonly shadowCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   /** Material used during the shadow projection pass. */
-  private readonly shadowMaterial: THREE.ShaderMaterial
+  private readonly shadowMaterial: THREE.ShaderMaterial;
   /** Transparent clear color helper. */
-  private readonly clearColor = new THREE.Color()
+  private readonly clearColor = new THREE.Color();
   /** Stores previous clear color to restore after transparent passes. */
-  private readonly previousClearColor = new THREE.Color()
+  private readonly previousClearColor = new THREE.Color();
 
   /**
    * Constructs the ObjectTexturePass.
@@ -80,18 +80,18 @@ export class ObjectTexturePass {
       format: THREE.RGBAFormat,
       depthBuffer: true,
       stencilBuffer: false,
-    }
+    };
 
-    this.reflectionTarget = new THREE.WebGLRenderTarget(512, 512, options)
-    this.clippedReflectionTarget = new THREE.WebGLRenderTarget(512, 512, options)
-    this.refractionTarget = new THREE.WebGLRenderTarget(512, 512, options)
+    this.reflectionTarget = new THREE.WebGLRenderTarget(512, 512, options);
+    this.clippedReflectionTarget = new THREE.WebGLRenderTarget(512, 512, options);
+    this.refractionTarget = new THREE.WebGLRenderTarget(512, 512, options);
     this.shadowTarget = new THREE.WebGLRenderTarget(1024, 1024, {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       format: THREE.RGBAFormat,
       depthBuffer: false,
       stencilBuffer: false,
-    })
+    });
 
     this.shadowMaterial = new THREE.ShaderMaterial({
       vertexShader: shadowVertexShader,
@@ -104,7 +104,7 @@ export class ObjectTexturePass {
       depthTest: false,
       depthWrite: false,
       side: THREE.DoubleSide,
-    })
+    });
   }
 
   /**
@@ -114,8 +114,8 @@ export class ObjectTexturePass {
    * @param poolLength Half-length of the pool.
    */
   setPoolBounds(poolWidth: number, poolLength: number) {
-    this.shadowMaterial.uniforms.poolWidth.value = poolWidth
-    this.shadowMaterial.uniforms.poolLength.value = poolLength
+    this.shadowMaterial.uniforms.poolWidth.value = poolWidth;
+    this.shadowMaterial.uniforms.poolLength.value = poolLength;
   }
 
   /**
@@ -126,19 +126,19 @@ export class ObjectTexturePass {
    * @param height Screen height.
    */
   setSize(width: number, height: number) {
-    const scale = Math.min(1, 1024 / Math.max(width, height))
+    const scale = Math.min(1, 1024 / Math.max(width, height));
     this.reflectionTarget.setSize(
       Math.max(1, Math.floor(width * scale)),
       Math.max(1, Math.floor(height * scale))
-    )
+    );
     this.clippedReflectionTarget.setSize(
       Math.max(1, Math.floor(width * scale)),
       Math.max(1, Math.floor(height * scale))
-    )
+    );
     this.refractionTarget.setSize(
       Math.max(1, Math.floor(width * scale)),
       Math.max(1, Math.floor(height * scale))
-    )
+    );
   }
 
   /**
@@ -154,40 +154,40 @@ export class ObjectTexturePass {
     camera: THREE.PerspectiveCamera,
     renderableObject: THREE.Object3D | null
   ) {
-    this.updateViewProjection(camera)
+    this.updateViewProjection(camera);
 
     if (!renderableObject) {
       this.withTransparentClear(() => {
-        this.clearTarget(this.reflectionTarget)
-        this.clearTarget(this.clippedReflectionTarget)
-        this.clearTarget(this.refractionTarget)
-        this.clearTarget(this.shadowTarget)
-      })
-      return
+        this.clearTarget(this.reflectionTarget);
+        this.clearTarget(this.clippedReflectionTarget);
+        this.clearTarget(this.refractionTarget);
+        this.clearTarget(this.shadowTarget);
+      });
+      return;
     }
 
-    const materials = this.collectMaterials(renderableObject)
+    const materials = this.collectMaterials(renderableObject);
     for (const mat of materials) {
       if (mat.uniforms?.isTexturePass) {
-        mat.uniforms.isTexturePass.value = true
+        mat.uniforms.isTexturePass.value = true;
       }
     }
 
     this.withOnlyObjectVisible(scene, renderableObject, () => {
       this.withTransparentClear(() => {
-        this.renderRefraction(scene, camera, materials)
-        this.renderReflection(scene, camera, materials)
-        this.renderClippedReflection(scene, materials)
-        this.renderShadow(scene)
-      })
-    })
+        this.renderRefraction(scene, camera, materials);
+        this.renderReflection(scene, camera, materials);
+        this.renderClippedReflection(scene, materials);
+        this.renderShadow(scene);
+      });
+    });
 
     for (const mat of materials) {
       if (mat.uniforms?.isTexturePass) {
-        mat.uniforms.isTexturePass.value = false
+        mat.uniforms.isTexturePass.value = false;
       }
       if (mat.uniforms?.texturePassMode) {
-        mat.uniforms.texturePassMode.value = 0
+        mat.uniforms.texturePassMode.value = 0;
       }
     }
   }
@@ -198,8 +198,8 @@ export class ObjectTexturePass {
    * @param camera The active rendering perspective camera.
    */
   private updateViewProjection(camera: THREE.PerspectiveCamera) {
-    camera.updateMatrixWorld()
-    this.viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
+    camera.updateMatrixWorld();
+    this.viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
   }
 
   /**
@@ -214,10 +214,10 @@ export class ObjectTexturePass {
     camera: THREE.PerspectiveCamera,
     materials: THREE.ShaderMaterial[]
   ) {
-    this.setTexturePassMode(materials, 1)
-    this.renderer.setRenderTarget(this.refractionTarget)
-    this.renderer.clear()
-    this.renderer.render(scene, camera)
+    this.setTexturePassMode(materials, 1);
+    this.renderer.setRenderTarget(this.refractionTarget);
+    this.renderer.clear();
+    this.renderer.render(scene, camera);
   }
 
   /**
@@ -232,28 +232,28 @@ export class ObjectTexturePass {
     camera: THREE.PerspectiveCamera,
     materials: THREE.ShaderMaterial[]
   ) {
-    const position = new THREE.Vector3()
-    const direction = new THREE.Vector3()
-    const target = new THREE.Vector3()
+    const position = new THREE.Vector3();
+    const direction = new THREE.Vector3();
+    const target = new THREE.Vector3();
 
-    camera.getWorldPosition(position)
-    camera.getWorldDirection(direction)
-    target.copy(position).add(direction)
+    camera.getWorldPosition(position);
+    camera.getWorldDirection(direction);
+    target.copy(position).add(direction);
 
-    this.reflectionCamera.copy(camera)
-    this.reflectionCamera.position.set(position.x, -position.y, position.z)
-    this.reflectionCamera.up.set(camera.up.x, -camera.up.y, camera.up.z)
-    this.reflectionCamera.lookAt(target.x, -target.y, target.z)
-    this.reflectionCamera.updateMatrixWorld()
+    this.reflectionCamera.copy(camera);
+    this.reflectionCamera.position.set(position.x, -position.y, position.z);
+    this.reflectionCamera.up.set(camera.up.x, -camera.up.y, camera.up.z);
+    this.reflectionCamera.lookAt(target.x, -target.y, target.z);
+    this.reflectionCamera.updateMatrixWorld();
     this.reflectionViewProjectionMatrix.multiplyMatrices(
       this.reflectionCamera.projectionMatrix,
       this.reflectionCamera.matrixWorldInverse
-    )
+    );
 
-    this.setTexturePassMode(materials, 1)
-    this.renderer.setRenderTarget(this.reflectionTarget)
-    this.renderer.clear()
-    this.renderer.render(scene, this.reflectionCamera)
+    this.setTexturePassMode(materials, 1);
+    this.renderer.setRenderTarget(this.reflectionTarget);
+    this.renderer.clear();
+    this.renderer.render(scene, this.reflectionCamera);
   }
 
   /**
@@ -263,10 +263,10 @@ export class ObjectTexturePass {
    * @param materials Collected materials of the active object.
    */
   private renderClippedReflection(scene: THREE.Scene, materials: THREE.ShaderMaterial[]) {
-    this.setTexturePassMode(materials, 2)
-    this.renderer.setRenderTarget(this.clippedReflectionTarget)
-    this.renderer.clear()
-    this.renderer.render(scene, this.reflectionCamera)
+    this.setTexturePassMode(materials, 2);
+    this.renderer.setRenderTarget(this.clippedReflectionTarget);
+    this.renderer.clear();
+    this.renderer.render(scene, this.reflectionCamera);
   }
 
   /**
@@ -275,15 +275,15 @@ export class ObjectTexturePass {
    * @param scene The global scene.
    */
   private renderShadow(scene: THREE.Scene) {
-    this.shadowMaterial.uniforms.light.value.copy(this.lightDirection)
-    this.shadowMaterial.uniformsNeedUpdate = true
+    this.shadowMaterial.uniforms.light.value.copy(this.lightDirection);
+    this.shadowMaterial.uniformsNeedUpdate = true;
 
-    const previousOverrideMaterial = scene.overrideMaterial
-    scene.overrideMaterial = this.shadowMaterial
-    this.renderer.setRenderTarget(this.shadowTarget)
-    this.renderer.clear()
-    this.renderer.render(scene, this.shadowCamera)
-    scene.overrideMaterial = previousOverrideMaterial
+    const previousOverrideMaterial = scene.overrideMaterial;
+    scene.overrideMaterial = this.shadowMaterial;
+    this.renderer.setRenderTarget(this.shadowTarget);
+    this.renderer.clear();
+    this.renderer.render(scene, this.shadowCamera);
+    scene.overrideMaterial = previousOverrideMaterial;
   }
 
   /**
@@ -292,8 +292,8 @@ export class ObjectTexturePass {
    * @param target Render target to clear.
    */
   private clearTarget(target: THREE.WebGLRenderTarget) {
-    this.renderer.setRenderTarget(target)
-    this.renderer.clear()
+    this.renderer.setRenderTarget(target);
+    this.renderer.clear();
   }
 
   /**
@@ -303,14 +303,14 @@ export class ObjectTexturePass {
    * @param render Callback function containing rendering operations.
    */
   private withTransparentClear(render: () => void) {
-    const previousTarget = this.renderer.getRenderTarget()
-    this.renderer.getClearColor(this.previousClearColor)
-    const previousClearAlpha = this.renderer.getClearAlpha()
+    const previousTarget = this.renderer.getRenderTarget();
+    this.renderer.getClearColor(this.previousClearColor);
+    const previousClearAlpha = this.renderer.getClearAlpha();
 
-    this.renderer.setClearColor(this.clearColor, 0)
-    render()
-    this.renderer.setRenderTarget(previousTarget)
-    this.renderer.setClearColor(this.previousClearColor, previousClearAlpha)
+    this.renderer.setClearColor(this.clearColor, 0);
+    render();
+    this.renderer.setRenderTarget(previousTarget);
+    this.renderer.setClearColor(this.previousClearColor, previousClearAlpha);
   }
 
   /**
@@ -326,19 +326,19 @@ export class ObjectTexturePass {
     renderableObject: THREE.Object3D,
     render: () => void
   ) {
-    const changed: Array<[THREE.Object3D, boolean]> = []
+    const changed: Array<[THREE.Object3D, boolean]> = [];
 
     scene.traverse((object) => {
       if (object !== scene && !this.isObjectOrDescendant(object, renderableObject)) {
-        changed.push([object, object.visible])
-        object.visible = false
+        changed.push([object, object.visible]);
+        object.visible = false;
       }
-    })
+    });
 
-    render()
+    render();
 
     for (const [object, visible] of changed) {
-      object.visible = visible
+      object.visible = visible;
     }
   }
 
@@ -351,9 +351,9 @@ export class ObjectTexturePass {
    */
   private isObjectOrDescendant(object: THREE.Object3D, root: THREE.Object3D) {
     for (let current: THREE.Object3D | null = object; current; current = current.parent) {
-      if (current === root) return true
+      if (current === root) return true;
     }
-    return false
+    return false;
   }
 
   /**
@@ -365,8 +365,8 @@ export class ObjectTexturePass {
   private setTexturePassMode(materials: THREE.ShaderMaterial[], mode: number) {
     for (const mat of materials) {
       if (mat.uniforms?.texturePassMode) {
-        mat.uniforms.texturePassMode.value = mode
-        mat.uniformsNeedUpdate = true
+        mat.uniforms.texturePassMode.value = mode;
+        mat.uniformsNeedUpdate = true;
       }
     }
   }
@@ -378,12 +378,12 @@ export class ObjectTexturePass {
    * @returns Array of collected ShaderMaterials.
    */
   private collectMaterials(object: THREE.Object3D): THREE.ShaderMaterial[] {
-    const materials: THREE.ShaderMaterial[] = []
+    const materials: THREE.ShaderMaterial[] = [];
     object.traverse((child) => {
       if (child instanceof THREE.Mesh && child.material instanceof THREE.ShaderMaterial) {
-        materials.push(child.material)
+        materials.push(child.material);
       }
-    })
-    return materials
+    });
+    return materials;
   }
 }

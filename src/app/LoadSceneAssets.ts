@@ -1,8 +1,8 @@
-import * as THREE from 'three'
+import * as THREE from 'three';
 
 export interface SceneAssets {
-  tileTexture: THREE.Texture
-  cubemap: THREE.CubeTexture
+  tileTexture: THREE.Texture;
+  cubemap: THREE.CubeTexture;
 }
 
 /**
@@ -18,14 +18,14 @@ export interface SceneAssets {
  */
 export async function loadSceneAssets(): Promise<SceneAssets> {
   // Use Vite's BASE_URL for correct paths in both dev and production
-  const base = import.meta.env.BASE_URL
+  const base = import.meta.env.BASE_URL;
 
   // LoadRepeating pool tile texture
-  const tileTexture = await new THREE.TextureLoader().loadAsync(`${base}tiles.jpg`)
-  tileTexture.wrapS = THREE.RepeatWrapping
-  tileTexture.wrapT = THREE.RepeatWrapping
-  tileTexture.minFilter = THREE.LinearMipmapLinearFilter
-  tileTexture.generateMipmaps = true
+  const tileTexture = await new THREE.TextureLoader().loadAsync(`${base}tiles.jpg`);
+  tileTexture.wrapS = THREE.RepeatWrapping;
+  tileTexture.wrapT = THREE.RepeatWrapping;
+  tileTexture.minFilter = THREE.LinearMipmapLinearFilter;
+  tileTexture.generateMipmaps = true;
 
   // Load Skybox cubemap textures (X, Y, Z directions)
   const cubemap = await new THREE.CubeTextureLoader().loadAsync([
@@ -35,12 +35,12 @@ export async function loadSceneAssets(): Promise<SceneAssets> {
     `${base}ypos.jpg`,
     `${base}zpos.jpg`,
     `${base}zneg.jpg`,
-  ])
-  cubemap.flipY = true // Align vertical orientation with shaders
-  cubemap.colorSpace = THREE.NoColorSpace
-  cubemap.minFilter = THREE.LinearFilter
-  cubemap.magFilter = THREE.LinearFilter
-  cubemap.generateMipmaps = false
+  ]);
+  cubemap.flipY = true; // Align vertical orientation with shaders
+  cubemap.colorSpace = THREE.NoColorSpace;
+  cubemap.minFilter = THREE.LinearFilter;
+  cubemap.magFilter = THREE.LinearFilter;
+  cubemap.generateMipmaps = false;
 
-  return { tileTexture, cubemap }
+  return { tileTexture, cubemap };
 }

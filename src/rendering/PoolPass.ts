@@ -4,14 +4,14 @@
  * projects the generated caustic texture onto them. Supports either box or rounded corner pool shapes.
  */
 
-import * as THREE from 'three'
-import type { Water } from '../Water'
-import poolVert from '../shaders/Cube.vert'
-import poolFrag from '../shaders/Cube.frag'
-import roundedBoxVert from '../shaders/RoundedBox.vert'
-import roundedBoxFrag from '../shaders/RoundedBox.frag'
-import type { WaterOpticsState } from './WaterOpticsState'
-import { createRoundedBoxPoolGeometry } from './CreateRoundedBoxPoolGeometry'
+import * as THREE from 'three';
+import type { Water } from '../Water';
+import poolVert from '../shaders/Cube.vert';
+import poolFrag from '../shaders/Cube.frag';
+import roundedBoxVert from '../shaders/RoundedBox.vert';
+import roundedBoxFrag from '../shaders/RoundedBox.frag';
+import type { WaterOpticsState } from './WaterOpticsState';
+import { createRoundedBoxPoolGeometry } from './CreateRoundedBoxPoolGeometry';
 
 /**
  * Handles the geometry and materials needed to render the pool interior surfaces
@@ -19,15 +19,15 @@ import { createRoundedBoxPoolGeometry } from './CreateRoundedBoxPoolGeometry'
  */
 export class PoolPass {
   /** The 3D Mesh representing the pool walls and floor. */
-  readonly mesh: THREE.Mesh
+  readonly mesh: THREE.Mesh;
   /** Static geometry for a standard box pool. */
-  private readonly boxGeometry: THREE.BufferGeometry
+  private readonly boxGeometry: THREE.BufferGeometry;
   /** Material shader for a standard box pool. */
-  private readonly boxMaterial: THREE.ShaderMaterial
+  private readonly boxMaterial: THREE.ShaderMaterial;
   /** Dynamic geometry for rounded pools. Re-created if the shape parameters change. */
-  private roundedBoxGeometry: THREE.BufferGeometry | null = null
+  private roundedBoxGeometry: THREE.BufferGeometry | null = null;
   /** Material shader for rounded pools. Lazily created. */
-  private roundedBoxMaterial: THREE.ShaderMaterial | null = null
+  private roundedBoxMaterial: THREE.ShaderMaterial | null = null;
 
   /**
    * Constructs the PoolPass.
@@ -54,11 +54,11 @@ export class PoolPass {
       side: THREE.FrontSide,
       depthTest: true,
       depthWrite: true,
-    })
+    });
 
-    this.boxGeometry = this.createGeometry()
-    this.mesh = new THREE.Mesh(this.boxGeometry, this.boxMaterial)
-    this.mesh.frustumCulled = false
+    this.boxGeometry = this.createGeometry();
+    this.mesh = new THREE.Mesh(this.boxGeometry, this.boxMaterial);
+    this.mesh.frustumCulled = false;
   }
 
   /**
@@ -78,18 +78,18 @@ export class PoolPass {
     poolLength: number
   ) {
     if (shape === 'Box') {
-      this.mesh.geometry = this.boxGeometry
-      this.mesh.material = this.boxMaterial
+      this.mesh.geometry = this.boxGeometry;
+      this.mesh.material = this.boxMaterial;
     } else {
       if (this.roundedBoxGeometry) {
-        this.roundedBoxGeometry.dispose()
+        this.roundedBoxGeometry.dispose();
       }
       this.roundedBoxGeometry = createRoundedBoxPoolGeometry(
         cornerRadius,
         poolWidth,
         poolHeight,
         poolLength
-      )
+      );
 
       if (!this.roundedBoxMaterial) {
         this.roundedBoxMaterial = new THREE.ShaderMaterial({
@@ -109,16 +109,16 @@ export class PoolPass {
           side: THREE.FrontSide,
           depthTest: true,
           depthWrite: true,
-        })
+        });
       } else {
-        this.roundedBoxMaterial.uniforms.cornerRadius.value = cornerRadius
-        this.roundedBoxMaterial.uniforms.poolWidth.value = poolWidth
-        this.roundedBoxMaterial.uniforms.poolHeight.value = poolHeight
-        this.roundedBoxMaterial.uniforms.poolLength.value = poolLength
+        this.roundedBoxMaterial.uniforms.cornerRadius.value = cornerRadius;
+        this.roundedBoxMaterial.uniforms.poolWidth.value = poolWidth;
+        this.roundedBoxMaterial.uniforms.poolHeight.value = poolHeight;
+        this.roundedBoxMaterial.uniforms.poolLength.value = poolLength;
       }
 
-      this.mesh.geometry = this.roundedBoxGeometry
-      this.mesh.material = this.roundedBoxMaterial
+      this.mesh.geometry = this.roundedBoxGeometry;
+      this.mesh.material = this.roundedBoxMaterial;
     }
   }
 
@@ -129,32 +129,32 @@ export class PoolPass {
    * @param water The Water simulation instance.
    */
   prepare(water: Water) {
-    const activeMaterial = this.mesh.material as THREE.ShaderMaterial
-    activeMaterial.uniforms.water.value = water.textureA.texture
-    activeMaterial.uniforms.light.value.copy(this.state.lightDirection)
-    this.state.syncUniforms(activeMaterial)
-    activeMaterial.uniformsNeedUpdate = true
+    const activeMaterial = this.mesh.material as THREE.ShaderMaterial;
+    activeMaterial.uniforms.water.value = water.textureA.texture;
+    activeMaterial.uniforms.light.value.copy(this.state.lightDirection);
+    this.state.syncUniforms(activeMaterial);
+    activeMaterial.uniformsNeedUpdate = true;
   }
 
   /**
    * Generates a standard box geometry without the top face (since that's the water surface).
    */
   private createGeometry() {
-    const geometry = new THREE.BoxGeometry(2, 2, 2)
-    const positions = geometry.attributes.position
-    const source = geometry.index!
-    const indices: number[] = []
+    const geometry = new THREE.BoxGeometry(2, 2, 2);
+    const positions = geometry.attributes.position;
+    const source = geometry.index!;
+    const indices: number[] = [];
 
     for (let i = 0; i < source.count; i += 3) {
-      const a = source.getX(i)
-      const b = source.getX(i + 1)
-      const c = source.getX(i + 2)
+      const a = source.getX(i);
+      const b = source.getX(i + 1);
+      const c = source.getX(i + 2);
       if (!(positions.getY(a) < 0 && positions.getY(b) < 0 && positions.getY(c) < 0)) {
-        indices.push(a, b, c)
+        indices.push(a, b, c);
       }
     }
 
-    geometry.setIndex(indices)
-    return geometry
+    geometry.setIndex(indices);
+    return geometry;
   }
 }

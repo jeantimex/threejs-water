@@ -5,16 +5,16 @@
  * Handles reflection, refraction, and optical distortion of the sky and submerged objects.
  */
 
-import * as THREE from 'three'
-import type { Water } from '../Water'
-import waterAboveVert from '../shaders/WaterAbove.vert'
-import waterAboveFrag from '../shaders/WaterAbove.frag'
-import roundedBoxWaterAboveFrag from '../shaders/RoundedBoxWaterAbove.frag'
-import waterBelowVert from '../shaders/WaterBelow.vert'
-import waterBelowFrag from '../shaders/WaterBelow.frag'
-import roundedBoxWaterBelowFrag from '../shaders/RoundedBoxWaterBelow.frag'
-import roundedBoxWaterVert from '../shaders/RoundedBoxWater.vert'
-import type { WaterOpticsState } from './WaterOpticsState'
+import * as THREE from 'three';
+import type { Water } from '../Water';
+import waterAboveVert from '../shaders/WaterAbove.vert';
+import waterAboveFrag from '../shaders/WaterAbove.frag';
+import roundedBoxWaterAboveFrag from '../shaders/RoundedBoxWaterAbove.frag';
+import waterBelowVert from '../shaders/WaterBelow.vert';
+import waterBelowFrag from '../shaders/WaterBelow.frag';
+import roundedBoxWaterBelowFrag from '../shaders/RoundedBoxWaterBelow.frag';
+import roundedBoxWaterVert from '../shaders/RoundedBoxWater.vert';
+import type { WaterOpticsState } from './WaterOpticsState';
 
 /**
  * Interface representing computed projection matrices for scene objects,
@@ -22,9 +22,9 @@ import type { WaterOpticsState } from './WaterOpticsState'
  */
 export interface ObjectTextureMatrices {
   /** Map from world space to default camera viewport coordinate space. */
-  viewProjectionMatrix: THREE.Matrix4
+  viewProjectionMatrix: THREE.Matrix4;
   /** Map from world space to reflected camera viewport coordinate space. */
-  reflectionViewProjectionMatrix: THREE.Matrix4
+  reflectionViewProjectionMatrix: THREE.Matrix4;
 }
 
 /**
@@ -33,17 +33,17 @@ export interface ObjectTextureMatrices {
  */
 export class WaterSurfacePass {
   /** Mesh rendered when viewing the water surface from above. */
-  readonly aboveMesh: THREE.Mesh
+  readonly aboveMesh: THREE.Mesh;
   /** Mesh rendered when viewing the water surface from below. */
-  readonly belowMesh: THREE.Mesh
+  readonly belowMesh: THREE.Mesh;
   /** Shader material for viewing the water from above in a box pool. */
-  private readonly aboveMaterial: THREE.ShaderMaterial
+  private readonly aboveMaterial: THREE.ShaderMaterial;
   /** Shader material for viewing the water from below in a box pool. */
-  private readonly belowMaterial: THREE.ShaderMaterial
+  private readonly belowMaterial: THREE.ShaderMaterial;
   /** Shader material for viewing the water from above in a rounded box pool. Lazily created. */
-  private roundedBoxAboveMaterial: THREE.ShaderMaterial | null = null
+  private roundedBoxAboveMaterial: THREE.ShaderMaterial | null = null;
   /** Shader material for viewing the water from below in a rounded box pool. Lazily created. */
-  private roundedBoxBelowMaterial: THREE.ShaderMaterial | null = null
+  private roundedBoxBelowMaterial: THREE.ShaderMaterial | null = null;
 
   /**
    * Constructs the WaterSurfacePass.
@@ -75,7 +75,7 @@ export class WaterSurfacePass {
       objectReflectionTexture,
       objectClippedReflectionTexture,
       objectRefractionTexture
-    )
+    );
     this.belowMaterial = this.createMaterial(
       waterBelowVert,
       waterBelowFrag,
@@ -86,13 +86,13 @@ export class WaterSurfacePass {
       objectReflectionTexture,
       objectClippedReflectionTexture,
       objectRefractionTexture
-    )
+    );
 
-    const geometry = new THREE.PlaneGeometry(2, 2, 200, 200)
-    this.aboveMesh = new THREE.Mesh(geometry, this.aboveMaterial)
-    this.belowMesh = new THREE.Mesh(geometry.clone(), this.belowMaterial)
-    this.aboveMesh.frustumCulled = false
-    this.belowMesh.frustumCulled = false
+    const geometry = new THREE.PlaneGeometry(2, 2, 200, 200);
+    this.aboveMesh = new THREE.Mesh(geometry, this.aboveMaterial);
+    this.belowMesh = new THREE.Mesh(geometry.clone(), this.belowMaterial);
+    this.aboveMesh.frustumCulled = false;
+    this.belowMesh.frustumCulled = false;
   }
 
   /**
@@ -112,8 +112,8 @@ export class WaterSurfacePass {
     poolLength: number
   ) {
     if (shape === 'Box') {
-      this.aboveMesh.material = this.aboveMaterial
-      this.belowMesh.material = this.belowMaterial
+      this.aboveMesh.material = this.aboveMaterial;
+      this.belowMesh.material = this.belowMaterial;
     } else {
       if (!this.roundedBoxAboveMaterial) {
         this.roundedBoxAboveMaterial = this.createMaterial(
@@ -126,11 +126,11 @@ export class WaterSurfacePass {
           this.objectReflectionTexture,
           this.objectClippedReflectionTexture,
           this.objectRefractionTexture
-        )
-        this.roundedBoxAboveMaterial.uniforms.cornerRadius = { value: cornerRadius }
-        this.roundedBoxAboveMaterial.uniforms.poolWidth = { value: poolWidth }
-        this.roundedBoxAboveMaterial.uniforms.poolHeight = { value: poolHeight }
-        this.roundedBoxAboveMaterial.uniforms.poolLength = { value: poolLength }
+        );
+        this.roundedBoxAboveMaterial.uniforms.cornerRadius = { value: cornerRadius };
+        this.roundedBoxAboveMaterial.uniforms.poolWidth = { value: poolWidth };
+        this.roundedBoxAboveMaterial.uniforms.poolHeight = { value: poolHeight };
+        this.roundedBoxAboveMaterial.uniforms.poolLength = { value: poolLength };
 
         this.roundedBoxBelowMaterial = this.createMaterial(
           roundedBoxWaterVert,
@@ -142,24 +142,24 @@ export class WaterSurfacePass {
           this.objectReflectionTexture,
           this.objectClippedReflectionTexture,
           this.objectRefractionTexture
-        )
-        this.roundedBoxBelowMaterial.uniforms.cornerRadius = { value: cornerRadius }
-        this.roundedBoxBelowMaterial.uniforms.poolWidth = { value: poolWidth }
-        this.roundedBoxBelowMaterial.uniforms.poolHeight = { value: poolHeight }
-        this.roundedBoxBelowMaterial.uniforms.poolLength = { value: poolLength }
+        );
+        this.roundedBoxBelowMaterial.uniforms.cornerRadius = { value: cornerRadius };
+        this.roundedBoxBelowMaterial.uniforms.poolWidth = { value: poolWidth };
+        this.roundedBoxBelowMaterial.uniforms.poolHeight = { value: poolHeight };
+        this.roundedBoxBelowMaterial.uniforms.poolLength = { value: poolLength };
       } else {
-        this.roundedBoxAboveMaterial.uniforms.cornerRadius.value = cornerRadius
-        this.roundedBoxAboveMaterial.uniforms.poolWidth.value = poolWidth
-        this.roundedBoxAboveMaterial.uniforms.poolHeight.value = poolHeight
-        this.roundedBoxAboveMaterial.uniforms.poolLength.value = poolLength
-        this.roundedBoxBelowMaterial!.uniforms.cornerRadius.value = cornerRadius
-        this.roundedBoxBelowMaterial!.uniforms.poolWidth.value = poolWidth
-        this.roundedBoxBelowMaterial!.uniforms.poolHeight.value = poolHeight
-        this.roundedBoxBelowMaterial!.uniforms.poolLength.value = poolLength
+        this.roundedBoxAboveMaterial.uniforms.cornerRadius.value = cornerRadius;
+        this.roundedBoxAboveMaterial.uniforms.poolWidth.value = poolWidth;
+        this.roundedBoxAboveMaterial.uniforms.poolHeight.value = poolHeight;
+        this.roundedBoxAboveMaterial.uniforms.poolLength.value = poolLength;
+        this.roundedBoxBelowMaterial!.uniforms.cornerRadius.value = cornerRadius;
+        this.roundedBoxBelowMaterial!.uniforms.poolWidth.value = poolWidth;
+        this.roundedBoxBelowMaterial!.uniforms.poolHeight.value = poolHeight;
+        this.roundedBoxBelowMaterial!.uniforms.poolLength.value = poolLength;
       }
 
-      this.aboveMesh.material = this.roundedBoxAboveMaterial
-      this.belowMesh.material = this.roundedBoxBelowMaterial!
+      this.aboveMesh.material = this.roundedBoxAboveMaterial;
+      this.belowMesh.material = this.roundedBoxBelowMaterial!;
     }
   }
 
@@ -172,20 +172,20 @@ export class WaterSurfacePass {
    * @param objectMatrices Projection matrices for reflections/refractions.
    */
   prepare(water: Water, camera: THREE.Camera, objectMatrices: ObjectTextureMatrices) {
-    const eye = new THREE.Vector3()
-    camera.getWorldPosition(eye)
+    const eye = new THREE.Vector3();
+    camera.getWorldPosition(eye);
     this.prepareMaterial(
       this.aboveMesh.material as THREE.ShaderMaterial,
       water,
       eye,
       objectMatrices
-    )
+    );
     this.prepareMaterial(
       this.belowMesh.material as THREE.ShaderMaterial,
       water,
       eye,
       objectMatrices
-    )
+    );
   }
 
   /**
@@ -222,7 +222,7 @@ export class WaterSurfacePass {
       side,
       depthTest: true,
       depthWrite: true,
-    })
+    });
   }
 
   /**
@@ -234,14 +234,14 @@ export class WaterSurfacePass {
     eye: THREE.Vector3,
     objectMatrices: ObjectTextureMatrices
   ) {
-    material.uniforms.water.value = water.textureA.texture
-    material.uniforms.eye.value.copy(eye)
-    material.uniforms.light.value.copy(this.state.lightDirection)
-    material.uniforms.viewProjectionMatrix.value.copy(objectMatrices.viewProjectionMatrix)
+    material.uniforms.water.value = water.textureA.texture;
+    material.uniforms.eye.value.copy(eye);
+    material.uniforms.light.value.copy(this.state.lightDirection);
+    material.uniforms.viewProjectionMatrix.value.copy(objectMatrices.viewProjectionMatrix);
     material.uniforms.reflectionViewProjectionMatrix.value.copy(
       objectMatrices.reflectionViewProjectionMatrix
-    )
-    this.state.syncUniforms(material)
-    material.uniformsNeedUpdate = true
+    );
+    this.state.syncUniforms(material);
+    material.uniformsNeedUpdate = true;
   }
 }
