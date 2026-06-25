@@ -64,6 +64,18 @@ export class SimulationControls {
     gui.domElement.style.left = '0'
     gui.domElement.style.right = 'auto'
 
+    // --- Scene Controls Group ---
+    const sceneFolder = gui.addFolder('Scene')
+    sceneFolder.open()
+
+    this.pausedController = sceneFolder
+      .add(this.state, 'paused')
+      .name('Paused')
+      .onChange((paused: boolean) => {
+        this.paused = paused
+        callbacks.onPausedChange(paused)
+      })
+
     // --- Object Controls Group ---
     const objectFolder = gui.addFolder('Object')
     objectFolder.open()
@@ -99,33 +111,8 @@ export class SimulationControls {
         this.density = density
       })
 
-    // --- Scene Controls Group ---
-    const sceneFolder = gui.addFolder('Scene')
-    sceneFolder.open()
-
-    this.pausedController = sceneFolder
-      .add(this.state, 'paused')
-      .name('Paused')
-      .onChange((paused: boolean) => {
-        this.paused = paused
-        callbacks.onPausedChange(paused)
-      })
-
-    // --- Light Controls Group ---
-    const lightsFolder = gui.addFolder('Lights')
-    lightsFolder.open()
-
-    // Toggle whether the sunlight direction tracks camera movement
-    lightsFolder
-      .add(this.state, 'lightFollowsCamera')
-      .name('Follow Camera')
-      .onChange((enabled: boolean) => {
-        this.lightFollowsCamera = enabled
-        callbacks.onLightFollowsCameraChange?.()
-      })
-
     // --- Pool Shape Controls Group ---
-    const poolFolder = gui.addFolder('Pool Shape')
+    const poolFolder = gui.addFolder('Pool')
     poolFolder.open()
 
     // Pool Shape dropdown selector ('Box' or 'Rounded Box')
@@ -174,6 +161,19 @@ export class SimulationControls {
         callbacks.onPoolLengthChange?.(length)
       })
 
+    // --- Light Controls Group ---
+    const lightsFolder = gui.addFolder('Lights')
+    lightsFolder.open()
+
+    // Toggle whether the sunlight direction tracks camera movement
+    lightsFolder
+      .add(this.state, 'lightFollowsCamera')
+      .name('Follow Camera')
+      .onChange((enabled: boolean) => {
+        this.lightFollowsCamera = enabled
+        callbacks.onLightFollowsCameraChange?.()
+      })
+
     // Sync initial controller visibility configurations
     this.updateDensityController()
     this.updatePoolShapeControllers()
@@ -209,10 +209,10 @@ export class SimulationControls {
   }
 
   /**
-   * Enables or disables the density slider depending on if the density checkbox is checked.
+   * Shows the density slider only when density controls are available and enabled.
    */
   private updateDensityController() {
-    this.densityController.disable(!this.physicsAvailable || !this.densityEnabled)
+    this.densityController.show(this.physicsAvailable && this.densityEnabled)
   }
 
   /**

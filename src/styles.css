@@ -1,5 +1,7 @@
 body {
-  font: 13px/140% Arial, sans-serif;
+  font:
+    13px/140% Arial,
+    sans-serif;
   background: black;
   color: white;
   overflow: hidden;
@@ -84,7 +86,7 @@ canvas {
 }
 
 .lil-gui .lil-controller {
-  display: flex !important;
+  display: flex;
   width: 100% !important;
   justify-content: space-between !important;
   align-items: center !important;
