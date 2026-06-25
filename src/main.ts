@@ -104,20 +104,33 @@
  * │   ├── SphereObject.ts  - Sphere implementation
  * │   ├── CubeObject.ts    - Cube implementation
  * │   ├── TorusKnotObject.ts - Torus knot with compound displacement
- * │   └── DuckObject.ts    - GLTF model implementation
+ * │   ├── DuckObject.ts    - GLTF model implementation
+ * │   ├── SimulationObjectRegistry.ts - Active object registration/selection
+ * │   ├── SimulationObjectUtils.ts - Shared physics and bounds helpers
+ * │   └── CreateSimulationObjects.ts - Object factory
  * ├── rendering/
  * │   ├── CausticsPass.ts  - Caustic texture generation
  * │   ├── PoolPass.ts      - Pool wall/floor rendering
  * │   ├── WaterSurfacePass.ts - Water surface rendering
- * │   └── ObjectTexturePass.ts - Reflection/refraction textures
+ * │   ├── ObjectTexturePass.ts - Reflection/refraction textures
+ * │   ├── WaterOpticsState.ts - Shared water optics uniforms
+ * │   ├── SimulationObjectRendering.ts - Object render resource types
+ * │   └── CreateRoundedBoxPoolGeometry.ts - Rounded pool mesh generation
  * ├── shaders/
- * │   ├── update.frag      - Wave equation solver
- * │   ├── normal.frag      - Surface normal computation
- * │   ├── caustics.vert/frag - Caustic generation
- * │   ├── waterAbove.frag  - Water surface (above view)
- * │   ├── waterBelow.frag  - Water surface (below view)
- * │   ├── cube.frag        - Pool walls (rectangular)
- * │   ├── roundedbox.frag  - Pool walls (rounded corners)
+ * │   ├── WaveSimulation.vert/frag - Wave equation solver
+ * │   ├── WaterNormal.vert/frag - Surface normal computation
+ * │   ├── WaterRipple.vert/frag - Interactive ripple injection
+ * │   ├── Caustics.vert/frag - Caustic generation
+ * │   ├── WaterAbove.vert/frag - Water surface (above view)
+ * │   ├── WaterBelow.vert/frag - Water surface (below view)
+ * │   ├── Cube.vert/frag    - Pool walls (rectangular)
+ * │   ├── RoundedBox.vert/frag - Pool walls (rounded corners)
+ * │   ├── RoundedBoxWater*.frag - Rounded-pool water optics
+ * │   ├── Sphere*.vert/frag - Sphere displacement and rendering
+ * │   ├── ObjectCubeRender.vert/frag - Cube object rendering
+ * │   ├── TorusKnotRender.vert/frag - Torus knot rendering
+ * │   ├── DuckRender.vert/frag - Duck model rendering
+ * │   ├── BoxDisplacement.frag - Cube water displacement
  * │   └── ...              - Object-specific shaders
  * └── water/
  *     ├── WaterOptics.ts   - Optical property descriptors
