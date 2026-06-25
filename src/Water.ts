@@ -1,13 +1,13 @@
 import * as THREE from 'three'
-import dropVert from './shaders/drop.vert'
-import dropFrag from './shaders/drop.frag'
-import updateVert from './shaders/update.vert'
-import updateFrag from './shaders/update.frag'
-import normalVert from './shaders/normal.vert'
-import normalFrag from './shaders/normal.frag'
-import sphereVert from './shaders/sphere.vert'
-import sphereFrag from './shaders/sphere.frag'
-import moveCubeFrag from './shaders/moveCube.frag'
+import waterRippleVert from './shaders/WaterRipple.vert'
+import waterRippleFrag from './shaders/WaterRipple.frag'
+import waveSimulationVert from './shaders/WaveSimulation.vert'
+import waveSimulationFrag from './shaders/WaveSimulation.frag'
+import waterNormalVert from './shaders/WaterNormal.vert'
+import waterNormalFrag from './shaders/WaterNormal.frag'
+import sphereDisplacementVert from './shaders/Sphere.vert'
+import sphereDisplacementFrag from './shaders/Sphere.frag'
+import boxDisplacementFrag from './shaders/BoxDisplacement.frag'
 
 /**
  * Manages the interactive 2D heightmap-based water wave simulation.
@@ -73,8 +73,8 @@ export class Water {
 
     // Initializer materials for each WebGL rendering pass
     this.dropMaterial = new THREE.ShaderMaterial({
-      vertexShader: dropVert,
-      fragmentShader: dropFrag,
+      vertexShader: waterRippleVert,
+      fragmentShader: waterRippleFrag,
       uniforms: {
         tInput: { value: null },
         center: { value: new THREE.Vector2() },
@@ -84,8 +84,8 @@ export class Water {
     })
 
     this.updateMaterial = new THREE.ShaderMaterial({
-      vertexShader: updateVert,
-      fragmentShader: updateFrag,
+      vertexShader: waveSimulationVert,
+      fragmentShader: waveSimulationFrag,
       uniforms: {
         tInput: { value: null },
         delta: { value: new THREE.Vector2(1 / size, 1 / size) },
@@ -93,8 +93,8 @@ export class Water {
     })
 
     this.normalMaterial = new THREE.ShaderMaterial({
-      vertexShader: normalVert,
-      fragmentShader: normalFrag,
+      vertexShader: waterNormalVert,
+      fragmentShader: waterNormalFrag,
       uniforms: {
         tInput: { value: null },
         delta: { value: new THREE.Vector2(1 / size, 1 / size) },
@@ -102,8 +102,8 @@ export class Water {
     })
 
     this.sphereMaterial = new THREE.ShaderMaterial({
-      vertexShader: sphereVert,
-      fragmentShader: sphereFrag,
+      vertexShader: sphereDisplacementVert,
+      fragmentShader: sphereDisplacementFrag,
       uniforms: {
         tInput: { value: null },
         oldCenter: { value: new THREE.Vector3() },
@@ -114,8 +114,8 @@ export class Water {
     })
 
     this.moveCubeMaterial = new THREE.ShaderMaterial({
-      vertexShader: sphereVert,
-      fragmentShader: moveCubeFrag,
+      vertexShader: sphereDisplacementVert,
+      fragmentShader: boxDisplacementFrag,
       uniforms: {
         tInput: { value: null },
         oldCenter: { value: new THREE.Vector3() },

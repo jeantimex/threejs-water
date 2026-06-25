@@ -2,10 +2,10 @@ import * as THREE from 'three'
 import { CameraController } from '../camera/CameraController'
 import { Renderer } from '../Renderer'
 import { NO_OBJECT, type SimulationObjectRegistry } from '../objects/SimulationObjectRegistry'
-import { createSimulationObjects } from '../objects/createSimulationObjects'
+import { createSimulationObjects } from '../objects/CreateSimulationObjects'
 import { Water } from '../Water'
 import { InteractionController } from './InteractionController'
-import { loadSceneAssets } from './loadSceneAssets'
+import { loadSceneAssets } from './LoadSceneAssets'
 import { SimulationControls } from './SimulationControls'
 
 /**

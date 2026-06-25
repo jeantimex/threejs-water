@@ -7,13 +7,13 @@
 
 import * as THREE from 'three'
 import type { Water } from '../Water'
-import waterAboveVert from '../shaders/waterAbove.vert'
-import waterAboveFrag from '../shaders/waterAbove.frag'
-import roundedBoxWaterAboveFrag from '../shaders/roundedbox_waterAbove.frag'
-import waterBelowVert from '../shaders/waterBelow.vert'
-import waterBelowFrag from '../shaders/waterBelow.frag'
-import roundedBoxWaterBelowFrag from '../shaders/roundedbox_waterBelow.frag'
-import roundedBoxWaterVert from '../shaders/roundedbox_water.vert'
+import waterAboveVert from '../shaders/WaterAbove.vert'
+import waterAboveFrag from '../shaders/WaterAbove.frag'
+import roundedBoxWaterAboveFrag from '../shaders/RoundedBoxWaterAbove.frag'
+import waterBelowVert from '../shaders/WaterBelow.vert'
+import waterBelowFrag from '../shaders/WaterBelow.frag'
+import roundedBoxWaterBelowFrag from '../shaders/RoundedBoxWaterBelow.frag'
+import roundedBoxWaterVert from '../shaders/RoundedBoxWater.vert'
 import type { WaterOpticsState } from './WaterOpticsState'
 
 /**

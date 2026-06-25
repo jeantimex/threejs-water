@@ -7,10 +7,10 @@
 
 import * as THREE from 'three'
 import type { Water } from '../Water'
-import causticsVert from '../shaders/caustics.vert'
-import causticsFrag from '../shaders/caustics.frag'
-import roundedBoxCausticsVert from '../shaders/roundedbox_caustics.vert'
-import roundedBoxCausticsFrag from '../shaders/roundedbox_caustics.frag'
+import causticsVert from '../shaders/Caustics.vert'
+import causticsFrag from '../shaders/Caustics.frag'
+import roundedBoxCausticsVert from '../shaders/RoundedBoxCaustics.vert'
+import roundedBoxCausticsFrag from '../shaders/RoundedBoxCaustics.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
 
 /**

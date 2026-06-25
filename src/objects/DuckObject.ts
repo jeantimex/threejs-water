@@ -1,8 +1,8 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { SimulationObjectRenderResources } from '../rendering/SimulationObjectRendering'
-import duckRenderVert from '../shaders/duckRender.vert'
-import duckRenderFrag from '../shaders/duckRender.frag'
+import duckRenderVert from '../shaders/DuckRender.vert'
+import duckRenderFrag from '../shaders/DuckRender.frag'
 import type { Water } from '../Water'
 import {
   CompoundSphereWaterDisplacement,

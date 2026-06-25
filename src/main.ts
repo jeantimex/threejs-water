@@ -96,7 +96,7 @@
  * │   ├── WaterApp.ts      - Main application coordinator
  * │   ├── SimulationControls.ts - lil-gui control panel
  * │   ├── InteractionController.ts - Mouse/touch input handling
- * │   └── loadSceneAssets.ts - Texture and cubemap loading
+ * │   └── LoadSceneAssets.ts - Texture and cubemap loading
  * ├── camera/
  * │   └── CameraController.ts - Orbit camera with zoom
  * ├── objects/

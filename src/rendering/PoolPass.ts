@@ -6,12 +6,12 @@
 
 import * as THREE from 'three'
 import type { Water } from '../Water'
-import poolVert from '../shaders/cube.vert'
-import poolFrag from '../shaders/cube.frag'
-import roundedBoxVert from '../shaders/roundedbox.vert'
-import roundedBoxFrag from '../shaders/roundedbox.frag'
+import poolVert from '../shaders/Cube.vert'
+import poolFrag from '../shaders/Cube.frag'
+import roundedBoxVert from '../shaders/RoundedBox.vert'
+import roundedBoxFrag from '../shaders/RoundedBox.frag'
 import type { WaterOpticsState } from './WaterOpticsState'
-import { createRoundedBoxPoolGeometry } from './createRoundedBoxPoolGeometry'
+import { createRoundedBoxPoolGeometry } from './CreateRoundedBoxPoolGeometry'
 
 /**
  * Handles the geometry and materials needed to render the pool interior surfaces
