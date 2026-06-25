@@ -1,3 +1,73 @@
+<!--
+ThreeJS Water - A Real-Time Water Simulation with Three.js
+https://github.com/jeantimex/threejs-water
+
+Original WebGL Water Demo: http://madebyevan.com/webgl-water/
+Copyright 2011 Evan Wallace
+Released under the MIT license
+
+=============================================================================
+Three.js Port by Yong Su (jeantimex)
+https://github.com/jeantimex
+=============================================================================
+
+ABOUT THIS PROJECT:
+This project is a complete port of Evan Wallace's legendary WebGL Water demo
+to Three.js. The original demo showcased groundbreaking real-time water
+rendering techniques including raytraced reflections, refractions, and caustics.
+
+This Three.js port preserves all the original visual fidelity while leveraging
+the Three.js framework for better maintainability, extensibility, and
+compatibility with modern web development workflows.
+
+NEW FEATURES ADDED BY JEANTIMEX:
+1. Multiple Interactive Objects
+   - Sphere, Cube, Torus Knot (Three.js geometry), and Duck (GLTF model)
+   - Each object properly displaces water and casts caustic shadows
+   - Objects support physics simulation with buoyancy and gravity
+
+2. Customizable Pool Shapes
+   - Standard box pool (original)
+   - Rounded box pool with configurable corner radius
+   - Adjustable pool dimensions (width, height, length)
+
+3. Three.js Geometry Support
+   - Native Three.js geometries (TorusKnotGeometry, BoxGeometry, SphereGeometry)
+   - Compound sphere approximation for complex shape water displacement
+
+4. GLTF Model Support
+   - Load and render external 3D models (Duck.gltf)
+   - Custom shader materials with caustic lighting integration
+
+5. Enhanced GUI Controls (lil-gui)
+   - Object selection and physics toggles
+   - Pool shape and dimension controls
+   - Density/buoyancy adjustments
+
+6. Responsive Design
+   - Mobile-friendly collapsible info panel
+   - Adaptive canvas sizing
+
+7. Modern Build System
+   - Vite for fast development and optimized builds
+   - TypeScript for type safety
+   - GLSL shader imports via vite-plugin-glsl
+
+TECHNICAL ARCHITECTURE:
+- Water.ts: Ping-pong buffer wave simulation using the discrete wave equation
+- Renderer.ts: Multi-pass rendering pipeline (caustics, reflections, refractions)
+- Shaders: GLSL vertex/fragment shaders for water surface, pool walls, caustics
+- Physics: Simple buoyancy and gravity simulation for floating objects
+
+RENDERING PIPELINE:
+1. Update wave simulation (heightmap)
+2. Compute surface normals from height derivatives
+3. Render object shadow/reflection/refraction textures
+4. Generate caustics texture via differential area method
+5. Render pool walls with triplanar texture mapping
+6. Render water surface with Fresnel-based reflection/refraction blending
+-->
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
