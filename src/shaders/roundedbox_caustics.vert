@@ -153,8 +153,8 @@ void main() {
   oldPos = project(vec3(position.x * poolWidth, 0.0, position.y * poolLength), refractedLight, refractedLight);
   newPos = project(vec3(position.x * poolWidth, info.r, position.y * poolLength), ray, refractedLight);
 
-  gl_Position.x = 0.75 * (newPos.x + refractedLight.x / refractedLight.y) / poolWidth;
-  gl_Position.y = 0.75 * (newPos.z + refractedLight.z / refractedLight.y) / poolLength;
+  gl_Position.x = 0.75 * (newPos.x - newPos.y * refractedLight.x / refractedLight.y) / poolWidth;
+  gl_Position.y = 0.75 * (newPos.z - newPos.y * refractedLight.z / refractedLight.y) / poolLength;
   gl_Position.z = 0.0;
   gl_Position.w = 1.0;
 }
