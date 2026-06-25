@@ -5,6 +5,7 @@ import sphereRenderFrag from '../shaders/sphereRender.frag'
 import type { Water } from '../Water'
 import { SphereWaterDisplacement } from '../water/WaterDisplacement'
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
+import { clampAndMoveObject, updatePhysics } from './SimulationObjectUtils'
 
 export class SphereObject implements SimulationObject {
   readonly name = 'Sphere'
@@ -70,29 +71,14 @@ export class SphereObject implements SimulationObject {
   update(seconds: number, context: ObjectUpdateContext, water: Water) {
     if (!this.enabled) return
 
-    if (context.dragging) {
-      this.velocity.set(0, 0, 0)
-    } else if (context.physicsEnabled) {
-      const radius = this.interactionRadius
-      const buoyancyScale = context.densityEnabled ? 1 / context.density : 1.1
-      const percentUnderWater = THREE.MathUtils.clamp((radius - this.position.y) / (2 * radius), 0, 1)
-      this.velocity.add(
-        context.gravity.clone().multiplyScalar(seconds - buoyancyScale * seconds * percentUnderWater)
-      )
-      const speedSq = this.velocity.lengthSq()
-      if (speedSq > 0) {
-        this.velocity.addScaledVector(
-          this.velocity.clone().normalize(),
-          -percentUnderWater * seconds * speedSq
-        )
-      }
-      this.position.addScaledVector(this.velocity, seconds)
-
-      if (this.position.y < radius - context.poolHeight) {
-        this.position.y = radius - context.poolHeight
-        this.velocity.y = Math.abs(this.velocity.y) * 0.7
-      }
-    }
+    updatePhysics(
+      seconds,
+      this.position,
+      this.velocity,
+      context,
+      this.interactionRadius,
+      this.interactionRadius
+    )
 
     this.displacement.move(water, this.previousPosition, this.position, context.poolWidth, context.poolLength)
     this.previousPosition.copy(this.position)
@@ -115,13 +101,16 @@ export class SphereObject implements SimulationObject {
   }
 
   moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
-    const radius = this.interactionRadius
-    const limitX = poolWidth - radius
-    const limitZ = poolLength - radius
-    this.position.add(delta)
-    this.position.x = THREE.MathUtils.clamp(this.position.x, -limitX, limitX)
-    this.position.y = THREE.MathUtils.clamp(this.position.y, radius - poolHeight, 10)
-    this.position.z = THREE.MathUtils.clamp(this.position.z, -limitZ, limitZ)
+    clampAndMoveObject(
+      this.position,
+      delta,
+      poolWidth,
+      poolHeight,
+      poolLength,
+      this.interactionRadius,
+      this.interactionRadius,
+      this.interactionRadius
+    )
   }
 
   prepareRender(water: Water, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {

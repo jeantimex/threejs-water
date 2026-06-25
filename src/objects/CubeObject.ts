@@ -5,6 +5,7 @@ import cubeRenderFrag from '../shaders/objectCubeRender.frag'
 import type { Water } from '../Water'
 import { BoxWaterDisplacement } from '../water/WaterDisplacement'
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject'
+import { clampAndMoveObject, updatePhysics } from './SimulationObjectUtils'
 
 export class CubeObject implements SimulationObject {
   readonly name = 'Cube'
@@ -72,34 +73,14 @@ export class CubeObject implements SimulationObject {
   update(seconds: number, context: ObjectUpdateContext, water: Water) {
     if (!this.enabled) return
 
-    if (context.dragging) {
-      this.velocity.set(0, 0, 0)
-    } else if (context.physicsEnabled) {
-      const buoyancyScale = context.densityEnabled ? 1 / context.density : 1.1
-      const percentUnderWater = THREE.MathUtils.clamp(
-        (this.halfSize.y - this.position.y) / (2 * this.halfSize.y),
-        0,
-        1
-      )
-      this.velocity.addScaledVector(
-        context.gravity,
-        seconds - buoyancyScale * seconds * percentUnderWater
-      )
-      const speedSq = this.velocity.lengthSq()
-      if (speedSq > 0) {
-        this.velocity.addScaledVector(
-          this.velocity.clone().normalize(),
-          -percentUnderWater * seconds * speedSq
-        )
-      }
-      this.position.addScaledVector(this.velocity, seconds)
-
-      const floor = this.halfSize.y - context.poolHeight
-      if (this.position.y < floor) {
-        this.position.y = floor
-        this.velocity.y = Math.abs(this.velocity.y) * 0.7
-      }
-    }
+    updatePhysics(
+      seconds,
+      this.position,
+      this.velocity,
+      context,
+      this.halfSize.y,
+      this.halfSize.y
+    )
 
     this.displacement.move(water, this.previousPosition, this.position, context.poolWidth, context.poolLength)
     this.previousPosition.copy(this.position)
@@ -116,19 +97,15 @@ export class CubeObject implements SimulationObject {
   }
 
   moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
-    const limitX = poolWidth - this.halfSize.x
-    const limitZ = poolLength - this.halfSize.z
-    this.position.add(delta)
-    this.position.x = THREE.MathUtils.clamp(
-      this.position.x,
-      -limitX,
-      limitX
-    )
-    this.position.y = THREE.MathUtils.clamp(this.position.y, this.halfSize.y - poolHeight, 10)
-    this.position.z = THREE.MathUtils.clamp(
-      this.position.z,
-      -limitZ,
-      limitZ
+    clampAndMoveObject(
+      this.position,
+      delta,
+      poolWidth,
+      poolHeight,
+      poolLength,
+      this.halfSize.x,
+      this.halfSize.z,
+      this.halfSize.y
     )
   }
 
