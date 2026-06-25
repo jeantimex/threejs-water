@@ -1,51 +1,107 @@
 precision highp float;
 
-// Input simulation texture (heightmap)
+/**
+ * BOX/CUBE WATER DISPLACEMENT SHADER
+ *
+ * Similar to the sphere displacement shader, but for rectangular objects.
+ * Uses a Signed Distance Function (SDF) to define the box shape, then applies
+ * a smooth falloff to avoid sharp boundary artifacts in the water simulation.
+ *
+ * The approach handles boxes of any aspect ratio by normalizing distances
+ * relative to the largest dimension.
+ */
+
+// Current water simulation state texture
 uniform sampler2D tInput;
 
-// Previous position center of the cube
+// Previous frame's box center position
 uniform vec3 oldCenter;
 
-// Current position center of the cube
+// Current frame's box center position
 uniform vec3 newCenter;
 
-// Half-extents size of the cube (x, y, z)
+// Half-extents of the box (width/2, height/2, depth/2)
+// The full box spans from (center - halfSize) to (center + halfSize)
 uniform vec3 halfSize;
 
 varying vec2 coord;
 
 /**
- * Computes the volume of the box/cube intersecting the water column at the current UV coordinate.
- * Uses a 3D box Signed Distance Function (SDF) to model the falloff and height profile.
+ * Computes an approximation of the submerged "column volume" of the box
+ * at the current texture coordinate position.
+ *
+ * SIGNED DISTANCE FUNCTION (SDF) APPROACH:
+ *
+ * An SDF returns the shortest distance from a point to a surface:
+ *   - Negative inside the shape
+ *   - Zero on the surface
+ *   - Positive outside the shape
+ *
+ * For an axis-aligned box centered at origin with half-extents h:
+ *   d = max(|p| - h, 0) + min(max(|p| - h components), 0)
+ *
+ * The first term handles points outside (Euclidean distance to nearest face).
+ * The second term handles points inside (negative distance to nearest face).
+ *
+ * @param center Box center position in world coordinates
+ * @return Approximate submerged column height (water displacement amount)
  */
 float volumeInCube(vec3 center) {
-  // 1. Map texture coordinates from [0, 1] to [-1, 1] to get the horizontal grid coordinate.
-  // The water surface is defined at rest Y = 0.0.
+  // Convert texture coords [0,1] to world coords [-1,1]
+  // Y is set to 0 (water surface level) for the XZ plane query
   vec3 point = vec3(coord.x * 2.0 - 1.0, 0.0, coord.y * 2.0 - 1.0);
-  
-  // 2. Compute the offset vector from the box surface.
-  // Standard SDF component for axis-aligned bounding boxes.
+
+  /**
+   * BOX SDF COMPUTATION
+   *
+   * Vector from box surface to query point:
+   *   q = |p - center| - halfSize
+   *
+   * For each axis:
+   *   q.i > 0: point is outside box in this dimension (distance = q.i)
+   *   q.i < 0: point is inside box in this dimension (penetration = -q.i)
+   *   q.i = 0: point is exactly on the box face
+   */
   vec3 distanceToBox = abs(point - center) - halfSize;
-  
-  // 3. Combine positive (outside) and negative (inside) SDF contributions.
-  float signedDistance = length(max(distanceToBox, 0.0))
-    + min(max(distanceToBox.x, max(distanceToBox.y, distanceToBox.z)), 0.0);
-    
-  // 4. Determine a normalization scale based on the largest dimension of the box.
+
+  /**
+   * SIGNED DISTANCE CALCULATION
+   *
+   * Case 1: Point outside box (at least one q.i > 0)
+   *   Distance = Euclidean distance to nearest corner/edge/face
+   *   = length(max(q, 0))
+   *
+   * Case 2: Point inside box (all q.i < 0)
+   *   Distance = negative of smallest penetration (closest face)
+   *   = min(max(q.x, q.y, q.z), 0)  [returns negative value]
+   *
+   * Combined formula covers both cases:
+   */
+  float signedDistance = length(max(distanceToBox, 0.0))                           // Outside: distance to surface
+    + min(max(distanceToBox.x, max(distanceToBox.y, distanceToBox.z)), 0.0);       // Inside: negative penetration
+
+  // Normalize distance by largest box dimension for consistent falloff behavior
   float scale = max(max(halfSize.x, halfSize.y), halfSize.z);
-  
-  // 5. Compute the normalized distance 't' outside/on the box.
+
+  // Clamped normalized distance (0 on surface or inside, >0 outside)
   float t = max(signedDistance, 0.0) / scale;
-  
-  // 6. Compute vertical thickness 'dy' at distance 't' using a smooth exponential falloff.
-  // This helps approximate the box profile smoothly without hard boundary artifacts on the heightmap.
+
+  /**
+   * SMOOTH FALLOFF PROFILE
+   *
+   * Like the sphere shader, we use a super-Gaussian falloff to create
+   * smooth wave profiles without sharp discontinuities at box edges.
+   *
+   * exp(-(1.5*t)^6) is nearly 1 inside and on the box surface (t ≈ 0),
+   * and drops quickly to 0 as we move away from the box.
+   */
   float dy = exp(-pow(t * 1.5, 6.0));
-  
-  // 7. Calculate the Y range [ymin, ymax] representing the intersection of the box column with the water (Y <= 0.0).
+
+  // Compute intersection of box column with underwater region (Y ≤ 0)
   float ymin = min(0.0, center.y - dy);
   float ymax = min(max(0.0, center.y + dy), ymin + 2.0 * dy);
-  
-  // 8. Return the thickness of the submerged column section, scaled by displacement factor.
+
+  // Return submerged height, scaled for appropriate wave magnitude
   return (ymax - ymin) * 0.1;
 }
 

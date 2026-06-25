@@ -1,9 +1,29 @@
 precision highp float;
 
-// Texture containing the simulation state (height in red channel)
+/**
+ * SURFACE NORMAL COMPUTATION SHADER
+ *
+ * This shader computes the surface normal at each point of the water heightmap.
+ * The normals are essential for realistic lighting, reflection, and refraction.
+ *
+ * MATHEMATICAL BACKGROUND:
+ * For a heightfield h(x, z), the surface can be parameterized as:
+ *   S(x, z) = (x, h(x, z), z)
+ *
+ * The tangent vectors are the partial derivatives:
+ *   T_x = ∂S/∂x = (1, ∂h/∂x, 0)
+ *   T_z = ∂S/∂z = (0, ∂h/∂z, 1)
+ *
+ * The normal is perpendicular to both tangents:
+ *   N = T_z × T_x = (-∂h/∂x, 1, -∂h/∂z)
+ *
+ * After normalization, we store only x and z components (y can be reconstructed).
+ */
+
+// Simulation state texture containing height in R channel
 uniform sampler2D tInput;
 
-// Texture coordinate step size corresponding to one pixel/grid cell
+// Grid spacing for finite difference calculation
 uniform vec2 delta;
 
 varying vec2 coord;
@@ -11,21 +31,57 @@ varying vec2 coord;
 void main() {
   vec4 info = texture2D(tInput, coord);
 
-  // Calculate the tangent vector along the X axis.
-  // The vector starts at the current cell and goes to the adjacent right cell:
-  // dx = (delta.x, height_right - height_center, 0.0)
-  vec3 dx = vec3(delta.x, texture2D(tInput, vec2(coord.x + delta.x, coord.y)).r - info.r, 0.0);
-  
-  // Calculate the tangent vector along the Z axis (mapped to the Y coordinate of the texture).
-  // The vector starts at the current cell and goes to the adjacent up cell:
-  // dy = (0.0, height_up - height_center, delta.y)
-  vec3 dy = vec3(0.0, texture2D(tInput, vec2(coord.x, coord.y + delta.y)).r - info.r, delta.y);
-  
-  // Compute the surface normal by taking the cross product of the Z tangent (dy) and X tangent (dx).
-  // Normal = dy x dx. Due to standard coordinates, this points upwards.
-  // Normalize the resulting vector to unit length, then pack the X and Z coordinates
-  // into the Blue (b) and Alpha (a) channels of the texture.
-  // This packs both height/velocity (rg) and normal data (ba) into a single 4-channel texture.
+  /**
+   * TANGENT VECTOR COMPUTATION
+   *
+   * We compute tangent vectors using finite differences:
+   *
+   *   T_x ≈ S(x + Δx) - S(x) = (Δx, h(x+Δx) - h(x), 0)
+   *   T_z ≈ S(z + Δz) - S(z) = (0, h(z+Δz) - h(z), Δz)
+   *
+   * These approximate the partial derivative directions on the surface.
+   */
+
+  // Tangent in X direction: (Δx, Δheight_x, 0)
+  // Points from current cell toward the right neighbor
+  vec3 dx = vec3(
+    delta.x,                                                      // X component: grid spacing
+    texture2D(tInput, vec2(coord.x + delta.x, coord.y)).r - info.r, // Y component: height difference
+    0.0                                                           // Z component: no change in Z
+  );
+
+  // Tangent in Z direction: (0, Δheight_z, Δz)
+  // Points from current cell toward the top neighbor (Z mapped to texture Y)
+  vec3 dy = vec3(
+    0.0,                                                          // X component: no change in X
+    texture2D(tInput, vec2(coord.x, coord.y + delta.y)).r - info.r, // Y component: height difference
+    delta.y                                                       // Z component: grid spacing
+  );
+
+  /**
+   * CROSS PRODUCT FOR NORMAL
+   *
+   * N = T_z × T_x = dy × dx
+   *
+   * Cross product formula:
+   *   (a × b).x = a.y * b.z - a.z * b.y
+   *   (a × b).y = a.z * b.x - a.x * b.z
+   *   (a × b).z = a.x * b.y - a.y * b.x
+   *
+   * With our vectors:
+   *   dy = (0, Δh_z, Δz)
+   *   dx = (Δx, Δh_x, 0)
+   *
+   *   N.x = Δh_z * 0 - Δz * Δh_x = -Δz * Δh_x
+   *   N.y = Δz * Δx - 0 * 0 = Δz * Δx  (positive, pointing up)
+   *   N.z = 0 * Δh_x - Δh_z * Δx = -Δh_z * Δx
+   *
+   * The result points upward (N.y > 0) for a surface viewed from above.
+   *
+   * STORAGE OPTIMIZATION:
+   * We only store N.x and N.z in the BA channels. N.y can be reconstructed:
+   *   |N| = 1  →  N.y = sqrt(1 - N.x² - N.z²)
+   */
   info.ba = normalize(cross(dy, dx)).xz;
 
   gl_FragColor = info;
