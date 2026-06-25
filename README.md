@@ -4,6 +4,8 @@ A real-time water simulation with Three.js, featuring raytraced reflections, ref
 
 This project is a complete port of [Evan Wallace's WebGL Water](http://madebyevan.com/webgl-water/) demo to Three.js, with significant enhancements including support for Three.js geometries, customizable pool shapes, and GLTF model loading.
 
+https://github.com/user-attachments/assets/254421b7-46d9-4c5f-816a-c56abbf91bd3
+
 ## Live Demo
 
 [https://jeantimex.github.io/threejs-water/](https://jeantimex.github.io/threejs-water/)
