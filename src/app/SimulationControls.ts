@@ -174,7 +174,7 @@ export class SimulationControls {
       });
 
     // --- Light Controls Group ---
-    const lightsFolder = gui.addFolder('Lights');
+    const lightsFolder = gui.addFolder('Light');
     lightsFolder.close();
 
     // Toggle whether the sunlight direction tracks camera movement
