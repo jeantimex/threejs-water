@@ -8434,6 +8434,11 @@ void main() {
    *   Result: 1 at center, 0 at/beyond radius edge
    */
   vec2 physicalDiff = (coord - (center * 0.5 + 0.5)) * 2.0 * vec2(poolWidth, poolLength);
+  
+  
+  
+  
+  
   float physRadius = radius * 2.0 * poolLength;
   float drop = max(0.0, 1.0 - length(physicalDiff) / physRadius);
 
