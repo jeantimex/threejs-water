@@ -20,11 +20,14 @@ uniform sampler2D tInput;
 // Drop center position in NDC (Normalized Device Coordinates) [-1, 1]
 uniform vec2 center;
 
-// Radius of the drop effect in texture coordinate units
+// Radius of the drop effect in physical units
 uniform float radius;
 
 // Displacement strength: positive = upward bulge, negative = depression
 uniform float strength;
+
+uniform float poolWidth;
+uniform float poolLength;
 
 varying vec2 coord;
 
@@ -32,22 +35,22 @@ void main() {
   vec4 info = texture2D(tInput, coord);
 
   /**
- * * DROP PROFILE CALCULATION
- *    *
- *    * Step 1: Coordinate transformation
- *    *   NDC center [-1, 1] → UV space [0, 1]
- *    *   Formula: UV = NDC * 0.5 + 0.5
- *    *
- *    * Step 2: Distance calculation
- *    *   Compute normalized distance from pixel to drop center
- *    *   d = |pixelUV - centerUV| / radius
- *    *   Result: 0 at center, 1 at radius edge, >1 outside
- *    *
- *    * Step 3: Invert and clamp to [0, 1]
- *    *   drop = max(0, 1 - d)
- *    *   Result: 1 at center, 0 at/beyond radius edge
- */
-  float drop = max(0.0, 1.0 - length(center * 0.5 + 0.5 - coord) / radius);
+   * DROP PROFILE CALCULATION
+   *
+   * Step 1: Coordinate transformation
+   *   NDC center [-1, 1] → UV space [0, 1]
+   *   Formula: UV = NDC * 0.5 + 0.5
+   *
+   * Step 2: Distance calculation
+   *   Compute physical distance from pixel to drop center
+   *
+   * Step 3: Invert and clamp to [0, 1]
+   *   drop = max(0, 1 - d)
+   *   Result: 1 at center, 0 at/beyond radius edge
+   */
+  vec2 physicalDiff = (coord - (center * 0.5 + 0.5)) * 2.0 * vec2(poolWidth, poolLength);
+  float physRadius = radius * 2.0 * poolLength;
+  float drop = max(0.0, 1.0 - length(physicalDiff) / physRadius);
 
   /**
  * * SMOOTH COSINE PROFILE

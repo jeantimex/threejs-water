@@ -16,6 +16,8 @@ uniform vec3 oldCenter; // Sphere center position in previous frame
 uniform vec3 newCenter; // Sphere center position in current frame
 uniform float radius; // Sphere radius
 uniform float displacementScale; // Multiplier for displacement strength
+uniform float poolWidth;
+uniform float poolLength;
 varying vec2 coord; // Texture coordinate for this pixel
 
 /**
@@ -43,10 +45,18 @@ varying vec2 coord; // Texture coordinate for this pixel
  * @return Approximate submerged column height (water displacement amount)
  */
 float volumeInSphere(vec3 center) {
-  // Convert texture coords [0,1] to world coords [-1,1] and compute XZ distance to sphere
-  vec3 toCenter = vec3(coord.x * 2.0 - 1.0, 0.0, coord.y * 2.0 - 1.0) - center;
+  // Convert texture coords [0,1] to physical XZ coordinates in [-poolWidth, poolWidth] x [-poolLength, poolLength]
+  // Y is set to 0 (water surface level) for the XZ plane query
+  vec3 pointPhys = vec3(
+    (coord.x * 2.0 - 1.0) * poolWidth,
+    0.0,
+    (coord.y * 2.0 - 1.0) * poolLength
+  );
 
-  // Normalized horizontal distance (0 at center, 1 at radius, >1 outside)
+  // Compute 3D distance to sphere center (in physical space)
+  vec3 toCenter = pointPhys - center;
+
+  // Normalized 3D distance (0 at center, 1 at radius, >1 outside)
   float t = length(toCenter) / radius;
 
   // Super-Gaussian falloff: flat near center, drops off sharply near boundary

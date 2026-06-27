@@ -40,6 +40,9 @@ uniform sampler2D tInput;
 // Used to sample neighboring cells for Laplacian computation
 uniform vec2 delta;
 
+uniform float poolWidth;
+uniform float poolLength;
+
 varying vec2 coord;
 
 void main() {
@@ -51,45 +54,31 @@ void main() {
   vec2 dy = vec2(0.0, delta.y);  // One cell in Z direction
 
   /**
-   * DISCRETE LAPLACIAN COMPUTATION
+   * DISCRETE LAPLACIAN COMPUTATION IN PHYSICAL COORDINATES
    *
    * The continuous Laplacian ∇²h = ∂²h/∂x² + ∂²h/∂z² measures surface curvature.
-   * We approximate it using finite differences on a 5-point stencil:
+   * On a non-uniform grid where cells have physical dimensions (2*poolWidth*delta.x)
+   * in X and (2*poolLength*delta.y) in Z, the second derivatives are:
    *
-   *        [N]
-   *    [W] [C] [E]
-   *        [S]
-   *
-   * Second derivative approximation:
    *   ∂²h/∂x² ≈ (H_E - 2*H_C + H_W) / Δx²
    *   ∂²h/∂z² ≈ (H_N - 2*H_C + H_S) / Δz²
    *
-   * Combined (assuming Δx = Δz = 1):
-   *   ∇²h ≈ H_E + H_W + H_N + H_S - 4*H_C
-   *   ∇²h = 4 * (average_neighbors - H_C)
-   *
-   * Here we compute (average - H_C), which is proportional to ∇²h / 4.
+   * By scaling the delta grid spacing by poolWidth and poolLength, we make the
+   * wave propagation speed c isotropic in physical space.
    */
-  float average = (
-    texture2D(tInput, coord - dx).r +  // West neighbor
-    texture2D(tInput, coord - dy).r +  // South neighbor
-    texture2D(tInput, coord + dx).r +  // East neighbor
-    texture2D(tInput, coord + dy).r    // North neighbor
-  ) * 0.25;
+  float d2h_dx2 = texture2D(tInput, coord + dx).r + texture2D(tInput, coord - dx).r - 2.0 * info.r;
+  float d2h_dz2 = texture2D(tInput, coord + dy).r + texture2D(tInput, coord - dy).r - 2.0 * info.r;
 
   /**
    * VELOCITY UPDATE (Semi-implicit Euler)
    *
    * From physics: acceleration = c² * ∇²h
    *
-   * The factor 2.0 incorporates:
-   *   - Wave speed squared (c²)
-   *   - Timestep (dt)
-   *   - The factor of 4 from our Laplacian formulation
-   *
-   * Higher values = faster waves, lower values = slower waves
+   * When poolWidth = poolLength = 1.0, this simplifies exactly to:
+   *   info.g += 2.0 * (average - info.r)
+   * which matches the original isotropic simulation rate.
    */
-  info.g += (average - info.r) * 2.0;
+  info.g += 0.5 * (d2h_dx2 / (poolWidth * poolWidth) + d2h_dz2 / (poolLength * poolLength));
 
   /**
    * DAMPING (Energy Dissipation)

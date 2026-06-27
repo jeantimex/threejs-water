@@ -81,6 +81,8 @@ export class Water {
         center: { value: new THREE.Vector2() },
         radius: { value: 0 },
         strength: { value: 0 },
+        poolWidth: { value: 1.0 },
+        poolLength: { value: 1.0 },
       },
     });
 
@@ -90,6 +92,8 @@ export class Water {
       uniforms: {
         tInput: { value: null },
         delta: { value: new THREE.Vector2(1 / size, 1 / size) },
+        poolWidth: { value: 1.0 },
+        poolLength: { value: 1.0 },
       },
     });
 
@@ -99,6 +103,8 @@ export class Water {
       uniforms: {
         tInput: { value: null },
         delta: { value: new THREE.Vector2(1 / size, 1 / size) },
+        poolWidth: { value: 1.0 },
+        poolLength: { value: 1.0 },
       },
     });
 
@@ -111,6 +117,8 @@ export class Water {
         newCenter: { value: new THREE.Vector3() },
         radius: { value: 0 },
         displacementScale: { value: 1.0 },
+        poolWidth: { value: 1.0 },
+        poolLength: { value: 1.0 },
       },
     });
 
@@ -122,6 +130,8 @@ export class Water {
         oldCenter: { value: new THREE.Vector3() },
         newCenter: { value: new THREE.Vector3() },
         halfSize: { value: new THREE.Vector3() },
+        poolWidth: { value: 1.0 },
+        poolLength: { value: 1.0 },
       },
     });
 
@@ -168,12 +178,14 @@ export class Water {
   /**
    * Adds an interactive drop (creates a ripple at coordinates [x, y]).
    */
-  addDrop(x: number, y: number, radius: number, strength: number) {
+  addDrop(x: number, y: number, radius: number, strength: number, poolWidth = 1.0, poolLength = 1.0) {
     this.plane.material = this.dropMaterial;
     this.dropMaterial.uniforms.tInput.value = this.textureA.texture;
     this.dropMaterial.uniforms.center.value.set(x, y);
     this.dropMaterial.uniforms.radius.value = radius;
     this.dropMaterial.uniforms.strength.value = strength;
+    this.dropMaterial.uniforms.poolWidth.value = poolWidth;
+    this.dropMaterial.uniforms.poolLength.value = poolLength;
 
     this.renderer.setRenderTarget(this.textureB);
     this.renderer.render(this.scene, this.camera);
@@ -197,17 +209,13 @@ export class Water {
     this.plane.material = this.sphereMaterial;
     this.sphereMaterial.uniforms.tInput.value = this.textureA.texture;
 
-    // Scale coordinate vectors relative to the dynamic width/length bounds of the pool
+    // Use physical coordinates and scale parameters directly in physical space
     this.sphereMaterial.uniforms.oldCenter.value.copy(oldCenter);
-    this.sphereMaterial.uniforms.oldCenter.value.x /= poolWidth;
-    this.sphereMaterial.uniforms.oldCenter.value.z /= poolLength;
-
     this.sphereMaterial.uniforms.newCenter.value.copy(newCenter);
-    this.sphereMaterial.uniforms.newCenter.value.x /= poolWidth;
-    this.sphereMaterial.uniforms.newCenter.value.z /= poolLength;
-
-    this.sphereMaterial.uniforms.radius.value = radius / poolLength;
+    this.sphereMaterial.uniforms.radius.value = radius;
     this.sphereMaterial.uniforms.displacementScale.value = displacementScale;
+    this.sphereMaterial.uniforms.poolWidth.value = poolWidth;
+    this.sphereMaterial.uniforms.poolLength.value = poolLength;
 
     this.renderer.setRenderTarget(this.textureB);
     this.renderer.render(this.scene, this.camera);
@@ -229,18 +237,12 @@ export class Water {
     this.plane.material = this.moveCubeMaterial;
     this.moveCubeMaterial.uniforms.tInput.value = this.textureA.texture;
 
-    // Scale coordinate vectors relative to the dynamic width/length bounds of the pool
+    // Use physical coordinates and scale parameters directly in physical space
     this.moveCubeMaterial.uniforms.oldCenter.value.copy(oldCenter);
-    this.moveCubeMaterial.uniforms.oldCenter.value.x /= poolWidth;
-    this.moveCubeMaterial.uniforms.oldCenter.value.z /= poolLength;
-
     this.moveCubeMaterial.uniforms.newCenter.value.copy(newCenter);
-    this.moveCubeMaterial.uniforms.newCenter.value.x /= poolWidth;
-    this.moveCubeMaterial.uniforms.newCenter.value.z /= poolLength;
-
     this.moveCubeMaterial.uniforms.halfSize.value.copy(halfSize);
-    this.moveCubeMaterial.uniforms.halfSize.value.x /= poolWidth;
-    this.moveCubeMaterial.uniforms.halfSize.value.z /= poolLength;
+    this.moveCubeMaterial.uniforms.poolWidth.value = poolWidth;
+    this.moveCubeMaterial.uniforms.poolLength.value = poolLength;
 
     this.renderer.setRenderTarget(this.textureB);
     this.renderer.render(this.scene, this.camera);
@@ -249,13 +251,11 @@ export class Water {
     this.swapTextures();
   }
 
-  /**
-   * Solves the discrete wave propagation equation.
-   * Executes in a separate pass mapping texture heights to the write target.
-   */
-  stepSimulation() {
+  stepSimulation(poolWidth = 1.0, poolLength = 1.0) {
     this.plane.material = this.updateMaterial;
     this.updateMaterial.uniforms.tInput.value = this.textureA.texture;
+    this.updateMaterial.uniforms.poolWidth.value = poolWidth;
+    this.updateMaterial.uniforms.poolLength.value = poolLength;
 
     this.renderer.setRenderTarget(this.textureB);
     this.renderer.render(this.scene, this.camera);
@@ -267,9 +267,11 @@ export class Water {
   /**
    * Recomputes normal derivatives mapping surface tangent angles for optical refractions.
    */
-  updateNormals() {
+  updateNormals(poolWidth = 1.0, poolLength = 1.0) {
     this.plane.material = this.normalMaterial;
     this.normalMaterial.uniforms.tInput.value = this.textureA.texture;
+    this.normalMaterial.uniforms.poolWidth.value = poolWidth;
+    this.normalMaterial.uniforms.poolLength.value = poolLength;
 
     this.renderer.setRenderTarget(this.textureB);
     this.renderer.render(this.scene, this.camera);

@@ -159,9 +159,9 @@ export class InteractionController {
       // Find intersection with y=0 water surface and inject ripple drop
       const { origin, direction } = this.getRay(x, y);
       const point = origin.clone().addScaledVector(direction, -origin.y / direction.y);
-      water.addDrop(point.x / poolWidth, point.z / poolLength, 0.03, 0.01);
+      water.addDrop(point.x / poolWidth, point.z / poolLength, 0.03, 0.01, poolWidth, poolLength);
       if (controls.paused) {
-        water.updateNormals();
+        water.updateNormals(poolWidth, poolLength);
         renderer.updateCaustics(water);
       }
     } else if (this.mode === InteractionMode.MoveObject) {

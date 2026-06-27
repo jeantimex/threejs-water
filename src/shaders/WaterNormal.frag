@@ -24,6 +24,8 @@ precision highp float;
 uniform sampler2D tInput;
 
 // Grid spacing for finite difference calculation
+uniform float poolWidth;
+uniform float poolLength;
 uniform vec2 delta;
 
 varying vec2 coord;
@@ -32,30 +34,30 @@ void main() {
   vec4 info = texture2D(tInput, coord);
 
   /**
- * * TANGENT VECTOR COMPUTATION
- *    *
- *    * We compute tangent vectors using finite differences:
- *    *
- *    *   T_x ≈ S(x + Δx) - S(x) = (Δx, h(x+Δx) - h(x), 0)
- *    *   T_z ≈ S(z + Δz) - S(z) = (0, h(z+Δz) - h(z), Δz)
- *    *
- *    * These approximate the partial derivative directions on the surface.
- */
+   * TANGENT VECTOR COMPUTATION
+   *
+   * We compute tangent vectors using finite differences:
+   *
+   *   T_x ≈ S(x + Δx) - S(x) = (Δx, h(x+Δx) - h(x), 0)
+   *   T_z ≈ S(z + Δz) - S(z) = (0, h(z+Δz) - h(z), Δz)
+   *
+   * These approximate the partial derivative directions on the surface.
+   */
 
-  // Tangent in X direction: (Δx, Δheight_x, 0)
+  // Tangent in X direction: (Δx_phys, Δheight_x, 0)
   // Points from current cell toward the right neighbor
   vec3 dx = vec3(
-    delta.x, // X component: grid spacing
+    delta.x * 2.0 * poolWidth, // X component: physical grid spacing
     texture2D(tInput, vec2(coord.x + delta.x, coord.y)).r - info.r, // Y component: height difference
     0.0 // Z component: no change in Z
   );
 
-  // Tangent in Z direction: (0, Δheight_z, Δz)
+  // Tangent in Z direction: (0, Δheight_z, Δz_phys)
   // Points from current cell toward the top neighbor (Z mapped to texture Y)
   vec3 dy = vec3(
     0.0, // X component: no change in X
     texture2D(tInput, vec2(coord.x, coord.y + delta.y)).r - info.r, // Y component: height difference
-    delta.y // Z component: grid spacing
+    delta.y * 2.0 * poolLength // Z component: physical grid spacing
   );
 
   /**

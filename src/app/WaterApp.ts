@@ -208,12 +208,16 @@ export class WaterApp {
    * Spawns 20 random initial ripples in the pool to seed the simulation.
    */
   private seedWater() {
+    const poolWidth = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth;
+    const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength;
     for (let i = 0; i < 20; i++) {
       this.water.addDrop(
         Math.random() * 2 - 1,
         Math.random() * 2 - 1,
         0.03,
-        i % 2 === 0 ? -0.01 : 0.01
+        i % 2 === 0 ? -0.01 : 0.01,
+        poolWidth,
+        poolLength
       );
     }
   }
@@ -261,11 +265,11 @@ export class WaterApp {
     );
 
     // 2. Solve wave equations (we run it twice per tick to speed up wave propagation velocities)
-    this.water.stepSimulation();
-    this.water.stepSimulation();
+    this.water.stepSimulation(poolWidth, poolLength);
+    this.water.stepSimulation(poolWidth, poolLength);
 
     // 3. Recompute wave normals from height derivatives
-    this.water.updateNormals();
+    this.water.updateNormals(poolWidth, poolLength);
 
     // 4. Update optics settings (refraction indices / positions)
     this.renderer.setWaterOptics(this.objects.optics);
@@ -329,7 +333,7 @@ export class WaterApp {
 
     this.interaction.cancelDrag();
     this.controls.setPhysicsAvailable(name !== NO_OBJECT);
-    this.water.updateNormals();
+    this.water.updateNormals(poolWidth, poolLength);
     this.renderer.updateCaustics(this.water);
     this.draw();
   };
