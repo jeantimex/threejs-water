@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 // Constants controlling the orbital camera limits and dynamics
-const MIN_DISTANCE = 2; // Minimum zoom distance from the target
+const MIN_DISTANCE = 0.5; // Minimum zoom distance from the target
 const MAX_DISTANCE = 10; // Maximum zoom distance from the target
 const MAX_ORBIT_SPEED = 1080; // Cap on rotation speed (degrees per second) to prevent extreme spinning
 const ORBIT_DAMPING = 6; // Friction coefficient for camera momentum decay
