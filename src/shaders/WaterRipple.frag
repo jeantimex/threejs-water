@@ -49,6 +49,11 @@ void main() {
    *   Result: 1 at center, 0 at/beyond radius edge
    */
   vec2 physicalDiff = (coord - (center * 0.5 + 0.5)) * 2.0 * vec2(poolWidth, poolLength);
+  
+  // Scale the physical radius of the drop proportionally to the pool dimensions.
+  // This ensures the drop always covers the same number of grid cells on the simulation
+  // texture regardless of pool size, maintaining high-fidelity resolution and preventing
+  // single-pixel spikes that cause numerical solver splitting (double-ripple artifacts).
   float physRadius = radius * 2.0 * poolLength;
   float drop = max(0.0, 1.0 - length(physicalDiff) / physRadius);
 

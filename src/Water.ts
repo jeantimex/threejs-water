@@ -178,7 +178,14 @@ export class Water {
   /**
    * Adds an interactive drop (creates a ripple at coordinates [x, y]).
    */
-  addDrop(x: number, y: number, radius: number, strength: number, poolWidth = 1.0, poolLength = 1.0) {
+  addDrop(
+    x: number,
+    y: number,
+    radius: number,
+    strength: number,
+    poolWidth = 1.0,
+    poolLength = 1.0
+  ) {
     this.plane.material = this.dropMaterial;
     this.dropMaterial.uniforms.tInput.value = this.textureA.texture;
     this.dropMaterial.uniforms.center.value.set(x, y);
