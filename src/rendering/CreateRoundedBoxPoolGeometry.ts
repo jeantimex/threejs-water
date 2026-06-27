@@ -7,7 +7,7 @@
 
 import * as THREE from 'three';
 
-const MIN_STRAIGHT_POOL_EDGE = 0.05;
+const MIN_STRAIGHT_POOL_EDGE = 0.0;
 
 /**
  * Creates a THREE.BufferGeometry representing a pool with rounded corners.
@@ -103,7 +103,7 @@ export function createRoundedBoxPoolGeometry(
   for (let i = 0; i < totalPoints; i++) {
     const v = floorVertices[i];
     const normal = new THREE.Vector3();
-    if (Math.abs(v.x) > rSubX && Math.abs(v.z) > rSubZ && cornerRadius > 0) {
+    if (cornerRadius > 0) {
       const cx = Math.sign(v.x) * rSubX;
       const cz = Math.sign(v.z) * rSubZ;
       normal

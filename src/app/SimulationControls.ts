@@ -1,6 +1,6 @@
 import GUI, { type Controller } from 'lil-gui';
 
-const MIN_STRAIGHT_POOL_EDGE = 0.05;
+const MIN_STRAIGHT_POOL_EDGE = 0.0;
 
 export interface SimulationControlCallbacks {
   onObjectChange(name: string): void;

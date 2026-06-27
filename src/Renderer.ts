@@ -8,7 +8,7 @@ import { WaterSurfacePass } from './rendering/WaterSurfacePass';
 import { WaterOpticsState } from './rendering/WaterOpticsState';
 import type { WaterOpticsDescriptor } from './water/WaterOptics';
 
-const MIN_STRAIGHT_POOL_EDGE = 0.05;
+const MIN_STRAIGHT_POOL_EDGE = 0.0;
 
 /**
  * High-level orchestration class for the rendering pipeline.
