@@ -73,6 +73,11 @@ export class WaterApp {
       onLightFollowsCameraChange: () => {
         if (this.controls.paused) this.draw();
       },
+      onUpdateLightDirection: () => {
+        this.cameraController.getLightDirection(this.renderer.lightDir);
+        if (this.controls.paused) this.draw();
+        else this.renderer.updateCaustics(this.water);
+      },
       onPoolShapeChange: (shape) => {
         const poolWidth = shape === 'Box' ? 1.0 : this.controls.poolWidth;
         const poolHeight = shape === 'Box' ? 1.0 : this.controls.poolHeight;

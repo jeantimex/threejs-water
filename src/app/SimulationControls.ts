@@ -11,6 +11,7 @@ export interface SimulationControlCallbacks {
   onPoolWidthChange?(width: number): void;
   onPoolHeightChange?(height: number): void;
   onPoolLengthChange?(length: number): void;
+  onUpdateLightDirection?(): void;
 }
 
 /**
@@ -44,6 +45,9 @@ export class SimulationControls {
     poolWidth: 1.0,
     poolHeight: 1.0,
     poolLength: 1.0,
+    updateLightDirection: () => {
+      this.callbacks.onUpdateLightDirection?.();
+    },
   };
 
   private readonly gravityController: Controller;
@@ -54,6 +58,7 @@ export class SimulationControls {
   private readonly poolWidthController: Controller;
   private readonly poolHeightController: Controller;
   private readonly poolLengthController: Controller;
+  private readonly updateLightDirectionController: Controller;
   private physicsAvailable = true;
 
   constructor(
@@ -68,7 +73,7 @@ export class SimulationControls {
 
     // --- Scene Controls Group ---
     const sceneFolder = gui.addFolder('Scene');
-    sceneFolder.open();
+    sceneFolder.close();
 
     this.pausedController = sceneFolder
       .add(this.state, 'paused')
@@ -80,7 +85,7 @@ export class SimulationControls {
 
     // --- Object Controls Group ---
     const objectFolder = gui.addFolder('Object');
-    objectFolder.open();
+    objectFolder.close();
 
     // Selector for different obstacles (None, Sphere, Cube, Duck, TorusKnot)
     objectFolder
@@ -115,7 +120,7 @@ export class SimulationControls {
 
     // --- Pool Shape Controls Group ---
     const poolFolder = gui.addFolder('Pool');
-    poolFolder.open();
+    poolFolder.close();
 
     // Pool Shape dropdown selector ('Box' or 'Rounded Box')
     poolFolder
@@ -170,7 +175,7 @@ export class SimulationControls {
 
     // --- Light Controls Group ---
     const lightsFolder = gui.addFolder('Lights');
-    lightsFolder.open();
+    lightsFolder.close();
 
     // Toggle whether the sunlight direction tracks camera movement
     lightsFolder
@@ -178,13 +183,20 @@ export class SimulationControls {
       .name('Follow Camera')
       .onChange((enabled: boolean) => {
         this.lightFollowsCamera = enabled;
+        this.updateLightDirectionButton();
         callbacks.onLightFollowsCameraChange?.();
       });
+
+    // Button to manually update the light direction
+    this.updateLightDirectionController = lightsFolder
+      .add(this.state, 'updateLightDirection')
+      .name('Update Light Direction');
 
     // Sync initial controller visibility configurations
     this.updateCornerRadiusLimit();
     this.updateDensityController();
     this.updatePoolShapeControllers();
+    this.updateLightDirectionButton();
   }
 
   /**
@@ -259,5 +271,9 @@ export class SimulationControls {
       this.poolHeightController.hide();
       this.poolLengthController.hide();
     }
+  }
+
+  private updateLightDirectionButton() {
+    this.updateLightDirectionController.disable(this.lightFollowsCamera);
   }
 }

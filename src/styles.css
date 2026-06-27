@@ -108,6 +108,17 @@ canvas {
   align-items: center !important;
 }
 
+.lil-gui .lil-controller.lil-function .lil-widget,
+.lil-gui .lil-controller.function .widget {
+  flex: 1 !important;
+}
+
+.lil-gui .lil-controller.lil-function button,
+.lil-gui .lil-controller.function button {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
 @media (max-width: 600px) {
   #help {
     width: 200px;
