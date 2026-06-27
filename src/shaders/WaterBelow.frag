@@ -155,9 +155,9 @@ vec3 getTorusKnotNormal(vec3 p, vec3 center) {
  */
 vec3 getSphereColor(vec3 point) {
   vec3 color = vec3(0.5);
-  color *= 1.0 - 0.9 / pow((1.0 + sphereRadius - abs(point.x)) / sphereRadius, 3.0);
-  color *= 1.0 - 0.9 / pow((1.0 + sphereRadius - abs(point.z)) / sphereRadius, 3.0);
-  color *= 1.0 - 0.9 / pow((point.y + poolHeight + sphereRadius) / sphereRadius, 3.0);
+  color *= 1.0 - 0.6 / pow((1.0 + sphereRadius - abs(point.x)) / sphereRadius, 3.0);
+  color *= 1.0 - 0.6 / pow((1.0 + sphereRadius - abs(point.z)) / sphereRadius, 3.0);
+  color *= 1.0 - 0.6 / pow((point.y + poolHeight + sphereRadius) / sphereRadius, 3.0);
 
   vec3 sphereNormal = (point - sphereCenter) / sphereRadius;
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
@@ -242,16 +242,16 @@ vec3 getWallColor(vec3 point) {
 
   scale /= length(point);
   if (sphereEnabled) {
-    scale *= 1.0 - 0.9 / pow(max(length(point - sphereCenter) / sphereRadius, 1.0), 4.0);
+    scale *= 1.0 - 0.6 / pow(max(length(point - sphereCenter) / sphereRadius, 1.0), 4.0);
   } else if (cubeEnabled) {
     float cubeDistance = length((point - cubeCenter) / cubeHalfSize);
-    scale *= 1.0 - 0.9 / pow(max(cubeDistance, 1.0), 4.0);
+    scale *= 1.0 - 0.6 / pow(max(cubeDistance, 1.0), 4.0);
   } else if (torusKnotEnabled) {
     float knotDistance = length(point - torusKnotCenter);
-    scale *= 1.0 - 0.9 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
+    scale *= 1.0 - 0.6 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
   } else if (meshEnabled) {
     float meshDistance = length(point - meshCenter);
-    scale *= 1.0 - 0.9 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
+    scale *= 1.0 - 0.6 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
   }
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);

@@ -29,6 +29,10 @@ uniform vec3 light;
 // Pool dimensions for coordinate normalization
 uniform float poolWidth;
 uniform float poolLength;
+uniform float poolHeight;
+
+// Duck geometry
+uniform vec3 meshCenter;
 
 // Simulation textures
 uniform sampler2D water; // Wave heightmap (R = height)
@@ -54,6 +58,19 @@ void main() {
 
   // Calculate the light vector after it enters the water (refracted through horizontal surface)
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
+
+  // Modulate ambient occlusion strength by light alignment:
+  // Surfaces directly facing the light source should have reduced/no ambient shadow.
+  float litFactor = max(0.0, dot(n, -refractedLight));
+  float aoStrength = 0.6 * (1.0 - litFactor);
+
+  // Approximate ambient occlusion (shadowing) as the duck gets close to the pool walls/floor:
+  // - X-walls:
+  baseColor *= 1.0 - aoStrength / pow((poolWidth + 0.25 - abs(vPosition.x)) / 0.25, 3.0);
+  // - Z-walls:
+  baseColor *= 1.0 - aoStrength / pow((poolLength + 0.25 - abs(vPosition.z)) / 0.25, 3.0);
+  // - Floor Y-wall:
+  baseColor *= 1.0 - aoStrength / pow((vPosition.y + poolHeight + 0.25) / 0.25, 3.0);
 
   // Basic diffuse reflection using the refracted light vector for submerged look consistency
   float diffuse = max(0.0, dot(-refractedLight, n)) * 0.6;

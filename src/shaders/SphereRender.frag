@@ -46,20 +46,25 @@ vec3 getSphereColor(vec3 point) {
   // Base sphere albedo color
   vec3 color = vec3(0.5);
 
-  // Approximate ambient occlusion (shadowing) as the sphere gets close to the pool walls:
-  // - X-walls:
-  color *= 1.0 - 0.9 / pow((poolWidth + sphereRadius - abs(point.x)) / sphereRadius, 3.0);
-  // - Z-walls:
-  color *= 1.0 - 0.9 / pow((poolLength + sphereRadius - abs(point.z)) / sphereRadius, 3.0);
-  // - Floor Y-wall (using poolHeight to avoid NaN/negative base bugs):
-  color *= 1.0 - 0.9 / pow((point.y + poolHeight + sphereRadius) / sphereRadius, 3.0);
-
   // Surface normal of the sphere at this point
   vec3 sphereNormal = (point - sphereCenter) / sphereRadius;
 
   // Refracted light direction vector as it passes from air into water
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   vec3 targetRefracted = refractedLight;
+
+  // Modulate ambient occlusion strength by light alignment:
+  // Surfaces directly facing the light source should have reduced/no ambient shadow.
+  float litFactor = max(0.0, dot(sphereNormal, -targetRefracted));
+  float aoStrength = 0.6 * (1.0 - litFactor);
+
+  // Approximate ambient occlusion (shadowing) as the sphere gets close to the pool walls:
+  // - X-walls:
+  color *= 1.0 - aoStrength / pow((poolWidth + sphereRadius - abs(point.x)) / sphereRadius, 3.0);
+  // - Z-walls:
+  color *= 1.0 - aoStrength / pow((poolLength + sphereRadius - abs(point.z)) / sphereRadius, 3.0);
+  // - Floor Y-wall (using poolHeight to avoid NaN/negative base bugs):
+  color *= 1.0 - aoStrength / pow((point.y + poolHeight + sphereRadius) / sphereRadius, 3.0);
 
   // Calculate basic diffuse reflection using the refracted light direction
   float diffuse = max(0.0, dot(-targetRefracted, sphereNormal)) * 0.5;

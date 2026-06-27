@@ -316,16 +316,16 @@ vec3 getWallColor(vec3 point) {
   // 2. Modulate intensity by distance and distance-field ambient occlusion from active simulation objects
   scale /= length(point);
   if (sphereEnabled) {
-    scale *= 1.0 - 0.9 / pow(max(length(point - sphereCenter) / sphereRadius, 1.0), 4.0);
+    scale *= 1.0 - 0.6 / pow(max(length(point - sphereCenter) / sphereRadius, 1.0), 4.0);
   } else if (cubeEnabled) {
     float cubeDistance = length((point - cubeCenter) / cubeHalfSize);
-    scale *= 1.0 - 0.9 / pow(max(cubeDistance, 1.0), 4.0);
+    scale *= 1.0 - 0.6 / pow(max(cubeDistance, 1.0), 4.0);
   } else if (torusKnotEnabled) {
     float knotDistance = length(point - torusKnotCenter);
-    scale *= 1.0 - 0.9 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
+    scale *= 1.0 - 0.6 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
   } else if (meshEnabled) {
     float meshDistance = length(point - meshCenter);
-    scale *= 1.0 - 0.9 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
+    scale *= 1.0 - 0.6 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
   }
 
   // 3. Compute refracted light vector inside pool

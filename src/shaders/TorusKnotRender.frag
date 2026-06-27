@@ -19,13 +19,18 @@ precision highp float;
 const float IOR_AIR = 1.0;
 const float IOR_WATER = 1.333;
 const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
+const float torusKnotShadowRadius = 0.13;
 
 // Light direction (pointing toward sun)
 uniform vec3 light;
 
+// Torus Knot geometry
+uniform vec3 torusKnotCenter;
+
 // Pool dimensions for UV coordinate mapping
 uniform float poolWidth;
 uniform float poolLength;
+uniform float poolHeight;
 
 // Simulation textures
 uniform sampler2D water; // Wave heightmap
@@ -45,6 +50,19 @@ void main() {
 
   // Calculate refracted light direction vector entering the water surface
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
+
+  // Modulate ambient occlusion strength by light alignment:
+  // Surfaces directly facing the light source should have reduced/no ambient shadow.
+  float litFactor = max(0.0, dot(normalize(vNormal), -refractedLight));
+  float aoStrength = 0.6 * (1.0 - litFactor);
+
+  // Approximate ambient occlusion (shadowing) as the torus knot gets close to the pool walls/floor:
+  // - X-walls:
+  color *= 1.0 - aoStrength / pow((poolWidth + torusKnotShadowRadius - abs(vPosition.x)) / torusKnotShadowRadius, 3.0);
+  // - Z-walls:
+  color *= 1.0 - aoStrength / pow((poolLength + torusKnotShadowRadius - abs(vPosition.z)) / torusKnotShadowRadius, 3.0);
+  // - Floor Y-wall:
+  color *= 1.0 - aoStrength / pow((vPosition.y + poolHeight + torusKnotShadowRadius) / torusKnotShadowRadius, 3.0);
 
   // Calculate diffuse illumination using normal and refracted light vector
   float diffuse = max(0.0, dot(-refractedLight, normalize(vNormal))) * 0.5;

@@ -102,6 +102,7 @@ export class DuckObject implements SimulationObject {
           poolWidth: { value: 1.0 },
           poolHeight: { value: 1.0 },
           poolLength: { value: 1.0 },
+          meshCenter: { value: this.position.clone() },
           water: { value: null },
           causticTex: { value: this.resources.causticTexture },
           modelTexture: { value: texture },
@@ -244,6 +245,7 @@ export class DuckObject implements SimulationObject {
     this.material.uniforms.poolWidth.value = poolWidth;
     this.material.uniforms.poolHeight.value = poolHeight;
     this.material.uniforms.poolLength.value = poolLength;
+    this.material.uniforms.meshCenter.value.copy(this.position);
     this.material.uniformsNeedUpdate = true;
   }
 

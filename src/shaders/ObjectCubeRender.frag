@@ -25,6 +25,11 @@ uniform vec3 light;
 // Pool dimensions for coordinate normalization
 uniform float poolWidth;
 uniform float poolLength;
+uniform float poolHeight;
+
+// Cube dimensions
+uniform vec3 cubeCenter;
+uniform vec3 cubeHalfSize;
 
 // Simulation textures
 uniform sampler2D water; // Wave heightmap (R = height)
@@ -39,6 +44,19 @@ void main() {
 
   // Calculate light direction refracted from air (index = 1.0) into water (index = 1.333)
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
+
+  // Modulate ambient occlusion strength by light alignment:
+  // Surfaces directly facing the light source should have reduced/no ambient shadow.
+  float litFactor = max(0.0, dot(normalize(vNormal), -refractedLight));
+  float aoStrength = 0.6 * (1.0 - litFactor);
+
+  // Approximate ambient occlusion (shadowing) as the cube gets close to the pool walls/floor:
+  // - X-walls:
+  color *= 1.0 - aoStrength / pow((poolWidth + cubeHalfSize.x - abs(vPosition.x)) / cubeHalfSize.x, 3.0);
+  // - Z-walls:
+  color *= 1.0 - aoStrength / pow((poolLength + cubeHalfSize.z - abs(vPosition.z)) / cubeHalfSize.z, 3.0);
+  // - Floor Y-wall:
+  color *= 1.0 - aoStrength / pow((vPosition.y + poolHeight + cubeHalfSize.y) / cubeHalfSize.y, 3.0);
 
   // Compute standard diffuse shading relative to the refracted light direction
   float diffuse = max(0.0, dot(-refractedLight, normalize(vNormal))) * 0.5;
