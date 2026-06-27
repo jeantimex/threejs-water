@@ -74,11 +74,13 @@ void main() {
    *
    * From physics: acceleration = c² * ∇²h
    *
-   * When poolWidth = poolLength = 1.0, this simplifies exactly to:
-   *   info.g += 2.0 * (average - info.r)
-   * which matches the original isotropic simulation rate.
+   * To maintain numerical stability (CFL condition) across arbitrary pool aspect ratios
+   * and sizes, we scale the time-step by the square of the minimum pool dimension.
+   * This prevents the effective wave propagation speed in grid space from exceeding
+   * the stability limit when poolWidth or poolLength is small (< 1.0).
    */
-  info.g += 0.5 * (d2h_dx2 / (poolWidth * poolWidth) + d2h_dz2 / (poolLength * poolLength));
+  float stabilityScale = min(poolWidth * poolWidth, poolLength * poolLength);
+  info.g += 0.5 * stabilityScale * (d2h_dx2 / (poolWidth * poolWidth) + d2h_dz2 / (poolLength * poolLength));
 
   /**
    * DAMPING (Energy Dissipation)
