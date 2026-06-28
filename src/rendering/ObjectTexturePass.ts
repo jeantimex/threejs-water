@@ -19,7 +19,11 @@ uniform float poolWidth;
 uniform float poolLength;
 
 void main() {
-  vec3 worldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+  #ifdef USE_INSTANCING
+    vec3 worldPosition = (instanceMatrix * vec4(position, 1.0)).xyz;
+  #else
+    vec3 worldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+  #endif
   vec3 refractedLight = refract(-normalize(light), vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   vec2 projected = 0.75 * (worldPosition.xz - worldPosition.y * refractedLight.xz / refractedLight.y);
   gl_Position = vec4(projected.x / poolWidth, projected.y / poolLength, 0.0, 1.0);
