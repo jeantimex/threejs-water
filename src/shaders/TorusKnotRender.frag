@@ -24,8 +24,7 @@ const float torusKnotShadowRadius = 0.13;
 // Light direction (pointing toward sun)
 uniform vec3 light;
 
-// Torus Knot geometry
-uniform vec3 torusKnotCenter;
+varying vec3 vTorusKnotCenter;
 
 // Pool dimensions for UV coordinate mapping
 uniform float poolWidth;

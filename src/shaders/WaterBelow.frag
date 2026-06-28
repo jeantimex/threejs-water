@@ -18,7 +18,9 @@ uniform vec3 cubeCenters[MAX_CUBES];
 uniform vec3 cubeHalfSizes[MAX_CUBES];
 uniform int cubeCount;
 uniform bool cubeEnabled;
-uniform vec3 torusKnotCenter;
+#define MAX_TORUS_KNOTS 10
+uniform vec3 torusKnotCenters[MAX_TORUS_KNOTS];
+uniform int torusKnotCount;
 uniform bool torusKnotEnabled;
 uniform vec3 meshCenter;
 uniform float meshBoundingRadius;
@@ -210,9 +212,9 @@ vec3 getCubeColor(vec3 point, vec3 center, vec3 halfSize) {
 /**
  * Calculates shading color on the Torus Knot.
  */
-vec3 getTorusKnotColor(vec3 point) {
+vec3 getTorusKnotColor(vec3 point, vec3 center) {
   vec3 color = vec3(0.5);
-  vec3 normal = getTorusKnotNormal(point, torusKnotCenter);
+  vec3 normal = getTorusKnotNormal(point, center);
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(-refractedLight, normal)) * 0.5;
   vec4 info = texture2D(water, point.xz * 0.5 + 0.5);
@@ -257,8 +259,11 @@ vec3 getWallColor(vec3 point) {
       scale *= 1.0 - 0.6 / pow(max(cubeDistance, 1.0), 4.0);
     }
   } else if (torusKnotEnabled) {
-    float knotDistance = length(point - torusKnotCenter);
-    scale *= 1.0 - 0.6 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
+    for (int i = 0; i < MAX_TORUS_KNOTS; i++) {
+      if (i >= torusKnotCount) break;
+      float knotDistance = length(point - torusKnotCenters[i]);
+      scale *= 1.0 - 0.6 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
+    }
   } else if (meshEnabled) {
     float meshDistance = length(point - meshCenter);
     scale *= 1.0 - 0.6 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
@@ -366,10 +371,24 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
       }
     }
   }
-  float torusKnotDistance =
-    torusKnotEnabled && ray.y > 0.0
-      ? intersectTorusKnot(origin, ray, torusKnotCenter)
-      : 1.0e6;
+  float torusKnotDistance = 1.0e6;
+  int hitTorusKnotIndex = -1;
+  if (torusKnotEnabled && ray.y > 0.0) {
+    float nearestBoundDist = 1.0e6;
+    int nearestBoundIndex = -1;
+    for (int i = 0; i < MAX_TORUS_KNOTS; i++) {
+      if (i >= torusKnotCount) break;
+      float t_bound = intersectSphereBounds(origin, ray, torusKnotCenters[i], 0.31);
+      if (t_bound < nearestBoundDist) {
+        nearestBoundDist = t_bound;
+        nearestBoundIndex = i;
+      }
+    }
+    if (nearestBoundIndex != -1) {
+      torusKnotDistance = intersectTorusKnot(origin, ray, torusKnotCenters[nearestBoundIndex]);
+      hitTorusKnotIndex = nearestBoundIndex;
+    }
+  }
 
   float objectDistance = min(min(sphereDistance, cubeDistance), torusKnotDistance);
   if (objectDistance < 1.0e6) {
@@ -379,7 +398,7 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
     } else if (objectDistance == cubeDistance) {
       color = getCubeColor(hit, cubeCenters[hitCubeIndex], cubeHalfSizes[hitCubeIndex]);
     } else {
-      color = getTorusKnotColor(hit);
+      color = getTorusKnotColor(hit, torusKnotCenters[hitTorusKnotIndex]);
     }
   } else if (ray.y < 0.0) {
     // Hits pool bottom/walls
@@ -448,10 +467,27 @@ void main() {
       viewProjectionMatrix,
       vPosition
     );
-    refractedObject = max(
-      refractedObject,
-      sampleObjectRefraction(vPosition, refractedRay, torusKnotCenter, 0.31)
-    );
+
+    float nearestHit = 1.0e6;
+    int nearestIndex = -1;
+    for (int i = 0; i < MAX_TORUS_KNOTS; i++) {
+      if (i >= torusKnotCount) break;
+      float hit = intersectSphereBounds(vPosition, refractedRay, torusKnotCenters[i], 0.31);
+      if (hit < nearestHit) {
+        nearestHit = hit;
+        nearestIndex = i;
+      }
+    }
+    if (nearestIndex != -1) {
+      refractedObject = max(
+        refractedObject,
+        sampleProjectedTexture(
+          objectRefractionTex,
+          viewProjectionMatrix,
+          vPosition + refractedRay * nearestHit
+        )
+      );
+    }
     reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
   } else if (meshEnabled) {

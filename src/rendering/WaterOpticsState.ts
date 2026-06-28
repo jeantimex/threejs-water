@@ -42,8 +42,12 @@ export class WaterOpticsState {
   /** Whether the cube/box obstacle is currently enabled. */
   cubeEnabled = false;
 
-  /** The center coordinate of the torus knot obstacle. */
+  /** The center coordinate of the torus knot obstacle (fallback). */
   readonly torusKnotCenter = new THREE.Vector3();
+  /** The centers of the instanced torus knots. */
+  readonly torusKnotCenters: THREE.Vector3[] = Array.from({ length: 10 }, () => new THREE.Vector3());
+  /** The number of active torus knots. */
+  torusKnotCount = 0;
   /** Whether the torus knot obstacle is currently enabled. */
   torusKnotEnabled = false;
 
@@ -91,7 +95,13 @@ export class WaterOpticsState {
       }
       this.cubeEnabled = true;
     } else if (optics.kind === 'torusknot') {
-      this.torusKnotCenter.copy(optics.center);
+      this.torusKnotCount = optics.count;
+      for (let i = 0; i < optics.count; i++) {
+        this.torusKnotCenters[i].copy(optics.centers[i]);
+      }
+      if (optics.count > 0) {
+        this.torusKnotCenter.copy(optics.centers[0]);
+      }
       this.torusKnotEnabled = true;
     } else if (optics.kind === 'mesh') {
       this.meshCenter.copy(optics.center);
@@ -122,6 +132,8 @@ export class WaterOpticsState {
       cubeCount: { value: this.cubeCount },
       cubeEnabled: { value: this.cubeEnabled },
       torusKnotCenter: { value: this.torusKnotCenter.clone() },
+      torusKnotCenters: { value: this.torusKnotCenters.map(c => c.clone()) },
+      torusKnotCount: { value: this.torusKnotCount },
       torusKnotEnabled: { value: this.torusKnotEnabled },
       meshCenter: { value: this.meshCenter.clone() },
       meshBoundingRadius: { value: this.meshBoundingRadius },
@@ -171,6 +183,12 @@ export class WaterOpticsState {
     }
     if (material.uniforms.torusKnotCenter) {
       material.uniforms.torusKnotCenter.value.copy(this.torusKnotCenter);
+    }
+    if (material.uniforms.torusKnotCenters) {
+      for (let i = 0; i < this.torusKnotCount; i++) {
+        material.uniforms.torusKnotCenters.value[i].copy(this.torusKnotCenters[i]);
+      }
+      material.uniforms.torusKnotCount.value = this.torusKnotCount;
     }
     if (material.uniforms.torusKnotEnabled) {
       material.uniforms.torusKnotEnabled.value = this.torusKnotEnabled;

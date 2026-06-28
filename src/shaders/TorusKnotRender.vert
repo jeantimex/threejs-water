@@ -11,14 +11,15 @@
 
 varying vec3 vPosition; // World position for fragment shader
 varying vec3 vNormal; // Surface normal for lighting
+varying vec3 vTorusKnotCenter;
 
 void main() {
-  // Transform vertex to world space using model matrix
-  vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+  vec4 centerWorld = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+  vTorusKnotCenter = centerWorld.xyz;
 
-  // Pass through object-space normal (will be transformed in frag if needed)
   vNormal = normal;
 
-  // Standard MVP transformation to clip space
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec4 worldPos = instanceMatrix * vec4(position, 1.0);
+  vPosition = worldPos.xyz;
+  gl_Position = projectionMatrix * viewMatrix * worldPos;
 }

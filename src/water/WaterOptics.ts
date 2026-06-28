@@ -44,8 +44,12 @@ export type WaterOpticsDescriptor =
   /** Represents a torus knot optical physical shape in the water. */
   | {
       kind: 'torusknot';
-      /** The world space center position of the torus knot. */
+      /** The world space center position of the torus knot (fallback). */
       center: THREE.Vector3;
+      /** Array of centers of all torus knots. */
+      centers: THREE.Vector3[];
+      /** The number of torus knots. */
+      count: number;
     }
   /** Represents a custom mesh optical physical shape in the water. */
   | {

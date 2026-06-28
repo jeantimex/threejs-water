@@ -39,7 +39,9 @@ uniform vec3 cubeCenters[MAX_CUBES];
 uniform vec3 cubeHalfSizes[MAX_CUBES];
 uniform int cubeCount;
 uniform bool cubeEnabled;
-uniform vec3 torusKnotCenter;
+#define MAX_TORUS_KNOTS 10
+uniform vec3 torusKnotCenters[MAX_TORUS_KNOTS];
+uniform int torusKnotCount;
 uniform bool torusKnotEnabled;
 uniform vec3 meshCenter;
 uniform float meshBoundingRadius;
@@ -331,8 +333,11 @@ vec3 getWallColor(vec3 point) {
       scale *= 1.0 - 0.6 / pow(max(cubeDistance, 1.0), 4.0);
     }
   } else if (torusKnotEnabled) {
-    float knotDistance = length(point - torusKnotCenter);
-    scale *= 1.0 - 0.6 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
+    for (int i = 0; i < MAX_TORUS_KNOTS; i++) {
+      if (i >= torusKnotCount) break;
+      float knotDistance = length(point - torusKnotCenters[i]);
+      scale *= 1.0 - 0.6 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
+    }
   } else if (meshEnabled) {
     float meshDistance = length(point - meshCenter);
     scale *= 1.0 - 0.6 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
