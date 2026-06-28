@@ -26,8 +26,10 @@ export class DuckObject implements SimulationObject {
   readonly position = new THREE.Vector3(0.4, this.floorClearance - 1, -0.2);
   readonly velocity = new THREE.Vector3();
 
-  // Number of ducks to render and simulate
-  readonly numDucks = 5;
+  // Number of active instances to render and simulate
+  instanceCount = 1;
+  // Maximum number of instances allocated in InstancedMesh
+  readonly maxDucks = 5;
 
   // Arrays holding physical properties for all instanced ducks
   readonly positions: THREE.Vector3[];
@@ -53,7 +55,7 @@ export class DuckObject implements SimulationObject {
       center: this.position,
       boundingRadius: this.boundingRadius,
       centers: this.positions,
-      count: this.numDucks,
+      count: this.instanceCount,
     };
   }
 
@@ -71,10 +73,10 @@ export class DuckObject implements SimulationObject {
     this.mesh.visible = false;
 
     // Initialize arrays; first element references this.position and this.velocity directly
-    this.positions = Array.from({ length: this.numDucks }, (_, i) =>
+    this.positions = Array.from({ length: this.maxDucks }, (_, i) =>
       i === 0 ? this.position : this.position.clone()
     );
-    this.velocities = Array.from({ length: this.numDucks }, (_, i) =>
+    this.velocities = Array.from({ length: this.maxDucks }, (_, i) =>
       i === 0 ? this.velocity : this.velocity.clone()
     );
     this.previousPositions = this.positions.map((p) => p.clone());
@@ -172,12 +174,13 @@ export class DuckObject implements SimulationObject {
       this.baseMatrix.multiply(localMatrix);
 
       // Create InstancedMesh using the extracted geometry and custom shader material
-      this.instancedMesh = new THREE.InstancedMesh(duckGeometry, this.material, this.numDucks);
+      this.instancedMesh = new THREE.InstancedMesh(duckGeometry, this.material, this.maxDucks);
       this.instancedMesh.frustumCulled = false;
+      this.instancedMesh.count = this.instanceCount;
       this.mesh.add(this.instancedMesh);
 
       this.loaded = true;
-      this.mesh.visible = this.enabled;
+      this.mesh.visible = this.enabled && (this.instanceCount > 0);
     } catch (error) {
       console.error('Failed to load duck model:', error);
     }
@@ -187,21 +190,39 @@ export class DuckObject implements SimulationObject {
    * Toggles the active state of the ducks, spawning splash displacement waves.
    */
   setEnabled(enabled: boolean, water: Water) {
-    if (enabled === this.enabled) return;
+    if (!enabled) {
+      if (this.enabled) {
+        for (let i = 0; i < this.maxDucks; i++) {
+          const inactivePosition = this.getInactivePosition(i);
+          this.displacement.move(water, this.positions[i], inactivePosition);
+          this.positions[i].copy(inactivePosition);
+          this.velocities[i].set(0, 0, 0);
+        }
+        this.draggedInstanceIndex = null;
+        this.enabled = false;
+        this.mesh.visible = false;
+        this.syncPreviousPosition();
+      }
+      return;
+    }
 
-    if (enabled) {
-      // Preset offsets for spreading out the spawned ducks around the spawn position
-      const offsets = [
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0.4, 0, 0.4),
-        new THREE.Vector3(-0.4, 0, -0.4),
-        new THREE.Vector3(0.4, 0, -0.4),
-        new THREE.Vector3(-0.4, 0, 0.4),
-      ];
+    // enabled is true:
+    const offsets = [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0.4, 0, 0.4),
+      new THREE.Vector3(-0.4, 0, -0.4),
+      new THREE.Vector3(0.4, 0, -0.4),
+      new THREE.Vector3(-0.4, 0, 0.4),
+    ];
 
-      for (let i = 0; i < this.numDucks; i++) {
-        const inactivePosition = this.getInactivePosition(i);
-        this.positions[i].copy(this.position).add(offsets[i]);
+    for (let i = 0; i < this.maxDucks; i++) {
+      const inactivePosition = this.getInactivePosition(i);
+      if (i < this.instanceCount) {
+        // If the position is already active (i.e. not in the sky), keep it!
+        // Otherwise, initialize it from the base position and offset.
+        if (this.positions[i].y >= 5.0) {
+          this.positions[i].copy(this.position).add(offsets[i]);
+        }
 
         // Clamp inside pool bounds
         this.positions[i].x = THREE.MathUtils.clamp(this.positions[i].x, -0.7, 0.7);
@@ -212,18 +233,19 @@ export class DuckObject implements SimulationObject {
 
         this.displacement.move(water, inactivePosition, this.positions[i]);
         this.previousPositions[i].copy(this.positions[i]);
-      }
-    } else {
-      for (let i = 0; i < this.numDucks; i++) {
-        const inactivePosition = this.getInactivePosition(i);
+      } else {
         this.displacement.move(water, this.positions[i], inactivePosition);
+        this.positions[i].copy(inactivePosition);
         this.velocities[i].set(0, 0, 0);
+        this.previousPositions[i].copy(inactivePosition);
       }
-      this.draggedInstanceIndex = null;
     }
 
-    this.enabled = enabled;
-    this.mesh.visible = enabled && this.loaded;
+    if (this.instancedMesh) {
+      this.instancedMesh.count = this.instanceCount;
+    }
+    this.mesh.visible = this.loaded && (this.instanceCount > 0);
+    this.enabled = true;
     this.syncPreviousPosition();
   }
 
@@ -231,7 +253,7 @@ export class DuckObject implements SimulationObject {
    * Resets position history to prevent displacement spikes.
    */
   syncPreviousPosition() {
-    for (let i = 0; i < this.numDucks; i++) {
+    for (let i = 0; i < this.maxDucks; i++) {
       this.previousPositions[i].copy(this.positions[i]);
     }
   }
@@ -242,11 +264,11 @@ export class DuckObject implements SimulationObject {
   update(seconds: number, context: ObjectUpdateContext, water: Water) {
     if (!this.enabled) return;
 
-    if (!this.mesh.visible && this.loaded) {
+    if (!this.mesh.visible && this.loaded && this.instanceCount > 0) {
       this.mesh.visible = true;
     }
 
-    for (let i = 0; i < this.numDucks; i++) {
+    for (let i = 0; i < this.instanceCount; i++) {
       const isDragged = (i === this.draggedInstanceIndex && context.dragging);
       const duckContext = {
         ...context,
@@ -283,7 +305,7 @@ export class DuckObject implements SimulationObject {
     let hitPoint: THREE.Vector3 | null = null;
     this.draggedInstanceIndex = null;
 
-    for (let i = 0; i < this.numDucks; i++) {
+    for (let i = 0; i < this.instanceCount; i++) {
       const toOrigin = origin.clone().sub(this.positions[i]);
       const a = direction.lengthSq();
       const b = 2 * toOrigin.dot(direction);
@@ -320,7 +342,7 @@ export class DuckObject implements SimulationObject {
       );
     } else {
       // Fallback/Update bounds for all ducks simultaneously (e.g. pool resizing)
-      for (let i = 0; i < this.numDucks; i++) {
+      for (let i = 0; i < this.instanceCount; i++) {
         clampAndMoveObject(
           this.positions[i],
           delta,
@@ -348,9 +370,13 @@ export class DuckObject implements SimulationObject {
     this.material.uniforms.meshCenter.value.copy(this.position);
     this.material.uniformsNeedUpdate = true;
 
+    if (this.instancedMesh) {
+      this.instancedMesh.count = this.instanceCount;
+    }
+
     // Compose instance matrices
     const tempMatrix = new THREE.Matrix4();
-    for (let i = 0; i < this.numDucks; i++) {
+    for (let i = 0; i < this.instanceCount; i++) {
       tempMatrix.makeTranslation(
         this.positions[i].x,
         this.positions[i].y,

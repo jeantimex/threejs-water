@@ -12,6 +12,7 @@ export interface SimulationControlCallbacks {
   onPoolHeightChange?(height: number): void;
   onPoolLengthChange?(length: number): void;
   onUpdateLightDirection?(): void;
+  onInstanceCountChange?(count: number): void;
 }
 
 /**
@@ -31,6 +32,7 @@ export class SimulationControls {
   poolWidth = 1.0;
   poolHeight = 1.0;
   poolLength = 1.0;
+  instanceCount = 1;
 
   // The local state object bound directly to GUI controls
   private readonly state = {
@@ -45,6 +47,7 @@ export class SimulationControls {
     poolWidth: 1.0,
     poolHeight: 1.0,
     poolLength: 1.0,
+    instanceCount: 1,
     updateLightDirection: () => {
       this.callbacks.onUpdateLightDirection?.();
     },
@@ -116,6 +119,15 @@ export class SimulationControls {
       .name('Density')
       .onChange((density: number) => {
         this.density = density;
+      });
+
+    // Slider for controlling instance count (0 to 5)
+    objectFolder
+      .add(this.state, 'instanceCount', 0, 5, 1)
+      .name('Instance Count')
+      .onChange((count: number) => {
+        this.instanceCount = count;
+        callbacks.onInstanceCountChange?.(count);
       });
 
     // --- Pool Shape Controls Group ---

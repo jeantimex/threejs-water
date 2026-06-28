@@ -47,6 +47,10 @@ export interface SimulationObject {
   readonly displacement: WaterDisplacementStrategy;
   /** Whether the object is active in the current scene. */
   enabled: boolean;
+  /** The number of active instances to render and simulate. */
+  instanceCount: number;
+  /** The spatial positions of all instanced shapes. */
+  readonly positions: THREE.Vector3[];
 
   /**
    * Toggles the object's active state.

@@ -20,8 +20,10 @@ export class SphereObject implements SimulationObject {
   // Collision/Interaction radius of each sphere
   readonly interactionRadius = 0.25;
 
-  // Number of instanced spheres to render and simulate
-  readonly numSpheres = 5;
+  // Number of active instances to render and simulate
+  instanceCount = 1;
+  // Maximum number of instances allocated in InstancedMesh
+  readonly maxSpheres = 5;
 
   // Arrays holding physical properties for all instanced spheres
   readonly positions: THREE.Vector3[];
@@ -47,8 +49,8 @@ export class SphereObject implements SimulationObject {
       center: this.position,
       radius: this.interactionRadius,
       centers: this.positions,
-      radii: Array(this.numSpheres).fill(this.interactionRadius),
-      count: this.numSpheres,
+      radii: Array(this.maxSpheres).fill(this.interactionRadius),
+      count: this.instanceCount,
     };
   }
 
@@ -59,10 +61,10 @@ export class SphereObject implements SimulationObject {
 
   constructor(private readonly resources: SimulationObjectRenderResources) {
     // Initialize arrays; first element references this.position and this.velocity directly
-    this.positions = Array.from({ length: this.numSpheres }, (_, i) =>
+    this.positions = Array.from({ length: this.maxSpheres }, (_, i) =>
       i === 0 ? this.position : this.position.clone()
     );
-    this.velocities = Array.from({ length: this.numSpheres }, (_, i) =>
+    this.velocities = Array.from({ length: this.maxSpheres }, (_, i) =>
       i === 0 ? this.velocity : this.velocity.clone()
     );
     this.previousPositions = this.positions.map((p) => p.clone());
@@ -86,9 +88,9 @@ export class SphereObject implements SimulationObject {
     });
 
     // Create instanced mesh with unit sphere (radius 1).
-    // Transformation matrix controls the translation and scaling per instance.
-    this.mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 32, 32), this.material, this.numSpheres);
+    this.mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 32, 32), this.material, this.maxSpheres);
     this.mesh.frustumCulled = false;
+    this.mesh.count = this.instanceCount;
   }
 
   /**
@@ -97,21 +99,39 @@ export class SphereObject implements SimulationObject {
    * If disabled, moves objects back to the sky, pulling the water column upwards.
    */
   setEnabled(enabled: boolean, water: Water) {
-    if (enabled === this.enabled) return;
+    if (!enabled) {
+      if (this.enabled) {
+        for (let i = 0; i < this.maxSpheres; i++) {
+          const inactivePosition = this.getInactivePosition(i);
+          this.displacement.move(water, this.positions[i], inactivePosition);
+          this.positions[i].copy(inactivePosition);
+          this.velocities[i].set(0, 0, 0);
+        }
+        this.draggedInstanceIndex = null;
+        this.enabled = false;
+        this.mesh.visible = false;
+        this.syncPreviousPosition();
+      }
+      return;
+    }
 
-    if (enabled) {
-      // Preset offsets for spreading out the spawned spheres around the target spawn position
-      const offsets = [
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0.4, 0, 0.4),
-        new THREE.Vector3(-0.4, 0, -0.4),
-        new THREE.Vector3(0.4, 0, -0.4),
-        new THREE.Vector3(-0.4, 0, 0.4),
-      ];
+    // enabled is true:
+    const offsets = [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0.4, 0, 0.4),
+      new THREE.Vector3(-0.4, 0, -0.4),
+      new THREE.Vector3(0.4, 0, -0.4),
+      new THREE.Vector3(-0.4, 0, 0.4),
+    ];
 
-      for (let i = 0; i < this.numSpheres; i++) {
-        const inactivePosition = this.getInactivePosition(i);
-        this.positions[i].copy(this.position).add(offsets[i]);
+    for (let i = 0; i < this.maxSpheres; i++) {
+      const inactivePosition = this.getInactivePosition(i);
+      if (i < this.instanceCount) {
+        // If the position is already active (i.e. not in the sky), keep it!
+        // Otherwise, initialize it from the base position and offset.
+        if (this.positions[i].y >= 5.0) {
+          this.positions[i].copy(this.position).add(offsets[i]);
+        }
 
         // Clamp inside pool bounds
         this.positions[i].x = THREE.MathUtils.clamp(this.positions[i].x, -0.7, 0.7);
@@ -122,18 +142,17 @@ export class SphereObject implements SimulationObject {
 
         this.displacement.move(water, inactivePosition, this.positions[i]);
         this.previousPositions[i].copy(this.positions[i]);
-      }
-    } else {
-      for (let i = 0; i < this.numSpheres; i++) {
-        const inactivePosition = this.getInactivePosition(i);
+      } else {
         this.displacement.move(water, this.positions[i], inactivePosition);
+        this.positions[i].copy(inactivePosition);
         this.velocities[i].set(0, 0, 0);
+        this.previousPositions[i].copy(inactivePosition);
       }
-      this.draggedInstanceIndex = null;
     }
 
-    this.enabled = enabled;
-    this.mesh.visible = enabled;
+    this.mesh.count = this.instanceCount;
+    this.mesh.visible = this.instanceCount > 0;
+    this.enabled = true;
     this.syncPreviousPosition();
   }
 
@@ -141,7 +160,7 @@ export class SphereObject implements SimulationObject {
    * Synchronizes the previous coordinates to avoid creating splash deltas on layout changes.
    */
   syncPreviousPosition() {
-    for (let i = 0; i < this.numSpheres; i++) {
+    for (let i = 0; i < this.maxSpheres; i++) {
       this.previousPositions[i].copy(this.positions[i]);
     }
   }
@@ -152,7 +171,7 @@ export class SphereObject implements SimulationObject {
   update(seconds: number, context: ObjectUpdateContext, water: Water) {
     if (!this.enabled) return;
 
-    for (let i = 0; i < this.numSpheres; i++) {
+    for (let i = 0; i < this.instanceCount; i++) {
       const isDragged = (i === this.draggedInstanceIndex && context.dragging);
       const sphereContext = {
         ...context,
@@ -192,7 +211,7 @@ export class SphereObject implements SimulationObject {
     let hitPoint: THREE.Vector3 | null = null;
     this.draggedInstanceIndex = null;
 
-    for (let i = 0; i < this.numSpheres; i++) {
+    for (let i = 0; i < this.instanceCount; i++) {
       const toOrigin = origin.clone().sub(this.positions[i]);
       const a = direction.lengthSq();
       const b = 2 * toOrigin.dot(direction);
@@ -229,7 +248,7 @@ export class SphereObject implements SimulationObject {
       );
     } else {
       // Fallback/Update bounds for all spheres simultaneously (e.g. pool resizing)
-      for (let i = 0; i < this.numSpheres; i++) {
+      for (let i = 0; i < this.instanceCount; i++) {
         clampAndMoveObject(
           this.positions[i],
           delta,
@@ -262,7 +281,7 @@ export class SphereObject implements SimulationObject {
     const tempScale = new THREE.Vector3(this.interactionRadius, this.interactionRadius, this.interactionRadius);
     const tempRotation = new THREE.Quaternion();
 
-    for (let i = 0; i < this.numSpheres; i++) {
+    for (let i = 0; i < this.instanceCount; i++) {
       tempMatrix.compose(this.positions[i], tempRotation, tempScale);
       this.mesh.setMatrixAt(i, tempMatrix);
     }

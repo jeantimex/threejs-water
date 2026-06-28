@@ -20,8 +20,10 @@ export class CubeObject implements SimulationObject {
   readonly position = new THREE.Vector3(-0.4, this.halfSize.y - 1, 0.2);
   readonly velocity = new THREE.Vector3();
 
-  // Number of instanced cubes to render and simulate
-  readonly numCubes = 5;
+  // Number of active instances to render and simulate
+  instanceCount = 1;
+  // Maximum number of instances allocated in InstancedMesh
+  readonly maxCubes = 5;
 
   // Arrays holding physical properties for all instanced cubes
   readonly positions: THREE.Vector3[];
@@ -47,8 +49,8 @@ export class CubeObject implements SimulationObject {
       center: this.position,
       halfSize: this.halfSize,
       centers: this.positions,
-      halfSizes: Array(this.numCubes).fill(this.halfSize),
-      count: this.numCubes,
+      halfSizes: Array(this.maxCubes).fill(this.halfSize),
+      count: this.instanceCount,
     };
   }
 
@@ -60,10 +62,10 @@ export class CubeObject implements SimulationObject {
 
   constructor(private readonly resources: SimulationObjectRenderResources) {
     // Initialize arrays; first element references this.position and this.velocity directly
-    this.positions = Array.from({ length: this.numCubes }, (_, i) =>
+    this.positions = Array.from({ length: this.maxCubes }, (_, i) =>
       i === 0 ? this.position : this.position.clone()
     );
-    this.velocities = Array.from({ length: this.numCubes }, (_, i) =>
+    this.velocities = Array.from({ length: this.maxCubes }, (_, i) =>
       i === 0 ? this.velocity : this.velocity.clone()
     );
     this.previousPositions = this.positions.map((p) => p.clone());
@@ -87,30 +89,49 @@ export class CubeObject implements SimulationObject {
     });
 
     // Create instanced box mesh (1x1x1 unit geometry scaled via instance matrices)
-    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), this.material, this.numCubes);
+    this.mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), this.material, this.maxCubes);
     this.mesh.frustumCulled = false;
     this.mesh.visible = false;
+    this.mesh.count = this.instanceCount;
   }
 
   /**
    * Toggles the active state of the cubes, triggering splash displacements.
    */
   setEnabled(enabled: boolean, water: Water) {
-    if (enabled === this.enabled) return;
+    if (!enabled) {
+      if (this.enabled) {
+        for (let i = 0; i < this.maxCubes; i++) {
+          const inactivePosition = this.getInactivePosition(i);
+          this.displacement.move(water, this.positions[i], inactivePosition);
+          this.positions[i].copy(inactivePosition);
+          this.velocities[i].set(0, 0, 0);
+        }
+        this.draggedInstanceIndex = null;
+        this.enabled = false;
+        this.mesh.visible = false;
+        this.syncPreviousPosition();
+      }
+      return;
+    }
 
-    if (enabled) {
-      // Preset offsets for spreading out the spawned cubes around the spawn position
-      const offsets = [
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0.4, 0, 0.4),
-        new THREE.Vector3(-0.4, 0, -0.4),
-        new THREE.Vector3(0.4, 0, -0.4),
-        new THREE.Vector3(-0.4, 0, 0.4),
-      ];
+    // enabled is true:
+    const offsets = [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0.4, 0, 0.4),
+      new THREE.Vector3(-0.4, 0, -0.4),
+      new THREE.Vector3(0.4, 0, -0.4),
+      new THREE.Vector3(-0.4, 0, 0.4),
+    ];
 
-      for (let i = 0; i < this.numCubes; i++) {
-        const inactivePosition = this.getInactivePosition(i);
-        this.positions[i].copy(this.position).add(offsets[i]);
+    for (let i = 0; i < this.maxCubes; i++) {
+      const inactivePosition = this.getInactivePosition(i);
+      if (i < this.instanceCount) {
+        // If the position is already active (i.e. not in the sky), keep it!
+        // Otherwise, initialize it from the base position and offset.
+        if (this.positions[i].y >= 5.0) {
+          this.positions[i].copy(this.position).add(offsets[i]);
+        }
 
         // Clamp inside pool bounds
         this.positions[i].x = THREE.MathUtils.clamp(this.positions[i].x, -0.7, 0.7);
@@ -121,18 +142,17 @@ export class CubeObject implements SimulationObject {
 
         this.displacement.move(water, inactivePosition, this.positions[i]);
         this.previousPositions[i].copy(this.positions[i]);
-      }
-    } else {
-      for (let i = 0; i < this.numCubes; i++) {
-        const inactivePosition = this.getInactivePosition(i);
+      } else {
         this.displacement.move(water, this.positions[i], inactivePosition);
+        this.positions[i].copy(inactivePosition);
         this.velocities[i].set(0, 0, 0);
+        this.previousPositions[i].copy(inactivePosition);
       }
-      this.draggedInstanceIndex = null;
     }
 
-    this.enabled = enabled;
-    this.mesh.visible = enabled;
+    this.mesh.count = this.instanceCount;
+    this.mesh.visible = this.instanceCount > 0;
+    this.enabled = true;
     this.syncPreviousPosition();
   }
 
@@ -140,7 +160,7 @@ export class CubeObject implements SimulationObject {
    * Resets position history to prevent displacement spikes.
    */
   syncPreviousPosition() {
-    for (let i = 0; i < this.numCubes; i++) {
+    for (let i = 0; i < this.maxCubes; i++) {
       this.previousPositions[i].copy(this.positions[i]);
     }
   }
@@ -151,7 +171,7 @@ export class CubeObject implements SimulationObject {
   update(seconds: number, context: ObjectUpdateContext, water: Water) {
     if (!this.enabled) return;
 
-    for (let i = 0; i < this.numCubes; i++) {
+    for (let i = 0; i < this.instanceCount; i++) {
       const isDragged = (i === this.draggedInstanceIndex && context.dragging);
       const cubeContext = {
         ...context,
@@ -184,7 +204,7 @@ export class CubeObject implements SimulationObject {
     const ray = new THREE.Ray(origin, direction);
     const tempHit = new THREE.Vector3();
 
-    for (let i = 0; i < this.numCubes; i++) {
+    for (let i = 0; i < this.instanceCount; i++) {
       this.bounds.set(
         this.positions[i].clone().sub(this.halfSize),
         this.positions[i].clone().add(this.halfSize)
@@ -221,7 +241,7 @@ export class CubeObject implements SimulationObject {
       );
     } else {
       // Fallback/Update bounds for all cubes simultaneously (e.g. pool resizing)
-      for (let i = 0; i < this.numCubes; i++) {
+      for (let i = 0; i < this.instanceCount; i++) {
         clampAndMoveObject(
           this.positions[i],
           delta,
@@ -254,7 +274,7 @@ export class CubeObject implements SimulationObject {
     const tempScale = new THREE.Vector3(this.halfSize.x * 2.0, this.halfSize.y * 2.0, this.halfSize.z * 2.0);
     const tempRotation = new THREE.Quaternion();
 
-    for (let i = 0; i < this.numCubes; i++) {
+    for (let i = 0; i < this.instanceCount; i++) {
       tempMatrix.compose(this.positions[i], tempRotation, tempScale);
       this.mesh.setMatrixAt(i, tempMatrix);
     }

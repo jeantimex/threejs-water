@@ -67,6 +67,19 @@ export class WaterApp {
     // Setup dat.GUI/lil-gui controller callbacks
     this.controls = new SimulationControls(this.objects.options, {
       onObjectChange: this.selectSimulationObject,
+      onInstanceCountChange: (count) => {
+        if (this.objects.active) {
+          this.objects.active.instanceCount = count;
+          this.objects.active.setEnabled(true, this.water);
+          this.renderer.setWaterOptics(this.objects.optics);
+          this.water.updateNormals(
+            this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolWidth,
+            this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength
+          );
+          this.renderer.updateCaustics(this.water);
+          if (this.controls.paused) this.draw();
+        }
+      },
       onPausedChange: (paused) => {
         if (paused) this.draw();
       },
@@ -333,7 +346,7 @@ export class WaterApp {
     const poolLength = this.controls.poolShape === 'Box' ? 1.0 : this.controls.poolLength;
 
     // Switch object in registry and clamp its position
-    this.objects.select(name, this.water, poolWidth, poolHeight, poolLength);
+    this.objects.select(name, this.water, this.controls.instanceCount, poolWidth, poolHeight, poolLength);
     this.renderer.setWaterOptics(this.objects.optics);
 
     this.interaction.cancelDrag();

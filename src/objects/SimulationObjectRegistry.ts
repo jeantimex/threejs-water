@@ -18,8 +18,10 @@ export class SimulationObjectRegistry {
   // The currently active object in the simulation
   private activeObject: SimulationObject | null = null;
   // Holds the coordinate position shared across objects, so when you switch
-  // from Sphere to Cube, the Cube spawns where the Sphere was.
+  // from Sphere to Cube, the Cube spawns where the Sphere was (fallback).
   private readonly sharedPosition = new THREE.Vector3();
+  // Holds the coordinate positions of all instances shared across objects.
+  private readonly sharedPositions: THREE.Vector3[] = Array.from({ length: 10 }, () => new THREE.Vector3());
 
   constructor(private readonly scene: THREE.Scene) {}
 
@@ -39,6 +41,9 @@ export class SimulationObjectRegistry {
     if (active) {
       this.activeObject = object;
       this.sharedPosition.copy(object.position);
+      for (let i = 0; i < object.positions.length; i++) {
+        this.sharedPositions[i].copy(object.positions[i]);
+      }
     }
     return this;
   }
@@ -71,7 +76,7 @@ export class SimulationObjectRegistry {
    * restores the shared position coordinates, clamps it to the pool bounds to prevent clipping,
    * and triggers the entrance displacement waves.
    */
-  select(name: string, water: Water, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
+  select(name: string, water: Water, instanceCount: number, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
     const nextObject = name === NO_OBJECT ? null : this.objects.get(name);
     if (name !== NO_OBJECT && !nextObject) {
       throw new Error(`Unknown simulation object "${name}"`);
@@ -81,19 +86,29 @@ export class SimulationObjectRegistry {
     // 1. Deactivate old object and save its position
     if (this.activeObject) {
       this.sharedPosition.copy(this.activeObject.position);
+      for (let i = 0; i < this.activeObject.positions.length; i++) {
+        this.sharedPositions[i].copy(this.activeObject.positions[i]);
+      }
       this.activeObject.setEnabled(false, water);
     }
 
     // 2. Activate new object
     this.activeObject = nextObject ?? null;
     if (this.activeObject) {
+      this.activeObject.instanceCount = instanceCount;
+      // Copy sharedPositions back to the new active object's positions
+      for (let i = 0; i < this.activeObject.positions.length; i++) {
+        this.activeObject.positions[i].copy(this.sharedPositions[i]);
+      }
       // Restore coordinates
       this.activeObject.position.copy(this.sharedPosition);
       // Clamping: Ensure the new object is not below the pool base
-      this.activeObject.position.y = Math.max(
-        this.activeObject.position.y,
-        this.activeObject.floorY(poolHeight)
-      );
+      for (let i = 0; i < this.activeObject.positions.length; i++) {
+        this.activeObject.positions[i].y = Math.max(
+          this.activeObject.positions[i].y,
+          this.activeObject.floorY(poolHeight)
+        );
+      }
       // Clamp within current pool dimensions
       this.activeObject.moveBy(new THREE.Vector3(0, 0, 0), poolWidth, poolHeight, poolLength);
       // Enable object, triggering splash displacement
