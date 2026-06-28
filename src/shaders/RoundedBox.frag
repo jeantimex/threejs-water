@@ -34,8 +34,10 @@ uniform vec3 sphereCenters[MAX_SPHERES];
 uniform float sphereRadii[MAX_SPHERES];
 uniform int sphereCount;
 uniform bool sphereEnabled;
-uniform vec3 cubeCenter;
-uniform vec3 cubeHalfSize;
+#define MAX_CUBES 10
+uniform vec3 cubeCenters[MAX_CUBES];
+uniform vec3 cubeHalfSizes[MAX_CUBES];
+uniform int cubeCount;
 uniform bool cubeEnabled;
 uniform vec3 torusKnotCenter;
 uniform bool torusKnotEnabled;
@@ -323,8 +325,11 @@ vec3 getWallColor(vec3 point) {
       scale *= 1.0 - 0.6 / pow(max(length(point - sphereCenters[i]) / sphereRadii[i], 1.0), 4.0);
     }
   } else if (cubeEnabled) {
-    float cubeDistance = length((point - cubeCenter) / cubeHalfSize);
-    scale *= 1.0 - 0.6 / pow(max(cubeDistance, 1.0), 4.0);
+    for (int i = 0; i < MAX_CUBES; i++) {
+      if (i >= cubeCount) break;
+      float cubeDistance = length((point - cubeCenters[i]) / cubeHalfSizes[i]);
+      scale *= 1.0 - 0.6 / pow(max(cubeDistance, 1.0), 4.0);
+    }
   } else if (torusKnotEnabled) {
     float knotDistance = length(point - torusKnotCenter);
     scale *= 1.0 - 0.6 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);

@@ -30,10 +30,16 @@ export type WaterOpticsDescriptor =
   /** Represents a box/cuboid optical physical shape in the water. */
   | {
       kind: 'box';
-      /** The world space center position of the box. */
+      /** The world space center position of the box (fallback). */
       center: THREE.Vector3;
-      /** The half-extents of the box in the x, y, and z dimensions. */
+      /** The half-extents of the box in the x, y, and z dimensions (fallback). */
       halfSize: THREE.Vector3;
+      /** Array of centers of all boxes. */
+      centers: THREE.Vector3[];
+      /** Array of halfSizes of all boxes. */
+      halfSizes: THREE.Vector3[];
+      /** The number of boxes. */
+      count: number;
     }
   /** Represents a torus knot optical physical shape in the water. */
   | {

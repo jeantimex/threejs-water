@@ -25,8 +25,10 @@ uniform vec3 sphereCenters[MAX_SPHERES];
 uniform float sphereRadii[MAX_SPHERES];
 uniform int sphereCount;
 uniform bool sphereEnabled; // Whether sphere is active in the scene
-uniform vec3 cubeCenter; // World-space center of the cube object
-uniform vec3 cubeHalfSize; // Half-extents (width/2, height/2, depth/2) of the cube
+#define MAX_CUBES 10
+uniform vec3 cubeCenters[MAX_CUBES];
+uniform vec3 cubeHalfSizes[MAX_CUBES];
+uniform int cubeCount;
 uniform bool cubeEnabled; // Whether cube is active in the scene
 uniform vec3 torusKnotCenter; // World-space center of the torus knot
 uniform bool torusKnotEnabled; // Whether torus knot is active in the scene
@@ -76,8 +78,8 @@ vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
 /**
  * Returns 1.0 if the ray intersects the cube object, otherwise 0.0.
  */
-float cubeOcclusion(vec3 origin, vec3 direction) {
-  vec2 hit = intersectCube(origin, direction, cubeCenter - cubeHalfSize, cubeCenter + cubeHalfSize);
+float cubeOcclusion(vec3 origin, vec3 direction, vec3 center, vec3 halfSize) {
+  vec2 hit = intersectCube(origin, direction, center - halfSize, center + halfSize);
   return step(0.0, hit.y) * step(hit.x, hit.y);
 }
 
@@ -352,35 +354,40 @@ void main() {
 
   } else if (cubeEnabled) {
     /**
- * * MULTI-SAMPLE CUBE SOFT SHADOW (3x3 = 9 samples)
- *      *
- *      * For boxes, we can't easily compute analytical soft shadows due to the
- *      * sharp corners. Instead, we use stochastic sampling:
- *      *
- *      * 1. Create an orthonormal basis perpendicular to the light direction
- *      * 2. Sample 9 points in a grid pattern around the surface point
- *      * 3. Test each sample ray against the cube
- *      * 4. Average results for soft shadow approximation
- *      *
- *      * This is essentially a simple form of Percentage Closer Soft Shadows (PCSS).
- */
+     * * MULTI-SAMPLE CUBE SOFT SHADOW (3x3 = 9 samples)
+     *      *
+     *      * For boxes, we can't easily compute analytical soft shadows due to the
+     *      * sharp corners. Instead, we use stochastic sampling:
+     *      *
+     *      * 1. Create an orthonormal basis perpendicular to the light direction
+     *      * 2. Sample 9 points in a grid pattern around the surface point
+     *      * 3. Test each sample ray against the cube
+     *      * 4. Average results for soft shadow approximation
+     *      *
+     *      * This is essentially a simple form of Percentage Closer Soft Shadows (PCSS).
+     */
     vec3 shadowRay = -refractedLight; // Direction toward light
 
     // Build orthonormal basis for sampling plane perpendicular to light
     vec3 right = normalize(cross(shadowRay, vec3(0.0, 1.0, 0.0)));
     vec3 up = normalize(cross(right, shadowRay));
 
-    float occlusion = 0.0;
+    float shadowAccum = 1.0;
     const float spread = 0.025; // Sampling spread (controls penumbra width)
 
-    // 3x3 grid of samples
-    for (int x = -1; x <= 1; x++) {
-      for (int y = -1; y <= 1; y++) {
-        vec3 sampleOrigin = newPos + right * float(x) * spread + up * float(y) * spread;
-        occlusion += cubeOcclusion(sampleOrigin, shadowRay);
+    for (int i = 0; i < MAX_CUBES; i++) {
+      if (i >= cubeCount) break;
+      float occlusion = 0.0;
+      // 3x3 grid of samples
+      for (int x = -1; x <= 1; x++) {
+        for (int y = -1; y <= 1; y++) {
+          vec3 sampleOrigin = newPos + right * float(x) * spread + up * float(y) * spread;
+          occlusion += cubeOcclusion(sampleOrigin, shadowRay, cubeCenters[i], cubeHalfSizes[i]);
+        }
       }
+      shadowAccum *= (1.0 - occlusion / 9.0);
     }
-    gl_FragColor.g = 1.0 - occlusion / 9.0; // Average: 0/9=fully lit, 9/9=fully shadowed
+    gl_FragColor.g = shadowAccum;
 
   } else if (torusKnotEnabled || meshEnabled) {
     /**

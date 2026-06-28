@@ -29,8 +29,10 @@ uniform vec3 sphereCenters[MAX_SPHERES];
 uniform float sphereRadii[MAX_SPHERES];
 uniform int sphereCount;
 uniform bool sphereEnabled;
-uniform vec3 cubeCenter;
-uniform vec3 cubeHalfSize;
+#define MAX_CUBES 10
+uniform vec3 cubeCenters[MAX_CUBES];
+uniform vec3 cubeHalfSizes[MAX_CUBES];
+uniform int cubeCount;
 uniform bool cubeEnabled;
 uniform vec3 torusKnotCenter;
 uniform bool torusKnotEnabled;
@@ -194,8 +196,8 @@ vec2 intersectCube(vec3 origin, vec3 r, vec3 cubeMin, vec3 cubeMax) {
 /**
  * Checks if a shadow ray intersects the cube obstacle.
  */
-float cubeOcclusion(vec3 origin, vec3 direction) {
-  vec2 hit = intersectCube(origin, direction, cubeCenter - cubeHalfSize, cubeCenter + cubeHalfSize);
+float cubeOcclusion(vec3 origin, vec3 direction, vec3 center, vec3 halfSize) {
+  vec2 hit = intersectCube(origin, direction, center - halfSize, center + halfSize);
   return step(0.0, hit.y) * step(hit.x, hit.y);
 }
 
@@ -334,16 +336,22 @@ void main() {
     vec3 shadowRay = -refractedLight;
     vec3 right = normalize(cross(shadowRay, vec3(0.0, 1.0, 0.0)));
     vec3 up = normalize(cross(right, shadowRay));
-    float occlusion = 0.0;
+
+    float shadowAccum = 1.0;
     const float spread = 0.025;
 
-    for (int x = -1; x <= 1; x++) {
-      for (int y = -1; y <= 1; y++) {
-        vec3 sampleOrigin = newPos + right * float(x) * spread + up * float(y) * spread;
-        occlusion += cubeOcclusion(sampleOrigin, shadowRay);
+    for (int i = 0; i < MAX_CUBES; i++) {
+      if (i >= cubeCount) break;
+      float occlusion = 0.0;
+      for (int x = -1; x <= 1; x++) {
+        for (int y = -1; y <= 1; y++) {
+          vec3 sampleOrigin = newPos + right * float(x) * spread + up * float(y) * spread;
+          occlusion += cubeOcclusion(sampleOrigin, shadowRay, cubeCenters[i], cubeHalfSizes[i]);
+        }
       }
+      shadowAccum *= (1.0 - occlusion / 9.0);
     }
-    gl_FragColor.g = 1.0 - occlusion / 9.0;
+    gl_FragColor.g = shadowAccum;
   } else if (torusKnotEnabled || meshEnabled) {
     // PCF (Percentage Closer Filtering) 3x3 shadow sampling for the custom mesh/Torus Knot
     vec2 shadowUV =

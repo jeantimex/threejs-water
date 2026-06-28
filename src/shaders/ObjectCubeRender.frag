@@ -28,8 +28,8 @@ uniform float poolLength;
 uniform float poolHeight;
 
 // Cube dimensions
-uniform vec3 cubeCenter;
-uniform vec3 cubeHalfSize;
+varying vec3 vCubeCenter;
+varying vec3 vCubeHalfSize;
 
 // Simulation textures
 uniform sampler2D water; // Wave heightmap (R = height)
@@ -52,11 +52,11 @@ void main() {
 
   // Approximate ambient occlusion (shadowing) as the cube gets close to the pool walls/floor:
   // - X-walls:
-  color *= 1.0 - aoStrength / pow((poolWidth + cubeHalfSize.x - abs(vPosition.x)) / cubeHalfSize.x, 3.0);
+  color *= 1.0 - aoStrength / pow((poolWidth + vCubeHalfSize.x - abs(vPosition.x)) / vCubeHalfSize.x, 3.0);
   // - Z-walls:
-  color *= 1.0 - aoStrength / pow((poolLength + cubeHalfSize.z - abs(vPosition.z)) / cubeHalfSize.z, 3.0);
+  color *= 1.0 - aoStrength / pow((poolLength + vCubeHalfSize.z - abs(vPosition.z)) / vCubeHalfSize.z, 3.0);
   // - Floor Y-wall:
-  color *= 1.0 - aoStrength / pow((vPosition.y + poolHeight + cubeHalfSize.y) / cubeHalfSize.y, 3.0);
+  color *= 1.0 - aoStrength / pow((vPosition.y + poolHeight + vCubeHalfSize.y) / vCubeHalfSize.y, 3.0);
 
   // Compute standard diffuse shading relative to the refracted light direction
   float diffuse = max(0.0, dot(-refractedLight, normalize(vNormal))) * 0.5;

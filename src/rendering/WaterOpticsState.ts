@@ -29,10 +29,16 @@ export class WaterOpticsState {
   /** Whether the sphere obstacle is currently enabled. */
   sphereEnabled = false;
 
-  /** The center coordinate of the cube/box obstacle. */
+  /** The center coordinate of the cube/box obstacle (fallback). */
   readonly cubeCenter = new THREE.Vector3();
-  /** The half-extents of the cube/box obstacle. */
+  /** The half-extents of the cube/box obstacle (fallback). */
   readonly cubeHalfSize = new THREE.Vector3(0.25, 0.25, 0.25);
+  /** The centers of the instanced cubes. */
+  readonly cubeCenters: THREE.Vector3[] = Array.from({ length: 10 }, () => new THREE.Vector3());
+  /** The halfSizes of the instanced cubes. */
+  readonly cubeHalfSizes: THREE.Vector3[] = Array.from({ length: 10 }, () => new THREE.Vector3(0.25, 0.25, 0.25));
+  /** The number of active cubes. */
+  cubeCount = 0;
   /** Whether the cube/box obstacle is currently enabled. */
   cubeEnabled = false;
 
@@ -74,8 +80,15 @@ export class WaterOpticsState {
       }
       this.sphereEnabled = true;
     } else if (optics.kind === 'box') {
-      this.cubeCenter.copy(optics.center);
-      this.cubeHalfSize.copy(optics.halfSize);
+      this.cubeCount = optics.count;
+      for (let i = 0; i < optics.count; i++) {
+        this.cubeCenters[i].copy(optics.centers[i]);
+        this.cubeHalfSizes[i].copy(optics.halfSizes[i]);
+      }
+      if (optics.count > 0) {
+        this.cubeCenter.copy(optics.centers[0]);
+        this.cubeHalfSize.copy(optics.halfSizes[0]);
+      }
       this.cubeEnabled = true;
     } else if (optics.kind === 'torusknot') {
       this.torusKnotCenter.copy(optics.center);
@@ -104,6 +117,9 @@ export class WaterOpticsState {
       sphereEnabled: { value: this.sphereEnabled },
       cubeCenter: { value: this.cubeCenter.clone() },
       cubeHalfSize: { value: this.cubeHalfSize.clone() },
+      cubeCenters: { value: this.cubeCenters.map(c => c.clone()) },
+      cubeHalfSizes: { value: this.cubeHalfSizes.map(h => h.clone()) },
+      cubeCount: { value: this.cubeCount },
       cubeEnabled: { value: this.cubeEnabled },
       torusKnotCenter: { value: this.torusKnotCenter.clone() },
       torusKnotEnabled: { value: this.torusKnotEnabled },
@@ -142,6 +158,13 @@ export class WaterOpticsState {
     }
     if (material.uniforms.cubeHalfSize) {
       material.uniforms.cubeHalfSize.value.copy(this.cubeHalfSize);
+    }
+    if (material.uniforms.cubeCenters) {
+      for (let i = 0; i < this.cubeCount; i++) {
+        material.uniforms.cubeCenters.value[i].copy(this.cubeCenters[i]);
+        material.uniforms.cubeHalfSizes.value[i].copy(this.cubeHalfSizes[i]);
+      }
+      material.uniforms.cubeCount.value = this.cubeCount;
     }
     if (material.uniforms.cubeEnabled) {
       material.uniforms.cubeEnabled.value = this.cubeEnabled;

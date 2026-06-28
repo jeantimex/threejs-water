@@ -13,8 +13,10 @@ uniform vec3 sphereCenters[MAX_SPHERES];
 uniform float sphereRadii[MAX_SPHERES];
 uniform int sphereCount;
 uniform bool sphereEnabled;
-uniform vec3 cubeCenter;
-uniform vec3 cubeHalfSize;
+#define MAX_CUBES 10
+uniform vec3 cubeCenters[MAX_CUBES];
+uniform vec3 cubeHalfSizes[MAX_CUBES];
+uniform int cubeCount;
 uniform bool cubeEnabled;
 uniform vec3 torusKnotCenter;
 uniform bool torusKnotEnabled;
@@ -179,8 +181,8 @@ vec3 getSphereColor(vec3 point, vec3 center, float radius) {
 /**
  * Calculates shading color on the cube.
  */
-vec3 getCubeColor(vec3 point) {
-  vec3 local = (point - cubeCenter) / cubeHalfSize;
+vec3 getCubeColor(vec3 point, vec3 center, vec3 halfSize) {
+  vec3 local = (point - center) / halfSize;
   vec3 axis = abs(local);
   vec3 cubeNormal;
   if (axis.x > axis.y && axis.x > axis.z) {
@@ -249,8 +251,11 @@ vec3 getWallColor(vec3 point) {
       scale *= 1.0 - 0.6 / pow(max(length(point - sphereCenters[i]) / sphereRadii[i], 1.0), 4.0);
     }
   } else if (cubeEnabled) {
-    float cubeDistance = length((point - cubeCenter) / cubeHalfSize);
-    scale *= 1.0 - 0.6 / pow(max(cubeDistance, 1.0), 4.0);
+    for (int i = 0; i < MAX_CUBES; i++) {
+      if (i >= cubeCount) break;
+      float cubeDistance = length((point - cubeCenters[i]) / cubeHalfSizes[i]);
+      scale *= 1.0 - 0.6 / pow(max(cubeDistance, 1.0), 4.0);
+    }
   } else if (torusKnotEnabled) {
     float knotDistance = length(point - torusKnotCenter);
     scale *= 1.0 - 0.6 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
@@ -336,21 +341,31 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
       }
     }
   }
-  vec2 cubeIntersection = intersectCube(
-    origin,
-    ray,
-    cubeCenter - cubeHalfSize,
-    cubeCenter + cubeHalfSize
-  );
-  bool cubeHit =
-    cubeEnabled && cubeIntersection.x <= cubeIntersection.y && cubeIntersection.y > 0.0;
-  float cubeDistance = cubeHit
-    ? cubeIntersection.x > 0.0
-      ? cubeIntersection.x
-      : cubeIntersection.y > 0.0
-        ? cubeIntersection.y
-        : 1.0e6
-    : 1.0e6;
+  int hitCubeIndex = -1;
+  float cubeDistance = 1.0e6;
+  if (cubeEnabled) {
+    for (int i = 0; i < MAX_CUBES; i++) {
+      if (i >= cubeCount) break;
+      vec2 cubeIntersection = intersectCube(
+        origin,
+        ray,
+        cubeCenters[i] - cubeHalfSizes[i],
+        cubeCenters[i] + cubeHalfSizes[i]
+      );
+      bool cubeHit = cubeIntersection.x <= cubeIntersection.y && cubeIntersection.y > 0.0;
+      float d = cubeHit
+        ? cubeIntersection.x > 0.0
+          ? cubeIntersection.x
+          : cubeIntersection.y > 0.0
+            ? cubeIntersection.y
+            : 1.0e6
+        : 1.0e6;
+      if (d < cubeDistance) {
+        cubeDistance = d;
+        hitCubeIndex = i;
+      }
+    }
+  }
   float torusKnotDistance =
     torusKnotEnabled && ray.y > 0.0
       ? intersectTorusKnot(origin, ray, torusKnotCenter)
@@ -362,7 +377,7 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
     if (objectDistance == sphereDistance) {
       color = getSphereColor(hit, sphereCenters[hitSphereIndex], sphereRadii[hitSphereIndex]);
     } else if (objectDistance == cubeDistance) {
-      color = getCubeColor(hit);
+      color = getCubeColor(hit, cubeCenters[hitCubeIndex], cubeHalfSizes[hitCubeIndex]);
     } else {
       color = getTorusKnotColor(hit);
     }
