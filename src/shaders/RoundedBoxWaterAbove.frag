@@ -668,7 +668,7 @@ void main() {
     }
     if (nearestIndex != -1) {
       vec4 reflectedObject = sampleProjectedTexture(
-        objectReflectionTex,
+        objectClippedReflectionTex,
         reflectionViewProjectionMatrix,
         vPosition + reflectedRay * nearestHit
       );

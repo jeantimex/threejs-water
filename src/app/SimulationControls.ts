@@ -121,14 +121,84 @@ export class SimulationControls {
         this.density = density;
       });
 
-    // Slider for controlling instance count (0 to 5)
-    objectFolder
-      .add(this.state, 'instanceCount', 0, 5, 1)
+    // Stepper for controlling instance count (0 to 5)
+    const controller = objectFolder
+      .add(this.state, 'instanceCount')
       .name('Instance Count')
       .onChange((count: number) => {
-        this.instanceCount = count;
-        callbacks.onInstanceCountChange?.(count);
+        // Clamp and sanitize input
+        const sanitized = Math.max(0, Math.min(5, Math.round(count)));
+        this.state.instanceCount = sanitized;
+        this.instanceCount = sanitized;
+        controller.updateDisplay();
+        callbacks.onInstanceCountChange?.(sanitized);
       });
+
+    // Inject stepper buttons into the lil-gui widget element
+    const widget = controller.domElement.querySelector('.lil-widget, .widget');
+    if (widget) {
+      const input = widget.querySelector('input') as HTMLInputElement;
+      if (input) {
+        input.style.textAlign = 'center';
+        input.style.width = '32px';
+        input.style.flex = 'none';
+        input.style.padding = '0';
+        input.style.margin = '0';
+        input.style.borderRadius = '0';
+
+        // Decrement button
+        const decBtn = document.createElement('button');
+        decBtn.textContent = '−';
+        decBtn.style.width = '20px';
+        decBtn.style.height = '20px';
+        decBtn.style.border = 'none';
+        decBtn.style.background = '#444';
+        decBtn.style.color = '#fff';
+        decBtn.style.fontSize = '12px';
+        decBtn.style.fontWeight = 'bold';
+        decBtn.style.cursor = 'pointer';
+        decBtn.style.borderRadius = '3px 0 0 3px';
+        decBtn.style.marginRight = '1px';
+        decBtn.style.display = 'flex';
+        decBtn.style.alignItems = 'center';
+        decBtn.style.justifyContent = 'center';
+        decBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const val = Math.max(0, this.state.instanceCount - 1);
+          controller.setValue(val);
+        });
+
+        // Increment button
+        const incBtn = document.createElement('button');
+        incBtn.textContent = '+';
+        incBtn.style.width = '20px';
+        incBtn.style.height = '20px';
+        incBtn.style.border = 'none';
+        incBtn.style.background = '#444';
+        incBtn.style.color = '#fff';
+        incBtn.style.fontSize = '12px';
+        incBtn.style.fontWeight = 'bold';
+        incBtn.style.cursor = 'pointer';
+        incBtn.style.borderRadius = '0 3px 3px 0';
+        incBtn.style.marginLeft = '1px';
+        incBtn.style.display = 'flex';
+        incBtn.style.alignItems = 'center';
+        incBtn.style.justifyContent = 'center';
+        incBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const val = Math.min(5, this.state.instanceCount + 1);
+          controller.setValue(val);
+        });
+
+        widget.insertBefore(decBtn, input);
+        widget.appendChild(incBtn);
+
+        // Align widget children nicely
+        (widget as HTMLElement).style.display = 'flex';
+        (widget as HTMLElement).style.alignItems = 'center';
+        (widget as HTMLElement).style.justifyContent = 'flex-end';
+      }
+    }
 
     // --- Pool Shape Controls Group ---
     const poolFolder = gui.addFolder('Pool');
