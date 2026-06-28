@@ -91,6 +91,10 @@ export class TorusKnotObject implements SimulationObject {
     // Construct TorusKnot geometry
     const geometry = new THREE.TorusKnotGeometry(0.17, 0.045, 64, 8);
     geometry.rotateX(Math.PI / 2); // Orient it flat with the water surface
+    
+    // Expand bounds to cover the entire pool so InstancedMesh raycasting / culling succeeds
+    geometry.boundingBox = new THREE.Box3(new THREE.Vector3(-2, -2, -2), new THREE.Vector3(2, 2, 2));
+    geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 4.0);
 
     // InstancedMesh setup
     this.mesh = new THREE.InstancedMesh(geometry, this.material, this.maxTorusKnots);
