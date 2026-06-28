@@ -42,7 +42,9 @@ uniform bool cubeEnabled;
 uniform vec3 torusKnotCenters[MAX_TORUS_KNOTS];
 uniform int torusKnotCount;
 uniform bool torusKnotEnabled;
-uniform vec3 meshCenter;
+#define MAX_MESHES 10
+uniform vec3 meshCenters[MAX_MESHES];
+uniform int meshCount;
 uniform float meshBoundingRadius;
 uniform float meshShadowRadius;
 uniform bool meshEnabled;
@@ -439,8 +441,11 @@ vec3 getWallColor(vec3 point) {
       scale *= 1.0 - 0.6 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
     }
   } else if (meshEnabled) {
-    float meshDistance = length(point - meshCenter);
-    scale *= 1.0 - 0.6 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
+    for (int i = 0; i < MAX_MESHES; i++) {
+      if (i >= meshCount) break;
+      float meshDistance = length(point - meshCenters[i]);
+      scale *= 1.0 - 0.6 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
+    }
   }
 
   vec3 refractedLight = -refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
@@ -644,20 +649,43 @@ void main() {
     reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
     refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
   } else if (meshEnabled) {
-    vec4 reflectedObject = sampleObjectReflection(
-      vPosition,
-      reflectedRay,
-      meshCenter,
-      meshBoundingRadius
-    );
-    vec4 refractedObject = sampleObjectRefraction(
-      vPosition,
-      refractedRay,
-      meshCenter,
-      meshBoundingRadius
-    );
-    reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
-    refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
+    float nearestHit = 1.0e6;
+    int nearestIndex = -1;
+    for (int i = 0; i < MAX_MESHES; i++) {
+      if (i >= meshCount) break;
+      float hit = intersectSphereBounds(vPosition, refractedRay, meshCenters[i], meshBoundingRadius);
+      if (hit < nearestHit) {
+        nearestHit = hit;
+        nearestIndex = i;
+      }
+    }
+    if (nearestIndex != -1) {
+      vec4 refractedObject = sampleProjectedTexture(
+        objectRefractionTex,
+        viewProjectionMatrix,
+        vPosition + refractedRay * nearestHit
+      );
+      refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
+    }
+
+    nearestHit = 1.0e6;
+    nearestIndex = -1;
+    for (int i = 0; i < MAX_MESHES; i++) {
+      if (i >= meshCount) break;
+      float hit = intersectSphereBounds(vPosition, reflectedRay, meshCenters[i], meshBoundingRadius);
+      if (hit < nearestHit) {
+        nearestHit = hit;
+        nearestIndex = i;
+      }
+    }
+    if (nearestIndex != -1) {
+      vec4 reflectedObject = sampleProjectedTexture(
+        objectReflectionTex,
+        reflectionViewProjectionMatrix,
+        vPosition + reflectedRay * nearestHit
+      );
+      reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
+    }
   }
 
   gl_FragColor = vec4(

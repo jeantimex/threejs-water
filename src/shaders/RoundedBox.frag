@@ -43,7 +43,9 @@ uniform bool cubeEnabled;
 uniform vec3 torusKnotCenters[MAX_TORUS_KNOTS];
 uniform int torusKnotCount;
 uniform bool torusKnotEnabled;
-uniform vec3 meshCenter;
+#define MAX_MESHES 10
+uniform vec3 meshCenters[MAX_MESHES];
+uniform int meshCount;
 uniform float meshBoundingRadius;
 uniform float meshShadowRadius;
 uniform bool meshEnabled;
@@ -339,8 +341,11 @@ vec3 getWallColor(vec3 point) {
       scale *= 1.0 - 0.6 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
     }
   } else if (meshEnabled) {
-    float meshDistance = length(point - meshCenter);
-    scale *= 1.0 - 0.6 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
+    for (int i = 0; i < MAX_MESHES; i++) {
+      if (i >= meshCount) break;
+      float meshDistance = length(point - meshCenters[i]);
+      scale *= 1.0 - 0.6 / pow(max(meshDistance / meshShadowRadius, 1.0), 4.0);
+    }
   }
 
   // 3. Compute refracted light vector inside pool

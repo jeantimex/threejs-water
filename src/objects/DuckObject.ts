@@ -12,10 +12,9 @@ import type { ObjectUpdateContext, SimulationObject } from './SimulationObject';
 import { clampAndMoveObject, updatePhysics } from './SimulationObjectUtils';
 
 /**
- * Represents the Rubber Duck obstacle in the water simulation.
- * Implements SimulationObject. Unlike the primitive geometric shapes, this object's 3D mesh
- * is loaded asynchronously from an external glTF asset. Its complex physical volume is approximated
- * by 3 overlapping displacement spheres for fluid heightmap interactions.
+ * Represents multiple instanced Rubber Duck obstacles in the water simulation.
+ * Implements SimulationObject. Loads an external glTF asset asynchronously and renders
+ * multiple instances via THREE.InstancedMesh.
  */
 export class DuckObject implements SimulationObject {
   readonly name = 'Rubber Duck';
@@ -23,9 +22,19 @@ export class DuckObject implements SimulationObject {
   readonly boundingRadius = 0.25;
   // Height clearance threshold to sit properly on the bottom
   readonly floorClearance = 0.265;
-  // Default position
+  // Default position of the primary duck
   readonly position = new THREE.Vector3(0.4, this.floorClearance - 1, -0.2);
   readonly velocity = new THREE.Vector3();
+
+  // Number of ducks to render and simulate
+  readonly numDucks = 5;
+
+  // Arrays holding physical properties for all instanced ducks
+  readonly positions: THREE.Vector3[];
+  readonly velocities: THREE.Vector3[];
+  private readonly previousPositions: THREE.Vector3[];
+
+  private draggedInstanceIndex: number | null = null;
 
   /**
    * Returns the minimum Y center coordinate when the duck rests on the pool floor.
@@ -36,24 +45,39 @@ export class DuckObject implements SimulationObject {
 
   // Displacement strategy mapping multiple overlapping spheres to water heightmap adjustments
   readonly displacement: CompoundSphereWaterDisplacement;
+  
   // Optics description for raytracing reflections/refractions in the water shader
-  readonly optics = {
-    kind: 'mesh' as const,
-    center: this.position,
-    boundingRadius: this.boundingRadius,
-  };
+  get optics() {
+    return {
+      kind: 'mesh' as const,
+      center: this.position,
+      boundingRadius: this.boundingRadius,
+      centers: this.positions,
+      count: this.numDucks,
+    };
+  }
 
   readonly mesh: THREE.Group;
+  private instancedMesh: THREE.InstancedMesh | null = null;
   enabled = false;
 
-  private readonly previousPosition = this.position.clone();
   private material: THREE.ShaderMaterial | null = null;
   private loaded = false;
+  private baseMatrix = new THREE.Matrix4();
 
   constructor(private readonly resources: SimulationObjectRenderResources) {
     this.mesh = new THREE.Group();
     this.mesh.frustumCulled = false;
     this.mesh.visible = false;
+
+    // Initialize arrays; first element references this.position and this.velocity directly
+    this.positions = Array.from({ length: this.numDucks }, (_, i) =>
+      i === 0 ? this.position : this.position.clone()
+    );
+    this.velocities = Array.from({ length: this.numDucks }, (_, i) =>
+      i === 0 ? this.velocity : this.velocity.clone()
+    );
+    this.previousPositions = this.positions.map((p) => p.clone());
 
     // Approximate the duck's volume with 3 overlapping spheres (torso, head, tail)
     this.displacement = new CompoundSphereWaterDisplacement(
@@ -112,14 +136,24 @@ export class DuckObject implements SimulationObject {
         depthWrite: true,
       });
 
+      // Ensure local and world matrices of GLTF nodes are fully computed
+      duckScene.updateMatrixWorld(true);
+
+      let duckGeometry: THREE.BufferGeometry | null = null;
+      let localMatrix = new THREE.Matrix4();
+
       duckScene.traverse((child) => {
         if (child instanceof THREE.Mesh) {
-          child.material = this.material!;
-          child.frustumCulled = false;
+          duckGeometry = child.geometry;
+          localMatrix.copy(child.matrixWorld);
         }
       });
 
-      // Normalize size and center pivot
+      if (!duckGeometry) {
+        throw new Error('No mesh found in Duck glTF model');
+      }
+
+      // Calculate normalization scale and centering offset
       const box = new THREE.Box3().setFromObject(duckScene);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
@@ -128,47 +162,78 @@ export class DuckObject implements SimulationObject {
       const targetSize = this.boundingRadius * 2;
       const scale = targetSize / maxDim;
 
-      duckScene.scale.setScalar(scale);
-      duckScene.position.sub(center.multiplyScalar(scale));
-      duckScene.position.y -= box.min.y * scale;
+      // Combine parents transformations into a single base matrix
+      this.baseMatrix.makeScale(scale, scale, scale);
+      const offsetTranslation = new THREE.Vector3()
+        .copy(center)
+        .multiplyScalar(-scale);
+      offsetTranslation.y -= box.min.y * scale;
+      this.baseMatrix.setPosition(offsetTranslation);
+      this.baseMatrix.multiply(localMatrix);
 
-      this.mesh.add(duckScene);
+      // Create InstancedMesh using the extracted geometry and custom shader material
+      this.instancedMesh = new THREE.InstancedMesh(duckGeometry, this.material, this.numDucks);
+      this.instancedMesh.frustumCulled = false;
+      this.mesh.add(this.instancedMesh);
+
       this.loaded = true;
+      this.mesh.visible = this.enabled;
     } catch (error) {
       console.error('Failed to load duck model:', error);
     }
   }
 
   /**
-   * Toggles the active state of the duck, spawning splash displacement waves.
+   * Toggles the active state of the ducks, spawning splash displacement waves.
    */
   setEnabled(enabled: boolean, water: Water) {
     if (enabled === this.enabled) return;
 
-    const inactivePosition = this.getInactivePosition();
     if (enabled) {
-      if (this.position.y <= this.floorClearance - 1) {
-        this.position.y = this.floorClearance - 1;
+      // Preset offsets for spreading out the spawned ducks around the spawn position
+      const offsets = [
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0.4, 0, 0.4),
+        new THREE.Vector3(-0.4, 0, -0.4),
+        new THREE.Vector3(0.4, 0, -0.4),
+        new THREE.Vector3(-0.4, 0, 0.4),
+      ];
+
+      for (let i = 0; i < this.numDucks; i++) {
+        const inactivePosition = this.getInactivePosition(i);
+        this.positions[i].copy(this.position).add(offsets[i]);
+
+        // Clamp inside pool bounds
+        this.positions[i].x = THREE.MathUtils.clamp(this.positions[i].x, -0.7, 0.7);
+        this.positions[i].y = Math.max(this.positions[i].y, this.floorY(1.0));
+        this.positions[i].z = THREE.MathUtils.clamp(this.positions[i].z, -0.7, 0.7);
+
+        this.velocities[i].set(0, 0, 0);
+
+        this.displacement.move(water, inactivePosition, this.positions[i]);
+        this.previousPositions[i].copy(this.positions[i]);
       }
-      this.displacement.move(water, inactivePosition, this.position);
-      this.mesh.position.copy(this.position);
     } else {
-      this.displacement.move(water, this.position, inactivePosition);
-      this.mesh.position.copy(inactivePosition);
-      this.velocity.set(0, 0, 0);
+      for (let i = 0; i < this.numDucks; i++) {
+        const inactivePosition = this.getInactivePosition(i);
+        this.displacement.move(water, this.positions[i], inactivePosition);
+        this.velocities[i].set(0, 0, 0);
+      }
+      this.draggedInstanceIndex = null;
     }
 
     this.enabled = enabled;
     this.mesh.visible = enabled && this.loaded;
-    this.previousPosition.copy(this.position);
+    this.syncPreviousPosition();
   }
 
   /**
    * Resets position history to prevent displacement spikes.
    */
   syncPreviousPosition() {
-    this.previousPosition.copy(this.position);
-    this.mesh.position.copy(this.position);
+    for (let i = 0; i < this.numDucks; i++) {
+      this.previousPositions[i].copy(this.positions[i]);
+    }
   }
 
   /**
@@ -181,24 +246,31 @@ export class DuckObject implements SimulationObject {
       this.mesh.visible = true;
     }
 
-    updatePhysics(
-      seconds,
-      this.position,
-      this.velocity,
-      context,
-      this.boundingRadius,
-      this.floorClearance
-    );
+    for (let i = 0; i < this.numDucks; i++) {
+      const isDragged = (i === this.draggedInstanceIndex && context.dragging);
+      const duckContext = {
+        ...context,
+        dragging: isDragged
+      };
 
-    this.displacement.move(
-      water,
-      this.previousPosition,
-      this.position,
-      context.poolWidth,
-      context.poolLength
-    );
-    this.previousPosition.copy(this.position);
-    this.mesh.position.copy(this.position);
+      updatePhysics(
+        seconds,
+        this.positions[i],
+        this.velocities[i],
+        duckContext,
+        this.boundingRadius,
+        this.floorClearance
+      );
+
+      this.displacement.move(
+        water,
+        this.previousPositions[i],
+        this.positions[i],
+        context.poolWidth,
+        context.poolLength
+      );
+      this.previousPositions[i].copy(this.positions[i]);
+    }
   }
 
   /**
@@ -207,39 +279,67 @@ export class DuckObject implements SimulationObject {
   hitTest(origin: THREE.Vector3, direction: THREE.Vector3): THREE.Vector3 | null {
     if (!this.enabled || !this.loaded) return null;
 
-    const toOrigin = origin.clone().sub(this.position);
-    const a = direction.lengthSq();
-    const b = 2 * toOrigin.dot(direction);
-    const c = toOrigin.lengthSq() - this.boundingRadius * this.boundingRadius;
-    const discriminant = b * b - 4 * a * c;
+    let nearestDistance = 1.0e6;
+    let hitPoint: THREE.Vector3 | null = null;
+    this.draggedInstanceIndex = null;
 
-    if (discriminant <= 0) return null;
-    const distance = (-b - Math.sqrt(discriminant)) / (2 * a);
-    return distance > 0 ? origin.clone().addScaledVector(direction, distance) : null;
+    for (let i = 0; i < this.numDucks; i++) {
+      const toOrigin = origin.clone().sub(this.positions[i]);
+      const a = direction.lengthSq();
+      const b = 2 * toOrigin.dot(direction);
+      const c = toOrigin.lengthSq() - this.boundingRadius * this.boundingRadius;
+      const discriminant = b * b - 4 * a * c;
+
+      if (discriminant > 0) {
+        const distance = (-b - Math.sqrt(discriminant)) / (2 * a);
+        if (distance > 0 && distance < nearestDistance) {
+          nearestDistance = distance;
+          hitPoint = origin.clone().addScaledVector(direction, distance);
+          this.draggedInstanceIndex = i;
+        }
+      }
+    }
+
+    return hitPoint;
   }
 
   /**
    * Translates the duck position and clamps it within the pool boundaries.
    */
   moveBy(delta: THREE.Vector3, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
-    clampAndMoveObject(
-      this.position,
-      delta,
-      poolWidth,
-      poolHeight,
-      poolLength,
-      this.boundingRadius,
-      this.boundingRadius,
-      this.floorClearance
-    );
-    this.mesh.position.copy(this.position);
+    if (this.draggedInstanceIndex !== null) {
+      clampAndMoveObject(
+        this.positions[this.draggedInstanceIndex],
+        delta,
+        poolWidth,
+        poolHeight,
+        poolLength,
+        this.boundingRadius,
+        this.boundingRadius,
+        this.floorClearance
+      );
+    } else {
+      // Fallback/Update bounds for all ducks simultaneously (e.g. pool resizing)
+      for (let i = 0; i < this.numDucks; i++) {
+        clampAndMoveObject(
+          this.positions[i],
+          delta,
+          poolWidth,
+          poolHeight,
+          poolLength,
+          this.boundingRadius,
+          this.boundingRadius,
+          this.floorClearance
+        );
+      }
+    }
   }
 
   /**
    * Pre-renders uniform values for light direction and dimensions.
    */
   prepareRender(water: Water, poolWidth = 1.0, poolHeight = 1.0, poolLength = 1.0) {
-    if (!this.material) return;
+    if (!this.material || !this.instancedMesh) return;
     this.material.uniforms.water.value = water.textureA.texture;
     this.material.uniforms.light.value.copy(this.resources.lightDirection);
     this.material.uniforms.poolWidth.value = poolWidth;
@@ -247,12 +347,24 @@ export class DuckObject implements SimulationObject {
     this.material.uniforms.poolLength.value = poolLength;
     this.material.uniforms.meshCenter.value.copy(this.position);
     this.material.uniformsNeedUpdate = true;
+
+    // Compose instance matrices
+    const tempMatrix = new THREE.Matrix4();
+    for (let i = 0; i < this.numDucks; i++) {
+      tempMatrix.makeTranslation(
+        this.positions[i].x,
+        this.positions[i].y,
+        this.positions[i].z
+      ).multiply(this.baseMatrix);
+      this.instancedMesh.setMatrixAt(i, tempMatrix);
+    }
+    this.instancedMesh.instanceMatrix.needsUpdate = true;
   }
 
   /**
-   * Returns a coordinate high in the sky (Y=10.0) where the object stays when inactive.
+   * Returns a coordinate high in the sky where the object stays when inactive.
    */
-  private getInactivePosition(): THREE.Vector3 {
-    return new THREE.Vector3(this.position.x, 10, this.position.z);
+  private getInactivePosition(index: number): THREE.Vector3 {
+    return new THREE.Vector3(this.positions[index].x, 10.0 + index * 2.0, this.positions[index].z);
   }
 }

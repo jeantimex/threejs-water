@@ -51,8 +51,12 @@ export class WaterOpticsState {
   /** Whether the torus knot obstacle is currently enabled. */
   torusKnotEnabled = false;
 
-  /** The center coordinate of the custom mesh obstacle. */
+  /** The center coordinate of the custom mesh obstacle (fallback). */
   readonly meshCenter = new THREE.Vector3();
+  /** The centers of the instanced custom meshes. */
+  readonly meshCenters: THREE.Vector3[] = Array.from({ length: 10 }, () => new THREE.Vector3());
+  /** The number of active custom meshes. */
+  meshCount = 0;
   /** Bounding radius of the mesh for physics or intersection approximation. */
   meshBoundingRadius = 0.25;
   /** Radius of the mesh used for shadow calculations. */
@@ -104,7 +108,13 @@ export class WaterOpticsState {
       }
       this.torusKnotEnabled = true;
     } else if (optics.kind === 'mesh') {
-      this.meshCenter.copy(optics.center);
+      this.meshCount = optics.count;
+      for (let i = 0; i < optics.count; i++) {
+        this.meshCenters[i].copy(optics.centers[i]);
+      }
+      if (optics.count > 0) {
+        this.meshCenter.copy(optics.centers[0]);
+      }
       this.meshBoundingRadius = optics.boundingRadius;
       this.meshShadowRadius = optics.shadowRadius ?? optics.boundingRadius;
       this.meshEnabled = true;
@@ -136,6 +146,8 @@ export class WaterOpticsState {
       torusKnotCount: { value: this.torusKnotCount },
       torusKnotEnabled: { value: this.torusKnotEnabled },
       meshCenter: { value: this.meshCenter.clone() },
+      meshCenters: { value: this.meshCenters.map(c => c.clone()) },
+      meshCount: { value: this.meshCount },
       meshBoundingRadius: { value: this.meshBoundingRadius },
       meshShadowRadius: { value: this.meshShadowRadius },
       meshEnabled: { value: this.meshEnabled },
@@ -195,6 +207,12 @@ export class WaterOpticsState {
     }
     if (material.uniforms.meshCenter) {
       material.uniforms.meshCenter.value.copy(this.meshCenter);
+    }
+    if (material.uniforms.meshCenters) {
+      for (let i = 0; i < this.meshCount; i++) {
+        material.uniforms.meshCenters.value[i].copy(this.meshCenters[i]);
+      }
+      material.uniforms.meshCount.value = this.meshCount;
     }
     if (material.uniforms.meshBoundingRadius) {
       material.uniforms.meshBoundingRadius.value = this.meshBoundingRadius;

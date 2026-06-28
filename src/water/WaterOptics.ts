@@ -54,12 +54,16 @@ export type WaterOpticsDescriptor =
   /** Represents a custom mesh optical physical shape in the water. */
   | {
       kind: 'mesh';
-      /** The world space center position of the mesh. */
+      /** The world space center position of the custom mesh (fallback). */
       center: THREE.Vector3;
-      /** The bounding radius of the mesh for physics or simple intersections. */
+      /** Bounding radius of the mesh for physics or intersection approximation. */
       boundingRadius: number;
-      /** The radius used for custom shadow calculations. Defaults to boundingRadius if not provided. */
+      /** Custom radius used for soft shadow projection (falls back to boundingRadius). */
       shadowRadius?: number;
+      /** Array of centers of all meshes. */
+      centers: THREE.Vector3[];
+      /** The number of meshes. */
+      count: number;
     };
 
 /**

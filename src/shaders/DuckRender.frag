@@ -31,8 +31,7 @@ uniform float poolWidth;
 uniform float poolLength;
 uniform float poolHeight;
 
-// Duck geometry
-uniform vec3 meshCenter;
+varying vec3 vMeshCenter;
 
 // Simulation textures
 uniform sampler2D water; // Wave heightmap (R = height)

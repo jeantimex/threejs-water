@@ -11,18 +11,16 @@
 varying vec3 vPosition; // World position for fragment shader
 varying vec3 vNormal; // World-space normal for lighting
 varying vec2 vUv; // Texture coordinates for albedo map
+varying vec3 vMeshCenter;
 
 void main() {
-  // Transform vertex position to world space
-  vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+  vec4 centerWorld = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+  vMeshCenter = centerWorld.xyz;
 
-  // Transform normal using the normal matrix (handles non-uniform scaling)
-  // normalMatrix = transpose(inverse(modelViewMatrix))
-  vNormal = normalMatrix * normal;
-
-  // Pass through texture coordinates unchanged
+  vNormal = normalize((instanceMatrix * vec4(normal, 0.0)).xyz);
   vUv = uv;
 
-  // Standard MVP transformation
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec4 worldPos = instanceMatrix * vec4(position, 1.0);
+  vPosition = worldPos.xyz;
+  gl_Position = projectionMatrix * viewMatrix * worldPos;
 }
