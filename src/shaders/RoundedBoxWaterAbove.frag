@@ -30,8 +30,10 @@ const float torusKnotShadowRadius = 0.13;
 
 // Scene uniforms
 uniform vec3 light;
-uniform vec3 sphereCenter;
-uniform float sphereRadius;
+#define MAX_SPHERES 10
+uniform vec3 sphereCenters[MAX_SPHERES];
+uniform float sphereRadii[MAX_SPHERES];
+uniform int sphereCount;
 uniform bool sphereEnabled;
 uniform vec3 cubeCenter;
 uniform vec3 cubeHalfSize;
@@ -337,13 +339,13 @@ vec3 getTorusKnotNormal(vec3 p, vec3 center) {
   return normalize(n);
 }
 
-vec3 getSphereColor(vec3 point) {
+vec3 getSphereColor(vec3 point, vec3 center, float radius) {
   vec3 color = vec3(0.5);
-  color *= 1.0 - 0.6 / pow((poolWidth + sphereRadius - abs(point.x)) / sphereRadius, 3.0);
-  color *= 1.0 - 0.6 / pow((poolLength + sphereRadius - abs(point.z)) / sphereRadius, 3.0);
-  color *= 1.0 - 0.6 / pow((point.y + poolHeight + sphereRadius) / sphereRadius, 3.0);
+  color *= 1.0 - 0.6 / pow((poolWidth + radius - abs(point.x)) / radius, 3.0);
+  color *= 1.0 - 0.6 / pow((poolLength + radius - abs(point.z)) / radius, 3.0);
+  color *= 1.0 - 0.6 / pow((point.y + poolHeight + radius) / radius, 3.0);
 
-  vec3 sphereNormal = (point - sphereCenter) / sphereRadius;
+  vec3 sphereNormal = (point - center) / radius;
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
   float diffuse = max(0.0, dot(-refractedLight, sphereNormal)) * 0.5;
   vec4 info = texture2D(water, point.xz * vec2(0.5 / poolWidth, 0.5 / poolLength) + 0.5);
@@ -419,7 +421,10 @@ vec3 getWallColor(vec3 point) {
 
   scale /= length(point);
   if (sphereEnabled) {
-    scale *= 1.0 - 0.6 / pow(max(length(point - sphereCenter) / sphereRadius, 1.0), 4.0);
+    for (int i = 0; i < MAX_SPHERES; i++) {
+      if (i >= sphereCount) break;
+      scale *= 1.0 - 0.6 / pow(max(length(point - sphereCenters[i]) / sphereRadii[i], 1.0), 4.0);
+    }
   } else if (cubeEnabled) {
     float cubeDistance = length((point - cubeCenter) / cubeHalfSize);
     scale *= 1.0 - 0.6 / pow(max(cubeDistance, 1.0), 4.0);
@@ -486,9 +491,18 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
 
   // 1. Ray-Object Intersections
-  float sphereDistance = sphereEnabled
-    ? intersectSphere(origin, ray, sphereCenter, sphereRadius)
-    : 1.0e6;
+  int hitSphereIndex = -1;
+  float sphereDistance = 1.0e6;
+  if (sphereEnabled) {
+    for (int i = 0; i < MAX_SPHERES; i++) {
+      if (i >= sphereCount) break;
+      float d = intersectSphere(origin, ray, sphereCenters[i], sphereRadii[i]);
+      if (d < sphereDistance) {
+        sphereDistance = d;
+        hitSphereIndex = i;
+      }
+    }
+  }
   vec2 cubeIntersection = intersectCube(
     origin,
     ray,
@@ -514,7 +528,7 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   if (objectDistance < 1.0e6) {
     vec3 hit = origin + ray * objectDistance;
     if (objectDistance == sphereDistance) {
-      color = getSphereColor(hit);
+      color = getSphereColor(hit, sphereCenters[hitSphereIndex], sphereRadii[hitSphereIndex]);
     } else if (objectDistance == cubeDistance) {
       color = getCubeColor(hit);
     } else {

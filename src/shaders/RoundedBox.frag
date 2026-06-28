@@ -29,8 +29,10 @@ const float torusKnotShadowRadius = 0.13;
 
 // Scene uniforms
 uniform vec3 light;
-uniform vec3 sphereCenter;
-uniform float sphereRadius;
+#define MAX_SPHERES 10
+uniform vec3 sphereCenters[MAX_SPHERES];
+uniform float sphereRadii[MAX_SPHERES];
+uniform int sphereCount;
 uniform bool sphereEnabled;
 uniform vec3 cubeCenter;
 uniform vec3 cubeHalfSize;
@@ -316,7 +318,10 @@ vec3 getWallColor(vec3 point) {
   // 2. Modulate intensity by distance and distance-field ambient occlusion from active simulation objects
   scale /= length(point);
   if (sphereEnabled) {
-    scale *= 1.0 - 0.6 / pow(max(length(point - sphereCenter) / sphereRadius, 1.0), 4.0);
+    for (int i = 0; i < MAX_SPHERES; i++) {
+      if (i >= sphereCount) break;
+      scale *= 1.0 - 0.6 / pow(max(length(point - sphereCenters[i]) / sphereRadii[i], 1.0), 4.0);
+    }
   } else if (cubeEnabled) {
     float cubeDistance = length((point - cubeCenter) / cubeHalfSize);
     scale *= 1.0 - 0.6 / pow(max(cubeDistance, 1.0), 4.0);

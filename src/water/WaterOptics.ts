@@ -16,10 +16,16 @@ export type WaterOpticsDescriptor =
   /** Represents a spherical optical physical shape in the water. */
   | {
       kind: 'sphere';
-      /** The world space center position of the sphere. */
+      /** The world space center position of the sphere (fallback). */
       center: THREE.Vector3;
-      /** The radius of the sphere. */
+      /** The radius of the sphere (fallback). */
       radius: number;
+      /** Array of centers of all spheres. */
+      centers: THREE.Vector3[];
+      /** Array of radii of all spheres. */
+      radii: number[];
+      /** The number of spheres. */
+      count: number;
     }
   /** Represents a box/cuboid optical physical shape in the water. */
   | {

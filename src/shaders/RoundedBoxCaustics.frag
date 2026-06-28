@@ -24,8 +24,10 @@ const float IOR_WATER = 1.333;
 
 // Scene object parameters
 uniform vec3 light;
-uniform vec3 sphereCenter;
-uniform float sphereRadius;
+#define MAX_SPHERES 10
+uniform vec3 sphereCenters[MAX_SPHERES];
+uniform float sphereRadii[MAX_SPHERES];
+uniform int sphereCount;
 uniform bool sphereEnabled;
 uniform vec3 cubeCenter;
 uniform vec3 cubeHalfSize;
@@ -314,14 +316,19 @@ void main() {
   // 2. Compute shadow mapping (attenuation factor) for active obstacles:
   if (sphereEnabled) {
     // Analytical soft sphere shadows: computes shadow cone alignment
-    vec3 dir = (sphereCenter - newPos) / sphereRadius;
-    vec3 area = cross(dir, refractedLight);
-    float shadow = dot(area, area);
-    float dist = dot(dir, -refractedLight);
-    shadow = 1.0 + (shadow - 1.0) / (0.05 + dist * 0.025);
-    shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);
-    shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
-    gl_FragColor.g = shadow;
+    float shadowAccum = 1.0;
+    for (int i = 0; i < MAX_SPHERES; i++) {
+      if (i >= sphereCount) break;
+      vec3 dir = (sphereCenters[i] - newPos) / sphereRadii[i];
+      vec3 area = cross(dir, refractedLight);
+      float shadow = dot(area, area);
+      float dist = dot(dir, -refractedLight);
+      shadow = 1.0 + (shadow - 1.0) / (0.05 + dist * 0.025);
+      shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);
+      shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
+      shadowAccum *= shadow;
+    }
+    gl_FragColor.g = shadowAccum;
   } else if (cubeEnabled) {
     // 3x3 shadow map kernel sampling for the cube obstacle
     vec3 shadowRay = -refractedLight;

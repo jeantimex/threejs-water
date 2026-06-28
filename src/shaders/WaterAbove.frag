@@ -25,8 +25,10 @@ const float poolHeight = 1.0; // Pool depth below rest water level
 const float torusKnotShadowRadius = 0.13; // Shadow falloff radius for torus knot
 
 uniform vec3 light;
-uniform vec3 sphereCenter;
-uniform float sphereRadius;
+#define MAX_SPHERES 10
+uniform vec3 sphereCenters[MAX_SPHERES];
+uniform float sphereRadii[MAX_SPHERES];
+uniform int sphereCount;
 uniform bool sphereEnabled;
 uniform vec3 cubeCenter;
 uniform vec3 cubeHalfSize;
@@ -225,28 +227,28 @@ vec3 getTorusKnotNormal(vec3 p, vec3 center) {
  * 2. Diffuse lighting from the underwater sun direction
  * 3. Caustic light patterns when underwater
  */
-vec3 getSphereColor(vec3 point) {
+vec3 getSphereColor(vec3 point, vec3 center, float radius) {
   vec3 color = vec3(0.5); // Base gray color
 
   /**
- * * PROXIMITY AMBIENT OCCLUSION
- *    *
- *    * Darkens the sphere near pool walls and floor to simulate soft shadows
- *    * and reduced ambient light in corners. Uses an inverse power falloff:
- *    *
- *    *   occlusion = 1 - 0.9 / (distance/radius)³
- *    *
- *    * When distance ≈ radius: occlusion ≈ 1 - 0.9 = 0.1 (very dark)
- *    * When distance >> radius: occlusion → 1 (full brightness)
- *    *
- *    * Distances measured from walls (X=±1), back wall (Z=±1), and floor (Y=-poolHeight)
- */
-  color *= 1.0 - 0.6 / pow((1.0 + sphereRadius - abs(point.x)) / sphereRadius, 3.0); // Side walls
-  color *= 1.0 - 0.6 / pow((1.0 + sphereRadius - abs(point.z)) / sphereRadius, 3.0); // Front/back walls
-  color *= 1.0 - 0.6 / pow((point.y + poolHeight + sphereRadius) / sphereRadius, 3.0); // Floor
+   * * PROXIMITY AMBIENT OCCLUSION
+   *    *
+   *    * Darkens the sphere near pool walls and floor to simulate soft shadows
+   *    * and reduced ambient light in corners. Uses an inverse power falloff:
+   *    *
+   *    *   occlusion = 1 - 0.9 / (distance/radius)³
+   *    *
+   *    * When distance ≈ radius: occlusion ≈ 1 - 0.9 = 0.1 (very dark)
+   *    * When distance >> radius: occlusion → 1 (full brightness)
+   *    *
+   *    * Distances measured from walls (X=±1), back wall (Z=±1), and floor (Y=-poolHeight)
+   */
+  color *= 1.0 - 0.6 / pow((1.0 + radius - abs(point.x)) / radius, 3.0); // Side walls
+  color *= 1.0 - 0.6 / pow((1.0 + radius - abs(point.z)) / radius, 3.0); // Front/back walls
+  color *= 1.0 - 0.6 / pow((point.y + poolHeight + radius) / radius, 3.0); // Floor
 
   // Compute sphere surface normal (for a sphere, it's simply the normalized radial direction)
-  vec3 sphereNormal = (point - sphereCenter) / sphereRadius;
+  vec3 sphereNormal = (point - center) / radius;
 
   // Get underwater light direction (refracted sunlight)
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
@@ -338,7 +340,10 @@ vec3 getWallColor(vec3 point) {
 
   scale /= length(point);
   if (sphereEnabled) {
-    scale *= 1.0 - 0.6 / pow(max(length(point - sphereCenter) / sphereRadius, 1.0), 4.0);
+    for (int i = 0; i < MAX_SPHERES; i++) {
+      if (i >= sphereCount) break;
+      scale *= 1.0 - 0.6 / pow(max(length(point - sphereCenters[i]) / sphereRadii[i], 1.0), 4.0);
+    }
   } else if (cubeEnabled) {
     float cubeDistance = length((point - cubeCenter) / cubeHalfSize);
     scale *= 1.0 - 0.6 / pow(max(cubeDistance, 1.0), 4.0);
@@ -430,9 +435,18 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
 
   // Test intersections with all scene objects and find the nearest hit
-  float sphereDistance = sphereEnabled
-    ? intersectSphere(origin, ray, sphereCenter, sphereRadius)
-    : 1.0e6;
+  int hitSphereIndex = -1;
+  float sphereDistance = 1.0e6;
+  if (sphereEnabled) {
+    for (int i = 0; i < MAX_SPHERES; i++) {
+      if (i >= sphereCount) break;
+      float d = intersectSphere(origin, ray, sphereCenters[i], sphereRadii[i]);
+      if (d < sphereDistance) {
+        sphereDistance = d;
+        hitSphereIndex = i;
+      }
+    }
+  }
 
   vec2 cubeIntersection = intersectCube(
     origin,
@@ -463,7 +477,7 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
     // RAY HIT AN OBJECT - shade the hit point
     vec3 hit = origin + ray * objectDistance;
     if (objectDistance == sphereDistance) {
-      color = getSphereColor(hit);
+      color = getSphereColor(hit, sphereCenters[hitSphereIndex], sphereRadii[hitSphereIndex]);
     } else if (objectDistance == cubeDistance) {
       color = getCubeColor(hit);
     } else {

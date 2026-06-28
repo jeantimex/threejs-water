@@ -6,16 +6,16 @@
  * and creates water displacement waves.
  */
 
-uniform vec3 sphereCenter; // World-space center position of the sphere
-uniform float sphereRadius; // Radius of the sphere
-
-varying vec3 vPosition; // World position passed to fragment shader
+varying vec3 vPosition;
+varying vec3 vSphereCenter;
+varying float vSphereRadius;
 
 void main() {
-  // Transform unit sphere (radius=1, center=origin) to world space:
-  // worldPos = center + localPos * radius
-  vPosition = sphereCenter + position.xyz * sphereRadius;
+  vec4 centerWorld = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+  vSphereCenter = centerWorld.xyz;
+  vSphereRadius = length(vec3(instanceMatrix[0][0], instanceMatrix[0][1], instanceMatrix[0][2]));
 
-  // Standard MVP transformation
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(vPosition, 1.0);
+  vec4 worldPos = instanceMatrix * vec4(position, 1.0);
+  vPosition = worldPos.xyz;
+  gl_Position = projectionMatrix * viewMatrix * worldPos;
 }

@@ -23,9 +23,9 @@ const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 // Light direction (normalized, pointing toward sun)
 uniform vec3 light;
 
-// Sphere geometry
-uniform vec3 sphereCenter;
-uniform float sphereRadius;
+// Varyings passed from vertex shader
+varying vec3 vSphereCenter;
+varying float vSphereRadius;
 
 // Pool dimensions for coordinate scaling and AO calculations
 uniform float poolWidth;
@@ -47,7 +47,7 @@ vec3 getSphereColor(vec3 point) {
   vec3 color = vec3(0.5);
 
   // Surface normal of the sphere at this point
-  vec3 sphereNormal = (point - sphereCenter) / sphereRadius;
+  vec3 sphereNormal = (point - vSphereCenter) / vSphereRadius;
 
   // Refracted light direction vector as it passes from air into water
   vec3 refractedLight = refract(-light, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
@@ -60,11 +60,11 @@ vec3 getSphereColor(vec3 point) {
 
   // Approximate ambient occlusion (shadowing) as the sphere gets close to the pool walls:
   // - X-walls:
-  color *= 1.0 - aoStrength / pow((poolWidth + sphereRadius - abs(point.x)) / sphereRadius, 3.0);
+  color *= 1.0 - aoStrength / pow((poolWidth + vSphereRadius - abs(point.x)) / vSphereRadius, 3.0);
   // - Z-walls:
-  color *= 1.0 - aoStrength / pow((poolLength + sphereRadius - abs(point.z)) / sphereRadius, 3.0);
+  color *= 1.0 - aoStrength / pow((poolLength + vSphereRadius - abs(point.z)) / vSphereRadius, 3.0);
   // - Floor Y-wall (using poolHeight to avoid NaN/negative base bugs):
-  color *= 1.0 - aoStrength / pow((point.y + poolHeight + sphereRadius) / sphereRadius, 3.0);
+  color *= 1.0 - aoStrength / pow((point.y + poolHeight + vSphereRadius) / vSphereRadius, 3.0);
 
   // Calculate basic diffuse reflection using the refracted light direction
   float diffuse = max(0.0, dot(-targetRefracted, sphereNormal)) * 0.5;

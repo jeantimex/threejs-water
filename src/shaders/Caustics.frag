@@ -20,8 +20,10 @@ const float IOR_WATER = 1.333;
 const float poolHeight = 1.0;
 
 uniform vec3 light; // Normalized direction TO the light source (sun)
-uniform vec3 sphereCenter; // World-space center of the sphere object
-uniform float sphereRadius; // Radius of the sphere object
+#define MAX_SPHERES 10
+uniform vec3 sphereCenters[MAX_SPHERES];
+uniform float sphereRadii[MAX_SPHERES];
+uniform int sphereCount;
 uniform bool sphereEnabled; // Whether sphere is active in the scene
 uniform vec3 cubeCenter; // World-space center of the cube object
 uniform vec3 cubeHalfSize; // Half-extents (width/2, height/2, depth/2) of the cube
@@ -321,33 +323,32 @@ void main() {
  */
   if (sphereEnabled) {
     /**
- * * ANALYTICAL SPHERE SOFT SHADOW
- *      *
- *      * This technique computes a soft shadow penumbra analytically, avoiding
- *      * multi-sample noise while still producing smooth shadow edges.
- *      *
- *      * Method:
- *      * 1. Compute vector from surface point to sphere center (normalized by radius)
- *      * 2. Cross product with light direction gives "perpendicular area"
- *      * 3. This area metric indicates how much of the sphere subtends the light
- *      * 4. Sigmoid smoothstep creates smooth penumbra transition
- */
-    vec3 dir = (sphereCenter - newPos) / sphereRadius; // Vector to sphere, in radius units
-    vec3 area = cross(dir, refractedLight); // Perpendicular to both
-    float shadow = dot(area, area); // Squared area metric
+     * * ANALYTICAL SPHERE SOFT SHADOW
+     *      *
+     *      * This technique computes a soft shadow penumbra analytically, avoiding
+     *      * multi-sample noise while still producing smooth shadow edges.
+     */
+    float shadowAccum = 1.0;
+    for (int i = 0; i < MAX_SPHERES; i++) {
+      if (i >= sphereCount) break;
+      vec3 dir = (sphereCenters[i] - newPos) / sphereRadii[i]; // Vector to sphere, in radius units
+      vec3 area = cross(dir, refractedLight); // Perpendicular to both
+      float shadow = dot(area, area); // Squared area metric
 
-    // Distance along light direction (positive = sphere is "above" in light direction)
-    float dist = dot(dir, -refractedLight);
+      // Distance along light direction (positive = sphere is "above" in light direction)
+      float dist = dot(dir, -refractedLight);
 
-    // Smooth shadow falloff based on angular subtension
-    shadow = 1.0 + (shadow - 1.0) / (0.05 + dist * 0.025);
+      // Smooth shadow falloff based on angular subtension
+      shadow = 1.0 + (shadow - 1.0) / (0.05 + dist * 0.025);
 
-    // Sigmoid function for smooth umbra/penumbra transition
-    shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);
+      // Sigmoid function for smooth umbra/penumbra transition
+      shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);
 
-    // Fade shadow based on distance (no shadow if sphere is behind the point)
-    shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
-    gl_FragColor.g = shadow;
+      // Fade shadow based on distance (no shadow if sphere is behind the point)
+      shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
+      shadowAccum *= shadow;
+    }
+    gl_FragColor.g = shadowAccum;
 
   } else if (cubeEnabled) {
     /**

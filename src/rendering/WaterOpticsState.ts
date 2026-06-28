@@ -16,10 +16,16 @@ export class WaterOpticsState {
   /** The normalized directional vector of the light source. */
   readonly lightDirection = new THREE.Vector3(2, 2, -1).normalize();
 
-  /** The center coordinate of the sphere obstacle. */
+  /** The center coordinate of the sphere obstacle (fallback). */
   readonly sphereCenter = new THREE.Vector3();
-  /** The radius of the sphere obstacle. */
+  /** The radius of the sphere obstacle (fallback). */
   sphereRadius = 0.25;
+  /** The centers of the instanced spheres. */
+  readonly sphereCenters: THREE.Vector3[] = Array.from({ length: 10 }, () => new THREE.Vector3());
+  /** The radii of the instanced spheres. */
+  readonly sphereRadii: number[] = Array(10).fill(0.25);
+  /** The number of active spheres. */
+  sphereCount = 0;
   /** Whether the sphere obstacle is currently enabled. */
   sphereEnabled = false;
 
@@ -57,8 +63,15 @@ export class WaterOpticsState {
     this.meshEnabled = false;
 
     if (optics.kind === 'sphere') {
-      this.sphereCenter.copy(optics.center);
-      this.sphereRadius = optics.radius;
+      this.sphereCount = optics.count;
+      for (let i = 0; i < optics.count; i++) {
+        this.sphereCenters[i].copy(optics.centers[i]);
+        this.sphereRadii[i] = optics.radii[i];
+      }
+      if (optics.count > 0) {
+        this.sphereCenter.copy(optics.centers[0]);
+        this.sphereRadius = optics.radii[0];
+      }
       this.sphereEnabled = true;
     } else if (optics.kind === 'box') {
       this.cubeCenter.copy(optics.center);
@@ -85,6 +98,9 @@ export class WaterOpticsState {
     return {
       sphereCenter: { value: this.sphereCenter.clone() },
       sphereRadius: { value: this.sphereRadius },
+      sphereCenters: { value: this.sphereCenters.map(c => c.clone()) },
+      sphereRadii: { value: [...this.sphereRadii] },
+      sphereCount: { value: this.sphereCount },
       sphereEnabled: { value: this.sphereEnabled },
       cubeCenter: { value: this.cubeCenter.clone() },
       cubeHalfSize: { value: this.cubeHalfSize.clone() },
@@ -105,12 +121,31 @@ export class WaterOpticsState {
    * @param material The ShaderMaterial to sync state to.
    */
   syncUniforms(material: THREE.ShaderMaterial) {
-    material.uniforms.sphereCenter.value.copy(this.sphereCenter);
-    material.uniforms.sphereRadius.value = this.sphereRadius;
-    material.uniforms.sphereEnabled.value = this.sphereEnabled;
-    material.uniforms.cubeCenter.value.copy(this.cubeCenter);
-    material.uniforms.cubeHalfSize.value.copy(this.cubeHalfSize);
-    material.uniforms.cubeEnabled.value = this.cubeEnabled;
+    if (material.uniforms.sphereCenter) {
+      material.uniforms.sphereCenter.value.copy(this.sphereCenter);
+    }
+    if (material.uniforms.sphereRadius) {
+      material.uniforms.sphereRadius.value = this.sphereRadius;
+    }
+    if (material.uniforms.sphereCenters) {
+      for (let i = 0; i < this.sphereCount; i++) {
+        material.uniforms.sphereCenters.value[i].copy(this.sphereCenters[i]);
+      }
+      material.uniforms.sphereRadii.value = [...this.sphereRadii];
+      material.uniforms.sphereCount.value = this.sphereCount;
+    }
+    if (material.uniforms.sphereEnabled) {
+      material.uniforms.sphereEnabled.value = this.sphereEnabled;
+    }
+    if (material.uniforms.cubeCenter) {
+      material.uniforms.cubeCenter.value.copy(this.cubeCenter);
+    }
+    if (material.uniforms.cubeHalfSize) {
+      material.uniforms.cubeHalfSize.value.copy(this.cubeHalfSize);
+    }
+    if (material.uniforms.cubeEnabled) {
+      material.uniforms.cubeEnabled.value = this.cubeEnabled;
+    }
     if (material.uniforms.torusKnotCenter) {
       material.uniforms.torusKnotCenter.value.copy(this.torusKnotCenter);
     }
