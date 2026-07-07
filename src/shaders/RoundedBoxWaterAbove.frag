@@ -442,7 +442,7 @@ vec3 getWallColor(vec3 point) {
     for (int i = 0; i < MAX_TORUS_KNOTS; i++) {
       if (i >= torusKnotCount) break;
       float knotDistance = length(point - torusKnotCenters[i]);
-      scale *= 1.0 - 0.6 / pow(max(knotDistance / 0.4, 1.0), 2.0);
+      scale *= 1.0 - 0.6 / pow(max(knotDistance / torusKnotShadowRadius, 1.0), 4.0);
     }
   } else if (meshEnabled) {
     for (int i = 0; i < MAX_MESHES; i++) {
@@ -544,22 +544,18 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
       }
     }
   }
+  // Trace torus knot for all rays - check all knots without bounding sphere pre-filter
+  // to avoid circular artifact at bounding sphere boundary
   float torusKnotDistance = 1.0e6;
   int hitTorusKnotIndex = -1;
-  if (torusKnotEnabled && ray.y > 0.0) {
-    float nearestBoundDist = 1.0e6;
-    int nearestBoundIndex = -1;
+  if (torusKnotEnabled) {
     for (int i = 0; i < MAX_TORUS_KNOTS; i++) {
       if (i >= torusKnotCount) break;
-      float t_bound = intersectSphereBounds(origin, ray, torusKnotCenters[i], 0.4);
-      if (t_bound < nearestBoundDist) {
-        nearestBoundDist = t_bound;
-        nearestBoundIndex = i;
+      float dist = intersectTorusKnot(origin, ray, torusKnotCenters[i]);
+      if (dist < torusKnotDistance) {
+        torusKnotDistance = dist;
+        hitTorusKnotIndex = i;
       }
-    }
-    if (nearestBoundIndex != -1) {
-      torusKnotDistance = intersectTorusKnot(origin, ray, torusKnotCenters[nearestBoundIndex]);
-      hitTorusKnotIndex = nearestBoundIndex;
     }
   }
 
@@ -636,43 +632,34 @@ void main() {
   vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, abovewaterColor);
 
   // 5. Model projection blending: Blend in rasterized reflection/refraction textures for complex models (e.g. Duck)
+  // For torus knots: only blend texture when knot is above water (partially emerged)
+  // When fully submerged, rely on SDF ray tracing to avoid circular bounding sphere artifact
   if (torusKnotEnabled) {
-    float nearestHit = 1.0e6;
-    int nearestIndex = -1;
+    // Check if any torus knot is above water surface (needs texture blending for above-water portion)
     for (int i = 0; i < MAX_TORUS_KNOTS; i++) {
       if (i >= torusKnotCount) break;
-      float hit = intersectSphereBounds(vPosition, refractedRay, torusKnotCenters[i], 0.31);
-      if (hit < nearestHit) {
-        nearestHit = hit;
-        nearestIndex = i;
+      vec4 knotWaterInfo = texture2D(water, torusKnotCenters[i].xz * 0.5 + 0.5);
+      // Only blend texture if this knot's center is above the local water height
+      if (torusKnotCenters[i].y > knotWaterInfo.r) {
+        float hit = intersectSphereBounds(vPosition, refractedRay, torusKnotCenters[i], 0.31);
+        if (hit < 1.0e6) {
+          vec4 refractedObject = sampleProjectedTexture(
+            objectRefractionTex,
+            viewProjectionMatrix,
+            vPosition + refractedRay * hit
+          );
+          refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
+        }
+        hit = intersectSphereBounds(vPosition, reflectedRay, torusKnotCenters[i], 0.31);
+        if (hit < 1.0e6) {
+          vec4 reflectedObject = sampleProjectedTexture(
+            objectClippedReflectionTex,
+            reflectionViewProjectionMatrix,
+            vPosition + reflectedRay * hit
+          );
+          reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
+        }
       }
-    }
-    if (nearestIndex != -1) {
-      vec4 refractedObject = sampleProjectedTexture(
-        objectRefractionTex,
-        viewProjectionMatrix,
-        vPosition + refractedRay * nearestHit
-      );
-      refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
-    }
-
-    nearestHit = 1.0e6;
-    nearestIndex = -1;
-    for (int i = 0; i < MAX_TORUS_KNOTS; i++) {
-      if (i >= torusKnotCount) break;
-      float hit = intersectSphereBounds(vPosition, reflectedRay, torusKnotCenters[i], 0.31);
-      if (hit < nearestHit) {
-        nearestHit = hit;
-        nearestIndex = i;
-      }
-    }
-    if (nearestIndex != -1) {
-      vec4 reflectedObject = sampleProjectedTexture(
-        objectClippedReflectionTex,
-        reflectionViewProjectionMatrix,
-        vPosition + reflectedRay * nearestHit
-      );
-      reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
     }
   } else if (meshEnabled) {
     float nearestHit = 1.0e6;
