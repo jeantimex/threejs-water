@@ -7,6 +7,7 @@
 
 import * as THREE from 'three';
 import type { WaterOpticsDescriptor } from '../water/WaterOptics';
+import type { MeshWaterRayTracing } from '../water/MeshWaterRayTracing';
 
 /**
  * Tracks the state of the active objects interacting with the water light rays
@@ -63,6 +64,7 @@ export class WaterOpticsState {
   meshShadowRadius = 0.25;
   /** Whether the custom mesh obstacle is currently enabled. */
   meshEnabled = false;
+  meshRayTracing: MeshWaterRayTracing | null = null;
 
   /**
    * Applies a WaterOpticsDescriptor to transition this state to represent the selected shape.
@@ -75,6 +77,7 @@ export class WaterOpticsState {
     this.cubeEnabled = false;
     this.torusKnotEnabled = false;
     this.meshEnabled = false;
+    this.meshRayTracing = null;
 
     if (optics.kind === 'sphere') {
       this.sphereCount = optics.count;
@@ -108,6 +111,7 @@ export class WaterOpticsState {
       }
       this.torusKnotEnabled = true;
     } else if (optics.kind === 'mesh') {
+      this.meshRayTracing = optics.rayTracing;
       this.meshCount = optics.count;
       for (let i = 0; i < optics.count; i++) {
         this.meshCenters[i].copy(optics.centers[i]);

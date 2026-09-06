@@ -10,6 +10,7 @@ import {
 } from '../water/WaterDisplacement';
 import type { ObjectUpdateContext, SimulationObject } from './SimulationObject';
 import { clampAndMoveObject, updatePhysics } from './SimulationObjectUtils';
+import { MeshWaterRayTracing } from '../water/MeshWaterRayTracing';
 
 /**
  * Represents multiple instanced Rubber Duck obstacles in the water simulation.
@@ -56,6 +57,7 @@ export class DuckObject implements SimulationObject {
       boundingRadius: this.boundingRadius,
       centers: this.positions,
       count: this.instanceCount,
+      rayTracing: this.rayTracing,
     };
   }
 
@@ -66,6 +68,7 @@ export class DuckObject implements SimulationObject {
   private material: THREE.ShaderMaterial | null = null;
   private loaded = false;
   private baseMatrix = new THREE.Matrix4();
+  private rayTracing: MeshWaterRayTracing | null = null;
 
   constructor(private readonly resources: SimulationObjectRenderResources) {
     this.mesh = new THREE.Group();
@@ -172,6 +175,13 @@ export class DuckObject implements SimulationObject {
       offsetTranslation.y -= box.min.y * scale;
       this.baseMatrix.setPosition(offsetTranslation);
       this.baseMatrix.multiply(localMatrix);
+
+      // Bake the same normalization used by instance matrices into the optical geometry.
+      const opticalGeometry = (duckGeometry as THREE.BufferGeometry).clone();
+      opticalGeometry.applyMatrix4(this.baseMatrix);
+      opticalGeometry.clearGroups();
+      this.rayTracing = new MeshWaterRayTracing(opticalGeometry, texture);
+      opticalGeometry.dispose();
 
       // Create InstancedMesh using the extracted geometry and custom shader material
       this.instancedMesh = new THREE.InstancedMesh(duckGeometry, this.material, this.maxDucks);

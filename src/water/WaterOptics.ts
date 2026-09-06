@@ -5,6 +5,7 @@
  */
 
 import type * as THREE from 'three';
+import type { MeshWaterRayTracing } from './MeshWaterRayTracing';
 
 /**
  * Union type representing the shape descriptor for objects that interact with light
@@ -54,6 +55,8 @@ export type WaterOpticsDescriptor =
   /** Represents a custom mesh optical physical shape in the water. */
   | {
       kind: 'mesh';
+      /** Triangle data shared by the mesh instances, available once the asset loads. */
+      rayTracing: MeshWaterRayTracing | null;
       /** The world space center position of the custom mesh (fallback). */
       center: THREE.Vector3;
       /** Bounding radius of the mesh for physics or intersection approximation. */

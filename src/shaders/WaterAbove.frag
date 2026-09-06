@@ -58,6 +58,10 @@ uniform mat4 reflectionViewProjectionMatrix;
 
 varying vec3 vPosition;
 
+const float poolWidth = 1.0;
+const float poolLength = 1.0;
+#include "./MeshWaterOptics.glsl"
+
 /**
  * Calculates intersections of a ray with the pool bounding box limits.
  */
@@ -505,11 +509,22 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   }
 
   // Find nearest object intersection
-  float objectDistance = min(min(sphereDistance, cubeDistance), torusKnotDistance);
+  float meshDistance = 1.0e6;
+#if USE_MESH_RAY_TRACING
+  vec3 meshNormal = vec3(0.0);
+  vec2 meshUv = vec2(0.0);
+  intersectMeshInstances(origin, ray, meshDistance, meshNormal, meshUv);
+#endif
+  float objectDistance = min(meshDistance, min(min(sphereDistance, cubeDistance), torusKnotDistance));
 
   if (objectDistance < 1.0e6) {
     // RAY HIT AN OBJECT - shade the hit point
     vec3 hit = origin + ray * objectDistance;
+#if USE_MESH_RAY_TRACING
+    if (objectDistance == meshDistance) {
+      color = getDuckColor(hit, meshNormal, meshUv);
+    } else
+#endif
     if (objectDistance == sphereDistance) {
       color = getSphereColor(hit, sphereCenters[hitSphereIndex], sphereRadii[hitSphereIndex]);
     } else if (objectDistance == cubeDistance) {
@@ -675,44 +690,6 @@ void main() {
           reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
         }
       }
-    }
-  } else if (meshEnabled) {
-    float nearestHit = 1.0e6;
-    int nearestIndex = -1;
-    for (int i = 0; i < MAX_MESHES; i++) {
-      if (i >= meshCount) break;
-      float hit = intersectSphereBounds(vPosition, refractedRay, meshCenters[i], meshBoundingRadius);
-      if (hit < nearestHit) {
-        nearestHit = hit;
-        nearestIndex = i;
-      }
-    }
-    if (nearestIndex != -1) {
-      vec4 refractedObject = sampleProjectedTexture(
-        objectRefractionTex,
-        viewProjectionMatrix,
-        vPosition + refractedRay * nearestHit
-      );
-      refractedColor = mix(refractedColor, refractedObject.rgb, refractedObject.a);
-    }
-
-    nearestHit = 1.0e6;
-    nearestIndex = -1;
-    for (int i = 0; i < MAX_MESHES; i++) {
-      if (i >= meshCount) break;
-      float hit = intersectSphereBounds(vPosition, reflectedRay, meshCenters[i], meshBoundingRadius);
-      if (hit < nearestHit) {
-        nearestHit = hit;
-        nearestIndex = i;
-      }
-    }
-    if (nearestIndex != -1) {
-      vec4 reflectedObject = sampleProjectedTexture(
-        objectClippedReflectionTex,
-        reflectionViewProjectionMatrix,
-        vPosition + reflectedRay * nearestHit
-      );
-      reflectedColor = mix(reflectedColor, reflectedObject.rgb, reflectedObject.a);
     }
   }
 

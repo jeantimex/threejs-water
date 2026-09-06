@@ -92,7 +92,12 @@ export class Renderer {
     renderableObject: THREE.Object3D | null
   ) {
     const needsObjectTextures = this.opticsState.torusKnotEnabled || this.opticsState.meshEnabled;
-    this.objectTextures.update(scene, camera, needsObjectTextures ? renderableObject : null);
+    this.objectTextures.update(
+      scene,
+      camera,
+      needsObjectTextures ? renderableObject : null,
+      this.opticsState.torusKnotEnabled
+    );
   }
 
   /**

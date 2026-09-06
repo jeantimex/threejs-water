@@ -6,6 +6,7 @@
  */
 
 import * as THREE from 'three';
+import { BVHShaderGLSL } from 'three-mesh-bvh';
 import type { Water } from '../Water';
 import waterAboveVert from '../shaders/WaterAbove.vert';
 import waterAboveFrag from '../shaders/WaterAbove.frag';
@@ -204,8 +205,20 @@ export class WaterSurfacePass {
   ) {
     return new THREE.ShaderMaterial({
       vertexShader,
-      fragmentShader,
+      fragmentShader: fragmentShader.replace(
+        '#define MESH_BVH_IMPLEMENTATION',
+        [
+          BVHShaderGLSL.bvh_struct_definitions,
+          BVHShaderGLSL.common_functions,
+          BVHShaderGLSL.bvh_ray_functions,
+        ].join('\n')
+      ),
+      defines: { USE_MESH_RAY_TRACING: 0 },
       uniforms: {
+        meshBVH: { value: null },
+        meshNormalAttribute: { value: null },
+        meshUvAttribute: { value: null },
+        modelTexture: { value: null },
         light: { value: this.state.lightDirection.clone() },
         ...this.state.createUniforms(),
         tiles: { value: tileTexture },
@@ -234,6 +247,18 @@ export class WaterSurfacePass {
     eye: THREE.Vector3,
     objectMatrices: ObjectTextureMatrices
   ) {
+    const rayTracing = this.state.meshRayTracing;
+    const useMeshRayTracing = rayTracing ? 1 : 0;
+    if (material.defines.USE_MESH_RAY_TRACING !== useMeshRayTracing) {
+      material.defines.USE_MESH_RAY_TRACING = useMeshRayTracing;
+      material.needsUpdate = true;
+    }
+    if (rayTracing) {
+      material.uniforms.meshBVH.value = rayTracing.bvh;
+      material.uniforms.meshNormalAttribute.value = rayTracing.normals;
+      material.uniforms.meshUvAttribute.value = rayTracing.uvs;
+      material.uniforms.modelTexture.value = rayTracing.texture;
+    }
     material.uniforms.water.value = water.textureA.texture;
     material.uniforms.eye.value.copy(eye);
     material.uniforms.light.value.copy(this.state.lightDirection);

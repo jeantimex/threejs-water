@@ -152,11 +152,13 @@ export class ObjectTexturePass {
    * @param scene The global scene instance.
    * @param camera The user/rendering camera.
    * @param renderableObject The specific object (e.g. sphere, box) to render passes for.
+   * @param renderSurfaceTextures Whether water optics need projected color textures.
    */
   update(
     scene: THREE.Scene,
     camera: THREE.PerspectiveCamera,
-    renderableObject: THREE.Object3D | null
+    renderableObject: THREE.Object3D | null,
+    renderSurfaceTextures = true
   ) {
     this.updateViewProjection(camera);
 
@@ -179,9 +181,11 @@ export class ObjectTexturePass {
 
     this.withOnlyObjectVisible(scene, renderableObject, () => {
       this.withTransparentClear(() => {
-        this.renderRefraction(scene, camera, materials);
-        this.renderReflection(scene, camera, materials);
-        this.renderClippedReflection(scene, materials);
+        if (renderSurfaceTextures) {
+          this.renderRefraction(scene, camera, materials);
+          this.renderReflection(scene, camera, materials);
+          this.renderClippedReflection(scene, materials);
+        }
         this.renderShadow(scene);
       });
     });
