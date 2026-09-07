@@ -107,6 +107,38 @@ export class CompoundSphereWaterDisplacement implements WaterDisplacementStrateg
     readonly displacementScale: number = 1.0
   ) {}
 
+  moveBatch(
+    water: Water,
+    previousPositions: readonly THREE.Vector3[],
+    positions: readonly THREE.Vector3[],
+    count: number,
+    poolWidth = 1.0,
+    poolLength = 1.0
+  ) {
+    const oldCenters: THREE.Vector3[] = [];
+    const newCenters: THREE.Vector3[] = [];
+    const radii: number[] = [];
+    let moved = false;
+    for (let i = 0; i < Math.min(count, previousPositions.length, positions.length); i++) {
+      if (previousPositions[i].distanceToSquared(positions[i]) > 1e-10) moved = true;
+      for (const sphere of this.spheres) {
+        oldCenters.push(this.previousCenter.copy(previousPositions[i]).add(sphere.offset).clone());
+        newCenters.push(this.center.copy(positions[i]).add(sphere.offset).clone());
+        radii.push(sphere.radius);
+      }
+    }
+    if (moved && oldCenters.length > 0) {
+      water.moveSpheres(
+        oldCenters,
+        newCenters,
+        radii,
+        this.displacementScale,
+        poolWidth,
+        poolLength
+      );
+    }
+  }
+
   /**
    * Displaces water by iterating over all child spheres and accumulating their displacements.
    */

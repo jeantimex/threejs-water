@@ -8,6 +8,7 @@ import waterNormalFrag from './shaders/WaterNormal.frag';
 import sphereDisplacementVert from './shaders/Sphere.vert';
 import sphereDisplacementFrag from './shaders/Sphere.frag';
 import boxDisplacementFrag from './shaders/BoxDisplacement.frag';
+import compoundSphereDisplacementFrag from './shaders/CompoundSphereDisplacement.frag';
 
 /**
  * Manages the interactive 2D heightmap-based water wave simulation.
@@ -48,6 +49,7 @@ export class Water {
   private normalMaterial: THREE.ShaderMaterial;
   private sphereMaterial: THREE.ShaderMaterial;
   private moveCubeMaterial: THREE.ShaderMaterial;
+  private compoundSphereMaterial: THREE.ShaderMaterial;
 
   constructor(renderer: THREE.WebGLRenderer) {
     this.renderer = renderer;
@@ -135,10 +137,52 @@ export class Water {
       },
     });
 
+    this.compoundSphereMaterial = new THREE.ShaderMaterial({
+      vertexShader: sphereDisplacementVert,
+      fragmentShader: compoundSphereDisplacementFrag,
+      uniforms: {
+        tInput: { value: null },
+        oldCenters: { value: Array.from({ length: 120 }, () => new THREE.Vector3()) },
+        newCenters: { value: Array.from({ length: 120 }, () => new THREE.Vector3()) },
+        radii: { value: Array(120).fill(0) },
+        sphereCount: { value: 0 },
+        displacementScale: { value: 1.0 },
+        poolWidth: { value: 1.0 },
+        poolLength: { value: 1.0 },
+      },
+    });
+
     // Create full screen quad mesh
     this.plane = new THREE.Mesh(geometry, this.dropMaterial);
     this.scene.add(this.plane);
     this.clearTextures();
+  }
+
+  moveSpheres(
+    oldCenters: readonly THREE.Vector3[],
+    newCenters: readonly THREE.Vector3[],
+    radii: readonly number[],
+    displacementScale = 1.0,
+    poolWidth = 1.0,
+    poolLength = 1.0
+  ) {
+    const count = Math.min(oldCenters.length, newCenters.length, radii.length, 120);
+    this.plane.material = this.compoundSphereMaterial;
+    const uniforms = this.compoundSphereMaterial.uniforms;
+    uniforms.tInput.value = this.textureA.texture;
+    uniforms.sphereCount.value = count;
+    uniforms.displacementScale.value = displacementScale;
+    uniforms.poolWidth.value = poolWidth;
+    uniforms.poolLength.value = poolLength;
+    for (let i = 0; i < count; i++) {
+      uniforms.oldCenters.value[i].copy(oldCenters[i]);
+      uniforms.newCenters.value[i].copy(newCenters[i]);
+      uniforms.radii.value[i] = radii[i];
+    }
+    this.renderer.setRenderTarget(this.textureB);
+    this.renderer.render(this.scene, this.camera);
+    this.renderer.setRenderTarget(null);
+    this.swapTextures();
   }
 
   private getSimulationTextureType() {

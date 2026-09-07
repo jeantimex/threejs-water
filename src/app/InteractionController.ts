@@ -44,6 +44,8 @@ export class InteractionController {
   private readonly touchPointers = new Map<number, THREE.Vector2>();
   private pinchDistance: number | null = null;
   private pinching = false;
+  private pendingMove: { x: number; y: number; time: number } | null = null;
+  private moveFrame = 0;
   // Flag indicating if user is holding the 'L' key to position the sun/light direction
   private settingLightDirection = false;
 
@@ -182,8 +184,6 @@ export class InteractionController {
       );
       renderer.setWaterOptics(objects.optics);
       this.previousHit = nextHit;
-
-      if (controls.paused) renderer.updateCaustics(water);
     } else if (this.mode === InteractionMode.OrbitCamera) {
       // Orbit camera rotation
       cameraController.orbitTo(x, y, time);
@@ -199,6 +199,11 @@ export class InteractionController {
     this.mode = InteractionMode.None;
     this.previousHit = null;
     this.dragPlaneNormal = null;
+    this.pendingMove = null;
+    if (this.moveFrame !== 0) {
+      cancelAnimationFrame(this.moveFrame);
+      this.moveFrame = 0;
+    }
   }
 
   /**
@@ -254,6 +259,20 @@ export class InteractionController {
     }
     if (event.pointerId !== this.activePointerId) return;
     event.preventDefault();
+    if (this.mode === InteractionMode.MoveObject) {
+      this.pendingMove = { x: event.clientX, y: event.clientY, time: event.timeStamp };
+      if (this.moveFrame === 0) {
+        this.moveFrame = requestAnimationFrame(() => {
+          this.moveFrame = 0;
+          const move = this.pendingMove;
+          this.pendingMove = null;
+          if (move && this.activePointerId !== null && this.mode === InteractionMode.MoveObject) {
+            this.duringDrag(move.x, move.y, move.time);
+          }
+        });
+      }
+      return;
+    }
     this.duringDrag(event.clientX, event.clientY, event.timeStamp);
   };
 
@@ -274,6 +293,11 @@ export class InteractionController {
     }
 
     if (wasActive) {
+      if (this.mode === InteractionMode.MoveObject && this.pendingMove) {
+        const move = this.pendingMove;
+        this.pendingMove = null;
+        this.duringDrag(move.x, move.y, move.time);
+      }
       if (this.mode === InteractionMode.OrbitCamera) {
         this.dependencies.cameraController.endOrbit(event.timeStamp);
       }

@@ -43,7 +43,7 @@ export class TorusKnotObject implements SimulationObject {
 
   // Displacement strategy mapping multiple overlapping spheres to water heightmap adjustments
   readonly displacement: CompoundSphereWaterDisplacement;
-  
+
   // Optics description for raytracing reflections/refractions in the water shader
   get optics() {
     return {
@@ -91,9 +91,12 @@ export class TorusKnotObject implements SimulationObject {
     // Construct TorusKnot geometry
     const geometry = new THREE.TorusKnotGeometry(0.17, 0.045, 64, 8);
     geometry.rotateX(Math.PI / 2); // Orient it flat with the water surface
-    
+
     // Expand bounds to cover the entire pool so InstancedMesh raycasting / culling succeeds
-    geometry.boundingBox = new THREE.Box3(new THREE.Vector3(-2, -2, -2), new THREE.Vector3(2, 2, 2));
+    geometry.boundingBox = new THREE.Box3(
+      new THREE.Vector3(-2, -2, -2),
+      new THREE.Vector3(2, 2, 2)
+    );
     geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 4.0);
 
     // InstancedMesh setup
@@ -131,12 +134,13 @@ export class TorusKnotObject implements SimulationObject {
   setEnabled(enabled: boolean, water: Water) {
     if (!enabled) {
       if (this.enabled) {
+        const oldPositions = this.positions.map((position) => position.clone());
         for (let i = 0; i < this.maxTorusKnots; i++) {
           const inactivePosition = this.getInactivePosition(i);
-          this.displacement.move(water, this.positions[i], inactivePosition);
           this.positions[i].copy(inactivePosition);
           this.velocities[i].set(0, 0, 0);
         }
+        this.displacement.moveBatch(water, oldPositions, this.positions, this.maxTorusKnots);
         this.draggedInstanceIndex = null;
         this.enabled = false;
         this.mesh.visible = false;
@@ -153,6 +157,7 @@ export class TorusKnotObject implements SimulationObject {
       new THREE.Vector3(0.45, 0, -0.45),
       new THREE.Vector3(-0.45, 0, 0.45),
     ];
+    const oldPositions = this.positions.map((position) => position.clone());
 
     for (let i = 0; i < this.maxTorusKnots; i++) {
       const inactivePosition = this.getInactivePosition(i);
@@ -170,15 +175,14 @@ export class TorusKnotObject implements SimulationObject {
 
         this.velocities[i].set(0, 0, 0);
 
-        this.displacement.move(water, inactivePosition, this.positions[i]);
         this.previousPositions[i].copy(this.positions[i]);
       } else {
-        this.displacement.move(water, this.positions[i], inactivePosition);
         this.positions[i].copy(inactivePosition);
         this.velocities[i].set(0, 0, 0);
         this.previousPositions[i].copy(inactivePosition);
       }
     }
+    this.displacement.moveBatch(water, oldPositions, this.positions, this.maxTorusKnots);
 
     this.mesh.count = this.instanceCount;
     this.mesh.visible = this.instanceCount > 0;
@@ -202,10 +206,10 @@ export class TorusKnotObject implements SimulationObject {
     if (!this.enabled) return;
 
     for (let i = 0; i < this.instanceCount; i++) {
-      const isDragged = (i === this.draggedInstanceIndex && context.dragging);
+      const isDragged = i === this.draggedInstanceIndex && context.dragging;
       const knotContext = {
         ...context,
-        dragging: isDragged
+        dragging: isDragged,
       };
 
       updatePhysics(
@@ -216,16 +220,16 @@ export class TorusKnotObject implements SimulationObject {
         this.boundingRadius,
         this.floorClearance
       );
-
-      this.displacement.move(
-        water,
-        this.previousPositions[i],
-        this.positions[i],
-        context.poolWidth,
-        context.poolLength
-      );
-      this.previousPositions[i].copy(this.positions[i]);
     }
+    this.displacement.moveBatch(
+      water,
+      this.previousPositions,
+      this.positions,
+      this.instanceCount,
+      context.poolWidth,
+      context.poolLength
+    );
+    for (let i = 0; i < this.instanceCount; i++) this.previousPositions[i].copy(this.positions[i]);
   }
 
   /**
@@ -233,10 +237,10 @@ export class TorusKnotObject implements SimulationObject {
    */
   hitTest(origin: THREE.Vector3, direction: THREE.Vector3): THREE.Vector3 | null {
     if (!this.enabled) return null;
-    
+
     this.mesh.updateMatrixWorld(true);
     this.raycaster.set(origin, direction);
-    
+
     // We only search for hits within the active count range
     const intersects = this.raycaster.intersectObject(this.mesh);
     if (intersects.length > 0) {
@@ -247,7 +251,7 @@ export class TorusKnotObject implements SimulationObject {
         }
       }
     }
-    
+
     return null;
   }
 

@@ -102,7 +102,7 @@ float sdTorusKnot(vec3 p, vec3 center) {
     return d_bound;
   }
   float minDist = 1.0e6;
-  const int segments = 64;
+  const int segments = 32;
   const float radius = 0.17;
   const float tube = 0.045;
   const float p_knot = 2.0;
@@ -137,7 +137,7 @@ float intersectTorusKnot(vec3 origin, vec3 ray, vec3 center) {
   if (t_bound > 1.0e5) return 1.0e6;
 
   float t = t_bound;
-  for (int i = 0; i < 30; i++) {
+  for (int i = 0; i < 18; i++) {
     vec3 p = origin + ray * t;
     float d = sdTorusKnot(p, center);
     if (d < 0.001) {
