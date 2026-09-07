@@ -107,7 +107,8 @@ export class TorusKnotObject implements SimulationObject {
 
     // Generate compound spheres for water displacement:
     // We sample 24 points along the knot's path and place displacement spheres
-    // of radius `tube * 2.0` (0.09) to approximate a continuous curved tube body.
+    // of radius close to the rendered tube so overlapping samples do not
+    // over-accumulate displacement in the same water column.
     const spheres = [];
     const segments = 24;
     const radius = 0.17;
@@ -122,9 +123,11 @@ export class TorusKnotObject implements SimulationObject {
       const y = -radius * Math.sin(q * theta) * 0.5;
       spheres.push({
         offset: new THREE.Vector3(x, y, z),
-        radius: tube * 2.0, // slightly larger to prevent gaps between segments
+        radius: tube * 1.2,
       });
     }
+    // The smaller sample radius controls overlap; retain enough aggregate
+    // strength for the torus to displace water comparably to other shapes.
     this.displacement = new CompoundSphereWaterDisplacement(spheres, 0.15);
   }
 
